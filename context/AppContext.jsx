@@ -27,7 +27,7 @@ export const AppContextProvider = (props) => {
 
   const fetchProductData = async () => {
     try {
-      const { data } = await axios.get("api/product/list");
+      const { data } = await axios.get("/api/product/list");
       if (data.success) {
         setProducts(data.products);
       } else {
@@ -45,7 +45,7 @@ export const AppContextProvider = (props) => {
       }
 
       const token = await getToken();
-      const { data } = await axios.get("api/user/data", {
+      const { data } = await axios.get("/api/user/data", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
