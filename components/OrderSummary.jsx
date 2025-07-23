@@ -3,6 +3,57 @@ import { useAppContext } from "@/context/AppContext";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, useStripe } from "@stripe/react-stripe-js";
+
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
+
+const CheckoutButton = ({ selectedAddress, cartItems, getToken }) => {
+  const stripe = useStripe();
+
+  const handleCheckout = async () => {
+    if (!stripe) return;
+    if (!selectedAddress) {
+      return toast.error("Please select an address");
+    }
+    let cartItemsArray = Object.keys(cartItems).map((key) => ({
+      product: key,
+      quantity: cartItems[key],
+    }));
+    cartItemsArray = cartItemsArray.filter((item) => item.quantity > 0);
+    if (cartItemsArray.length === 0) {
+      return toast.error("Your cart is empty");
+    }
+
+    try {
+      const token = await getToken();
+      const { data } = await axios.post(
+        "/api/stripe/create-session",
+        { items: cartItemsArray, address: selectedAddress._id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        const { error } = await stripe.redirectToCheckout({
+          sessionId: data.sessionId,
+        });
+        if (error) toast.error(error.message);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCheckout}
+      className="w-full bg-orange-600 text-white py-3 mt-5 hover:bg-orange-700"
+    >
+      Checkout
+    </button>
+  );
+};
 
 const OrderSummary = () => {
   const {
@@ -45,46 +96,6 @@ const OrderSummary = () => {
     setIsDropdownOpen(false);
   };
 
-  const createOrder = async () => {
-    try {
-      if (!selectedAddress) {
-        return toast.error("Please select an address");
-      }
-
-      let cartItemsArray = Object.keys(cartItems).map((key) => ({
-        product: key,
-        quantity: cartItems[key],
-      }));
-
-      cartItemsArray = cartItemsArray.filter((item) => item.quantity > 0);
-
-      if (cartItemsArray.length === 0) {
-        return toast.error("Your cart is empty");
-      }
-
-      const token = await getToken();
-      const { data } = await axios.post(
-        "/api/order/create",
-        {
-          address: selectedAddress._id,
-          items: cartItemsArray,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (data.success) {
-        toast.success(data.message);
-        setCartItems({});
-        router.push("/order-placed");
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
 
   useEffect(() => {
     if (user) {
@@ -201,12 +212,13 @@ const OrderSummary = () => {
         </div>
       </div>
 
-      <button
-        onClick={createOrder}
-        className="w-full bg-orange-600 text-white py-3 mt-5 hover:bg-orange-700"
-      >
-        Place Order
-      </button>
+      <Elements stripe={stripePromise}>
+        <CheckoutButton
+          selectedAddress={selectedAddress}
+          cartItems={cartItems}
+          getToken={getToken}
+        />
+      </Elements>
     </div>
   );
 };
