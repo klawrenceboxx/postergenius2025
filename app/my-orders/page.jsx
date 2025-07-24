@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import OrderConfirmationWithOrders from "./ClientPage";
+import OrderConfirmationWithOrders from "./OrderClient";
 
 export default function MyOrdersPage() {
   return (
