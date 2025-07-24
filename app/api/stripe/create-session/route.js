@@ -8,8 +8,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(request) {
   try {
-    const { userId } = getAuth(request);
-    const { items, address } = await request.json();
+    const auth = getAuth(request);
+    if (!auth.userId) {
+      return NextResponse.json({ success: false, message: "Unauthorized" });
+    }
+    const userId = auth.userId;
+    const { items, address, successUrl, cancelUrl } = await request.json(); // ✅ FIXED
 
     if (!items || items.length === 0 || !address) {
       return NextResponse.json({ success: false, message: "Invalid data" });
@@ -17,36 +21,63 @@ export async function POST(request) {
 
     await connectDB();
 
-    const amount = await items.reduce(async (acc, item) => {
-      const product = await Product.findById(item.product);
-      return (await acc) + product.offerPrice * item.quantity;
-    }, Promise.resolve(0));
+    const products = await Promise.all(
+      items.map(async (item) => {
+        const product = await Product.findById(item.product);
+        return product.offerPrice * item.quantity;
+      })
+    );
+    const amount = products.reduce((acc, val) => acc + val, 0);
+    //replace reduce and aync with promise.all to parallelize DB reads
 
     const origin = new URL(request.url).origin;
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price_data: {
-            currency: "usd",
-            product_data: { name: "Poster Order" },
-            unit_amount: Math.round((amount + Math.floor(amount * 0.13)) * 100),
-          },
-          quantity: 1,
+    const lineItems = [];
+    let cartTotal = 0;
+    for (const item of items) {
+      const product = await Product.findById(item.product);
+      if (!product) continue;
+      const subtotal = product.offerPrice * item.quantity;
+      cartTotal += subtotal;
+      lineItems.push({
+        price_data: {
+          currency: "usd",
+          product_data: { name: product.name },
+          unit_amount: Math.round(product.offerPrice * 100),
         },
-      ],
-      mode: "payment",
-      success_url: `${origin}/order-confirmation?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/cart`,
-      metadata: {
-        items: JSON.stringify(items),
-        address,
-        userId,
-      },
-    });
+        quantity: item.quantity,
+      });
+    }
 
-    return NextResponse.json({ success: true, sessionId: session.id });
+    const subtotal = cartTotal;
+    const tax = parseFloat((subtotal * 0.13).toFixed(2));
+    const total = subtotal + tax;
+    let responseData;
+    if (cartTotal > 50000) {
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(cartTotal * 100),
+        currency: "usd",
+      });
+      responseData = {
+        type: "payment_intent",
+        clientSecret: paymentIntent.client_secret,
+      };
+    } else {
+      const session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: lineItems,
+        success_url: successUrl || process.env.STRIPE_SUCCESS_URL,
+        cancel_url: cancelUrl || process.env.STRIPE_CANCEL_URL,
+      });
+      responseData = {
+        type: "checkout_session",
+        sessionId: session.id,
+        url: session.url,
+      };
+    }
+
+    return NextResponse.json({ success: true, ...responseData });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ success: false, message: error.message });

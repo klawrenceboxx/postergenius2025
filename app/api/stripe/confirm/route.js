@@ -10,7 +10,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 export async function POST(request) {
   try {
-    const { userId } = getAuth(request);
+    const auth = getAuth(request);
+    if (!auth.userId)
+      return NextResponse.json({ success: false, message: "Unauthorized" });
+    const userId = auth.userId;
+    // check to see if user is authtenticated first
+
     const { sessionId } = await request.json();
 
     if (!sessionId) {
@@ -21,16 +26,26 @@ export async function POST(request) {
     const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== "paid") {
-      return NextResponse.json({ success: false, message: "Payment incomplete" });
+      return NextResponse.json({
+        success: false,
+        message: "Payment incomplete",
+      });
     }
 
     const items = JSON.parse(session.metadata.items);
     const address = session.metadata.address;
 
-    const amount = await items.reduce(async (acc, item) => {
+    let amount = 0;
+    if (!items || !Array.isArray(items) || !address) {
+      return NextResponse.json({ success: false, message: "Invalid metadata" });
+    }
+    for (const item of items) {
       const product = await Product.findById(item.product);
-      return (await acc) + product.offerPrice * item.quantity;
-    }, Promise.resolve(0));
+      if (!product) throw new Error("Product not found");
+      amount += product.offerPrice * item.quantity;
+    }
+    // checks to make sure metadata exists, like items and address, as well as prodcuts
+    // uses a for loop to avoid promise chaining that you get with reduce + async
 
     await inngest.send({
       name: "order/created",

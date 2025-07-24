@@ -97,7 +97,7 @@ export const AppContextProvider = (props) => {
         const token = await getToken();
 
         await axios.post(
-          "/package-lock.jsonapi/cart/update",
+          "/api/cart/update",
           { cartData },
           { headers: { Authorization: `Bearer ${token}` } }
         );
