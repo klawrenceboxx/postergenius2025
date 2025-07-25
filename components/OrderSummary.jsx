@@ -173,7 +173,7 @@ const OrderSummary = () => {
             <p>Total</p>
             <p>
               {currency}
-              {total}
+              {total.toFixed(2)}
             </p>
           </div>
         </div>

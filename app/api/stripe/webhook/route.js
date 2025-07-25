@@ -5,6 +5,7 @@ import connectDB from "@/config/db";
 import Product from "@/models/Product";
 import User from "@/models/User";
 import { inngest } from "@/config/inngest";
+import Order from "@/models/Order";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2022-11-15",
@@ -15,12 +16,7 @@ export async function POST(request) {
   let event;
 
   try {
-    console.log("✅ Received Stripe webhook");
-    console.log("Headers:", Object.fromEntries(request.headers.entries()));
-
     const body = await request.text();
-    console.log("Raw body:", body);
-
     event = stripe.webhooks.constructEvent(
       body,
       sig,
@@ -36,6 +32,16 @@ export async function POST(request) {
     try {
       await connectDB();
 
+      // Check if order already exists for this session
+      const existingOrder = await Order.findOne({
+        stripeSessionId: session.id,
+      });
+
+      if (existingOrder) {
+        console.log("Order already exists for session:", session.id);
+        return NextResponse.json({ received: true });
+      }
+
       const userId = session.metadata?.userId;
       const address = session.metadata?.address;
       const items = JSON.parse(session.metadata?.items || "[]");
@@ -47,8 +53,8 @@ export async function POST(request) {
         if (!product) continue;
         cartTotal += product.offerPrice * item.quantity;
       }
-      const tax = Math.floor(cartTotal * 0.13);
-      const total = cartTotal + tax;
+      const tax = Number((cartTotal * 0.13).toFixed(2));
+      const total = Number((cartTotal + tax).toFixed(2));
 
       // Trigger order event
       await inngest.send({
@@ -57,8 +63,11 @@ export async function POST(request) {
           userId,
           address,
           items,
+          subtotal,
+          tax,
           amount: total,
           date: Date.now(),
+          stripeSessionId: session.id,
         },
       });
 

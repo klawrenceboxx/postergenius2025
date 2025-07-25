@@ -21,16 +21,16 @@ export async function POST(request) {
       return (await acc) + product.offerPrice * item.quantity;
     }, Promise.resolve(0));
 
-    await inngest.send({
-      name: "order/created",
-      data: {
-        userId,
-        address,
-        items,
-        amount: amount + Math.floor(amount * 0.13), // adding 13% tax
-        date: Date.now(),
-      },
-    });
+    // await inngest.send({
+    //   name: "order/created",
+    //   data: {
+    //     userId,
+    //     address,
+    //     items,
+    //     amount: amount + Math.floor(amount * 0.13), // adding 13% tax
+    //     date: Date.now(),
+    //   },
+    // });
 
     // clear user cart
     const user = await User.findById(userId);

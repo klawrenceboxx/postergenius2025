@@ -57,6 +57,11 @@ export async function POST(request) {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(cartTotal * 100),
         currency: "usd",
+        metadata: {
+          userId,
+          address: JSON.stringify(address), // <-- CHANGED (added!)
+          items: JSON.stringify(items), // <-- CHANGED (added!)
+        },
       });
       responseData = {
         type: "payment_intent",
@@ -69,6 +74,11 @@ export async function POST(request) {
         line_items: lineItems,
         success_url: successUrl || process.env.STRIPE_SUCCESS_URL,
         cancel_url: cancelUrl || process.env.STRIPE_CANCEL_URL,
+        metadata: {
+          userId,
+          address: JSON.stringify(address), // <-- CHANGED (added!)
+          items: JSON.stringify(items), // <-- CHANGED (added!)
+        },
       });
       responseData = {
         type: "checkout_session",

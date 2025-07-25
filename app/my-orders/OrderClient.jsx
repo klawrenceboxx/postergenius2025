@@ -9,7 +9,6 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 import { assets, orderDummyData } from "@/assets/assets";
 import Loading from "@/components/Loading";
-import { Suspense } from "react";
 
 const OrderConfirmationWithOrders = () => {
   const { setCartItems, getToken, user, currency } = useAppContext();
