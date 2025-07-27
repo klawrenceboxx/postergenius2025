@@ -116,14 +116,18 @@ const OrderConfirmationWithOrders = () => {
                   <div>
                     <p>
                       <span className="font-medium">
-                        {order.address.fullName}
+                        {order.address?.fullName || "No name provided"}
                       </span>
                       <br />
-                      <span>{order.address.area}</span>
+                      <span>{order.address?.area || "N/A"}</span>
                       <br />
-                      <span>{`${order.address.city}, ${order.address.state}`}</span>
+                      <span>{`${order.address?.city || ""}, ${
+                        order.address?.state || ""
+                      }`}</span>
                       <br />
-                      <span>{order.address.phoneNumber}</span>
+                      <span>
+                        {order.address?.phoneNumber || "No phone number"}
+                      </span>
                     </p>
                   </div>
                   <p className="font-medium my-auto">
