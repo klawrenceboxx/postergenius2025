@@ -59,8 +59,9 @@ export async function POST(request) {
         currency: "usd",
         metadata: {
           userId,
-          address: JSON.stringify(address), // <-- CHANGED (added!)
-          items: JSON.stringify(items), // <-- CHANGED (added!)
+          // store address id directly so webhook receives a valid string
+          address,
+          items: JSON.stringify(items),
         },
       });
       responseData = {
@@ -76,8 +77,8 @@ export async function POST(request) {
         cancel_url: cancelUrl || process.env.STRIPE_CANCEL_URL,
         metadata: {
           userId,
-          address: JSON.stringify(address), // <-- CHANGED (added!)
-          items: JSON.stringify(items), // <-- CHANGED (added!)
+          address,
+          items: JSON.stringify(items),
         },
       });
       responseData = {
