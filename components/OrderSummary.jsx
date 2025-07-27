@@ -129,7 +129,9 @@ const OrderSummary = () => {
               className="peer w-full text-left px-4 pr-2 py-2 bg-white text-gray-700 focus:outline-none"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             >
-              {selectedAddress ? selectedAddress.street : "Select Address"}
+              {selectedAddress
+                ? selectedAddress.area + `, ` + selectedAddress.city
+                : "Select Address"}
             </button>
             {isDropdownOpen && (
               <ul className="absolute z-10 w-full bg-white border border-gray-200 shadow-md">
@@ -142,7 +144,7 @@ const OrderSummary = () => {
                     }}
                     className="cursor-pointer px-4 py-2 hover:bg-gray-100"
                   >
-                    {address.street}
+                    {address.area}, {address.city}
                   </li>
                 ))}
               </ul>

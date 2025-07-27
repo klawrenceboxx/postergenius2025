@@ -26,7 +26,7 @@ const OrderConfirmationWithOrders = () => {
       try {
         const token = await getToken();
         const { data } = await axios.post(
-          "/api/stripe/confirm",
+          "/api/stripe/list",
           { sessionId },
           { headers: { Authorization: `Bearer ${token}` } }
         );
