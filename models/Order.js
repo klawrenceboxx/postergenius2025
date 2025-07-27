@@ -3,7 +3,12 @@ import mongoose from "mongoose";
 const orderSchema = new mongoose.Schema(
   {
     userId: { type: String, required: true, ref: "user" },
-    address: { type: String, ref: "address", required: true },
+    // store the referenced address id as an ObjectId so populate works
+    address: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "address",
+      required: true,
+    },
     items: [
       {
         product: { type: String, ref: "product", required: true },

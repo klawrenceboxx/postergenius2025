@@ -2,6 +2,7 @@ import { Inngest } from "inngest";
 import connectDB from "./db";
 import User from "@/models/User";
 import Order from "@/models/Order";
+import mongoose from "mongoose";
 
 // Create a client to send and receive events
 export const inngest = new Inngest({ id: "postergenius-next" });
@@ -64,9 +65,17 @@ export const createUserOrder = inngest.createFunction(
   { event: "order/created" },
   async ({ events }) => {
     const orders = events.map((event) => {
+      const addr = event.data.address;
+      const valid = mongoose.Types.ObjectId.isValid(addr);
+      console.log(
+        `Creating order for user ${event.data.userId} with address ${addr} (valid: ${valid})`
+      );
+      if (!valid) {
+        throw new Error(`Invalid address id: ${addr}`);
+      }
       return {
         userId: event.data.userId,
-        address: event.data.address,
+        address: addr,
         items: event.data.items,
         subtotal: event.data.subtotal,
         tax: event.data.tax,

@@ -59,7 +59,9 @@ export async function POST(request) {
         currency: "usd",
         metadata: {
           userId,
-          address: typeof address === "string" ? address : address.toString(), // ✅ CORRECT
+          // store address id directly so webhook receives a valid string
+          address,
+
           items: JSON.stringify(items),
         },
       });
@@ -76,7 +78,7 @@ export async function POST(request) {
         cancel_url: cancelUrl || process.env.STRIPE_CANCEL_URL,
         metadata: {
           userId,
-          address: typeof address === "string" ? address : address.toString(), // ✅ CORRECT
+          address,
           items: JSON.stringify(items),
         },
       });

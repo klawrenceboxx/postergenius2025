@@ -1,6 +1,7 @@
 // src/app/api/stripe/webhook/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import mongoose from "mongoose";
 import connectDB from "@/config/db";
 import Product from "@/models/Product";
 import User from "@/models/User";
@@ -43,8 +44,15 @@ export async function POST(request) {
       }
 
       const userId = session.metadata?.userId;
-      const address = session.metadata?.address;
+      const addressId = session.metadata?.address;
+      console.log("Webhook metadata address:", addressId);
       const items = JSON.parse(session.metadata?.items || "[]");
+
+      const isValidAddress = mongoose.Types.ObjectId.isValid(addressId);
+      if (!isValidAddress) {
+        console.error("Invalid address id in webhook:", addressId);
+        return new NextResponse(`Invalid address id`, { status: 400 });
+      }
 
       // Calculate total
       let cartTotal = 0;
@@ -53,15 +61,16 @@ export async function POST(request) {
         if (!product) continue;
         cartTotal += product.offerPrice * item.quantity;
       }
-      const tax = Number((cartTotal * 0.13).toFixed(2));
-      const total = Number((cartTotal + tax).toFixed(2));
+      const subtotal = cartTotal;
+      const tax = Number((subtotal * 0.13).toFixed(2));
+      const total = Number((subtotal + tax).toFixed(2));
 
       // Trigger order event
       await inngest.send({
         name: "order/created",
         data: {
           userId,
-          address,
+          address: addressId,
           items,
           subtotal,
           tax,
