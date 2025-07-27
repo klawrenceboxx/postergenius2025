@@ -61,6 +61,7 @@ export async function POST(request) {
           userId,
           // store address id directly so webhook receives a valid string
           address,
+
           items: JSON.stringify(items),
         },
       });
