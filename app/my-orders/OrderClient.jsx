@@ -16,6 +16,7 @@ const OrderConfirmationWithOrders = () => {
   const [confirming, setConfirming] = useState(true);
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(true);
+  const [downloading, setDownloading] = useState(null); // track which item is downloading
 
   // Step 1: Confirm order with Stripe session_id
   useEffect(() => {
@@ -91,6 +92,25 @@ const OrderConfirmationWithOrders = () => {
     })();
   }, [user, confirming, getToken]);
 
+  // Step 3: Handle download for specific productId
+  const handleDownload = async (productId) => {
+    try {
+      setDownloading(productId);
+      const { data } = await axios.get(
+        `/api/download-link?productId=${productId}`
+      );
+      if (data.success && data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error(data.message || "Download failed");
+      }
+    } catch (err) {
+      toast.error("Error preparing download");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -124,14 +144,28 @@ const OrderConfirmationWithOrders = () => {
                           item
                         );
                         return (
-                          <Image
+                          <div
                             key={i}
-                            src={item.product.image?.[0] || assets.box_icon}
-                            alt={item.product.name}
-                            className="max-w-16 max-h-16 object-cover"
-                            width={64}
-                            height={64}
-                          />
+                            className="flex flex-col items-start gap-2"
+                          >
+                            <Image
+                              key={i}
+                              src={item.product.image?.[0] || assets.box_icon}
+                              alt={item.product.name}
+                              className="max-w-16 max-h-16 object-cover"
+                              width={64}
+                              height={64}
+                            />
+                            <button
+                              onClick={() => handleDownload(item.product._id)}
+                              disabled={downloading === item.product._id}
+                              className="px-3 py-1 bg-blue-600 text-white rounded text-xs disabled:opacity-50"
+                            >
+                              {downloading === item.product._id
+                                ? "Preparing..."
+                                : "Download"}
+                            </button>{" "}
+                          </div>
                         );
                       })}
                       <p className="flex flex-col gap-3">
