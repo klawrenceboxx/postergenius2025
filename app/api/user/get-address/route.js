@@ -10,6 +10,7 @@ export async function GET(request) {
     await connectDB();
 
     const addresses = await Address.find({ userId });
+    console.log("Addresses for user:", userId, addresses);
 
     return NextResponse.json({ success: true, addresses });
   } catch (error) {

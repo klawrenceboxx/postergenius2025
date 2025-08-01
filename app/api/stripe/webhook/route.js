@@ -46,6 +46,11 @@ export async function POST(request) {
       const userId = session.metadata?.userId;
       const addressId = session.metadata?.address;
       console.log("Webhook metadata address:", addressId);
+      console.log("Type:", typeof addressId);
+      console.log(
+        "Valid ObjectId:",
+        mongoose.Types.ObjectId.isValid(addressId)
+      );
       const items = JSON.parse(session.metadata?.items || "[]");
 
       const isValidAddress = mongoose.Types.ObjectId.isValid(addressId);

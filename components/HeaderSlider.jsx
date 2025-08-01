@@ -6,27 +6,30 @@ const HeaderSlider = () => {
   const sliderData = [
     {
       id: 1,
-      title: "Experience Pure Sound - Your Perfect Headphones Awaits!",
+      title: "Redecorate Your – Space-inspired Posters That Set the Vibe!",
       offer: "Limited Time Offer 30% Off",
       buttonText1: "Buy now",
       buttonText2: "Find more",
-      imgSrc: assets.header_headphone_image,
+      // imgSrc: assets.header_headphone_image,
+      imgSrc: assets.spaceEmbark,
     },
     {
       id: 2,
-      title: "Next-Level Gaming Starts Here - Discover PlayStation 5 Today!",
-      offer: "Hurry up only few lefts!",
+      title: "Level Up Your Setup – Posters for Gamers & Anime Fans",
+      offer: "Hurry – Only a Few Limited Edition Prints Left!",
       buttonText1: "Shop Now",
       buttonText2: "Explore Deals",
-      imgSrc: assets.header_playstation_image,
+      // imgSrc: assets.header_playstation_image,
+      imgSrc: assets.streetRace,
     },
     {
       id: 3,
-      title: "Power Meets Elegance - Apple MacBook Pro is Here for you!",
-      offer: "Exclusive Deal 40% Off",
+      title: "Elegance Meets Purpose – Classy Prints for Modern Workspaces!",
+      offer: "Exclusive Collection – 40% Off Workspace Posters",
       buttonText1: "Order Now",
       buttonText2: "Learn More",
-      imgSrc: assets.header_macbook_image,
+      // imgSrc: assets.header_macbook_image,
+      imgSrc: assets.modernPeacock,
     },
   ];
 
@@ -67,7 +70,11 @@ const HeaderSlider = () => {
                 </button>
                 <button className="group flex items-center gap-2 px-6 py-2.5 font-medium">
                   {slide.buttonText2}
-                  <Image className="group-hover:translate-x-1 transition" src={assets.arrow_icon} alt="arrow_icon" />
+                  <Image
+                    className="group-hover:translate-x-1 transition"
+                    src={assets.arrow_icon}
+                    alt="arrow_icon"
+                  />
                 </button>
               </div>
             </div>

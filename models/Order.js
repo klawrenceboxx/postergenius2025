@@ -18,7 +18,7 @@ const orderSchema = new mongoose.Schema(
     amount: { type: Number, required: true },
     subtotal: { type: Number, required: true },
     tax: { type: Number, required: true },
-    status: { type: String, required: true, default: "Order Place" },
+    status: { type: String, required: true, default: "Order Placed" },
     date: { type: Number, required: true },
     stripeSessionId: { type: String, unique: true }, // Add this field
   },

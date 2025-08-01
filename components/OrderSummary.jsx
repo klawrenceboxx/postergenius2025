@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, useStripe } from "@stripe/react-stripe-js";
 import { useAppContext } from "@/context/AppContext";
+import { addressDummyData } from "@/assets/assets";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
@@ -67,8 +68,15 @@ const CheckoutButton = ({ selectedAddress, cartItems, getToken }) => {
 };
 
 const OrderSummary = () => {
-  const { currency, router, getCartAmount, getToken, user, cartItems } =
-    useAppContext();
+  const {
+    currency,
+    router,
+    getCartCount,
+    getCartAmount,
+    getToken,
+    user,
+    cartItems,
+  } = useAppContext();
 
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [userAddresses, setUserAddresses] = useState([]);
@@ -94,6 +102,7 @@ const OrderSummary = () => {
         });
 
         if (data.success) {
+          console.log("Fetched addresses from API:", data.addresses); // 👈 Add this
           setUserAddresses(data.addresses);
           if (data.addresses.length > 0) setSelectedAddress(data.addresses[0]);
         } else {
@@ -117,7 +126,6 @@ const OrderSummary = () => {
         Order Summary
       </h2>
       <hr className="border-gray-500/30 my-5" />
-
       <div className="space-y-6">
         {/* Address Selection */}
         <div>
@@ -129,36 +137,89 @@ const OrderSummary = () => {
               className="peer w-full text-left px-4 pr-2 py-2 bg-white text-gray-700 focus:outline-none"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             >
-              {selectedAddress
-                ? selectedAddress.area + `, ` + selectedAddress.city
-                : "Select Address"}
+              <span>
+                {selectedAddress
+                  ? `${selectedAddress.fullName}, ${selectedAddress.area}, ${selectedAddress.city}, ${selectedAddress.state}`
+                  : "Select Address"}
+              </span>
+              <svg
+                className={`w-5 h-5 inline float-right transition-transform duration-200 ${
+                  isDropdownOpen ? "rotate-0" : "-rotate-90"
+                }`}
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="#6B7280"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 9l-7 7-7-7"
+                />
+              </svg>
             </button>
             {isDropdownOpen && (
-              <ul className="absolute z-10 w-full bg-white border border-gray-200 shadow-md">
-                {userAddresses.map((address) => (
+              <ul className="absolute  w-full bg-white border shadow-md mt-1 z-10 py-1.5">
+                {userAddresses.map((address, index) => (
                   <li
-                    key={address._id}
+                    key={index}
                     onClick={() => {
                       setSelectedAddress(address);
                       setIsDropdownOpen(false);
                     }}
                     className="cursor-pointer px-4 py-2 hover:bg-gray-100"
                   >
-                    {address.area}, {address.city}
+                    {address.fullName}, {address.area}, {address.city},{" "}
+                    {address.state}
                   </li>
                 ))}
+                <li
+                  onClick={() => router.push("/add-address")}
+                  className="px-4 py-2 hover:bg-gray-500/10 cursor-pointer text-center"
+                >
+                  + Add New Address
+                </li>
               </ul>
             )}
           </div>
         </div>
 
+        <div>
+          <label className="text-base font-medium uppercase text-gray-600 block mb-2">
+            Promo Code
+          </label>
+          <div className="flex flex-col items-start gap-3">
+            <input
+              type="text"
+              placeholder="Enter promo code"
+              className="flex-grow w-full outline-none p-2.5 text-gray-600 border"
+            />
+            <button className="bg-orange-600 text-white px-9 py-2 hover:bg-orange-700">
+              Apply
+            </button>
+          </div>
+        </div>
+
         <div className="space-y-2">
-          <div className="flex justify-between">
+          <div className="flex justify-between text-base font-medium">
+            <p className="uppercase text-gray-600">Items - {getCartCount()}</p>
+            <p className="text-gray-800">
+              {currency}
+              {getCartAmount()}
+            </p>
+          </div>
+          {/* <div className="flex justify-between">
             <p className="text-gray-600">Subtotal</p>
             <p className="font-medium text-gray-800">
               {currency}
               {subtotal}
             </p>
+          </div> */}
+
+          <div className="flex justify-between">
+            <p className="text-gray-600">Shipping Fee</p>
+            <p className="font-medium text-gray-800">Free</p>
           </div>
           <div className="flex justify-between">
             <p className="text-gray-600">Tax (13%)</p>
@@ -166,10 +227,6 @@ const OrderSummary = () => {
               {currency}
               {tax}
             </p>
-          </div>
-          <div className="flex justify-between">
-            <p className="text-gray-600">Shipping Fee</p>
-            <p className="font-medium text-gray-800">Free</p>
           </div>
           <div className="flex justify-between text-lg md:text-xl font-medium border-t pt-3">
             <p>Total</p>

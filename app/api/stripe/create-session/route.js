@@ -15,6 +15,8 @@ export async function POST(request) {
     const userId = auth.userId;
     const { items, address, successUrl, cancelUrl } = await request.json(); // ✅ FIXED
 
+    console.log("📦 Address received in create-session:", address);
+
     if (!items || items.length === 0 || !address) {
       return NextResponse.json({ success: false, message: "Invalid data" });
     }
