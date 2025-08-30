@@ -41,6 +41,9 @@ import sm_controller_image from "./sm_controller_image.png";
 import jbl_soundbox_image from "./jbl_soundbox_image.png";
 import boy_with_laptop_image from "./boy_with_laptop_image.png";
 import checkmark from "./checkmark.png";
+import lion_category from "./lion_category.png";
+import forest_category from "./forest_category.png";
+import space_category from "./space_category.png";
 import product_details_page_apple_earphone_image1 from "./product_details_page_apple_earphone_image1.png";
 import product_details_page_apple_earphone_image2 from "./product_details_page_apple_earphone_image2.png";
 import product_details_page_apple_earphone_image3 from "./product_details_page_apple_earphone_image3.png";
@@ -103,6 +106,9 @@ export const assets = {
   modernPeacock,
   spaceEmbark,
   streetRace,
+  lion_category,
+  forest_category,
+  space_category,
 };
 
 export const BagIcon = () => {
