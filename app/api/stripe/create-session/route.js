@@ -9,16 +9,25 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 export async function POST(request) {
   try {
     const auth = getAuth(request);
-    if (!auth.userId) {
-      return NextResponse.json({ success: false, message: "Unauthorized" });
-    }
-    const userId = auth.userId;
-    const { items, address, successUrl, cancelUrl } = await request.json(); // ✅ FIXED
+    const userId = auth.userId || "";
+    const {
+      items,
+      addressId,
+      guestAddress,
+      guestId,
+      successUrl,
+      cancelUrl,
+    } = await request.json();
 
-    console.log("📦 Address received in create-session:", address);
-
-    if (!items || items.length === 0 || !address) {
+    if (!items || items.length === 0) {
       return NextResponse.json({ success: false, message: "Invalid data" });
+    }
+
+    if (userId && !addressId) {
+      return NextResponse.json({ success: false, message: "Address required" });
+    }
+    if (!userId && (!guestAddress || !guestId)) {
+      return NextResponse.json({ success: false, message: "Guest data required" });
     }
 
     await connectDB();
@@ -55,15 +64,18 @@ export async function POST(request) {
     const tax = parseFloat((subtotal * 0.13).toFixed(2));
     const total = subtotal + tax;
     let responseData;
+
+    const metadataAddress =
+      addressId || JSON.stringify(guestAddress || {});
+
     if (cartTotal > 50000) {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: Math.round(cartTotal * 100),
         currency: "usd",
         metadata: {
           userId,
-          // store address id directly so webhook receives a valid string
-          address,
-
+          guestId: guestId || "",
+          address: metadataAddress,
           items: JSON.stringify(items),
         },
       });
@@ -80,7 +92,8 @@ export async function POST(request) {
         cancel_url: cancelUrl || process.env.STRIPE_CANCEL_URL,
         metadata: {
           userId,
-          address,
+          guestId: guestId || "",
+          address: metadataAddress,
           items: JSON.stringify(items),
         },
       });
