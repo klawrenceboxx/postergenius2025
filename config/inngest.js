@@ -22,6 +22,11 @@ export const syncUserCreation = inngest.createFunction(
     };
     await connectDB();
     await User.create(userData);
+    // Merge any guest orders that match this email
+    await Order.updateMany(
+      { guestId: { $exists: true }, "guestAddress.email": userData.email },
+      { $set: { userId: id }, $unset: { guestId: "" } }
+    );
   }
 );
 

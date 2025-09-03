@@ -43,23 +43,14 @@ export async function POST(request) {
         return NextResponse.json({ received: true });
       }
 
-      const userId = session.metadata?.userId;
-      const addressId = session.metadata?.address;
-      console.log("Webhook metadata address:", addressId);
-      console.log("Type:", typeof addressId);
-      console.log(
-        "Valid ObjectId:",
-        mongoose.Types.ObjectId.isValid(addressId)
-      );
+      const userId = session.metadata?.userId || "";
+      const guestId = session.metadata?.guestId || "";
+      const addressData = session.metadata?.address;
       const items = JSON.parse(session.metadata?.items || "[]");
 
-      const isValidAddress = mongoose.Types.ObjectId.isValid(addressId);
-      if (!isValidAddress) {
-        console.error("Invalid address id in webhook:", addressId);
-        return new NextResponse(`Invalid address id`, { status: 400 });
-      }
+      const isValidAddress = mongoose.Types.ObjectId.isValid(addressData);
 
-      // Calculate total
+      // Calculate totals
       let cartTotal = 0;
       for (const item of items) {
         const product = await Product.findById(item.product);
@@ -70,12 +61,30 @@ export async function POST(request) {
       const tax = Number((subtotal * 0.13).toFixed(2));
       const total = Number((subtotal + tax).toFixed(2));
 
-      // Trigger order event
+      if (!isValidAddress) {
+        const guestAddress = JSON.parse(addressData || "{}");
+        guestAddress.email =
+          session.customer_details?.email || session.customer_email || "";
+
+        await Order.create({
+          guestId: guestId || `guest_${session.id}`,
+          guestAddress,
+          items,
+          subtotal,
+          tax,
+          amount: total,
+          date: Date.now(),
+          stripeSessionId: session.id,
+        });
+        return NextResponse.json({ received: true });
+      }
+
+      // Trigger order event for logged-in users
       await inngest.send({
         name: "order/created",
         data: {
           userId,
-          address: addressId,
+          address: addressData,
           items,
           subtotal,
           tax,
