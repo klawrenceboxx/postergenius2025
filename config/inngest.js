@@ -22,11 +22,6 @@ export const syncUserCreation = inngest.createFunction(
     };
     await connectDB();
     await User.create(userData);
-    // Merge any guest orders that match this email
-    await Order.updateMany(
-      { guestId: { $exists: true }, "guestAddress.email": userData.email },
-      { $set: { userId: id }, $unset: { guestId: "" } }
-    );
   }
 );
 
@@ -77,6 +72,9 @@ export const createUserOrder = inngest.createFunction(
       );
       if (!valid) {
         throw new Error(`Invalid address id: ${addr}`);
+      }
+      if (!event.data.stripeSessionId) {
+        throw new Error("Missing stripeSessionId in order event");
       }
       return {
         userId: event.data.userId,
