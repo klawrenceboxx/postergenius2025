@@ -8,7 +8,7 @@ export async function GET(request) {
     const { userId } = getAuth(request);
 
     await connectDB();
-    const user = await User.findById(userId);
+    const user = await User.findOne({ userId });
 
     const { cartItems } = user;
     return NextResponse.json({ success: true, cartItems });

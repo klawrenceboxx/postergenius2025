@@ -60,18 +60,52 @@ export const AppContextProvider = (props) => {
     }
   };
 
-  const addToCart = async (itemId) => {
+  const addToCart = async (payload) => {
     let cartData = structuredClone(cartItems);
-    if (cartData[itemId]) {
-      cartData[itemId] += 1;
-    } else {
-      cartData[itemId] = 1;
+
+    if (typeof payload === "string") {
+      const itemId = payload;
+      const existing = cartData[itemId];
+      if (existing) {
+        if (typeof existing === "object") existing.quantity += 1;
+        else cartData[itemId] += 1;
+      } else {
+        cartData[itemId] = 1;
+      }
+    } else if (payload && typeof payload === "object") {
+      const {
+        productId,
+        title,
+        imageUrl,
+        price,
+        quantity = 1,
+        slug,
+        format,
+        dimensions,
+      } = payload;
+      const key = `${productId}-${format}-${dimensions}`;
+      const existing = cartData[key];
+      if (existing && typeof existing === "object") {
+        existing.quantity += quantity;
+      } else {
+        cartData[key] = {
+          productId,
+          title,
+          imageUrl,
+          price,
+          quantity,
+          slug,
+          format,
+          dimensions,
+        };
+      }
     }
+
     setCartItems(cartData);
+
     if (user) {
       try {
         const token = await getToken();
-
         await axios.post(
           "/api/cart/update",
           { cartData },
@@ -86,8 +120,11 @@ export const AppContextProvider = (props) => {
 
   const updateCartQuantity = async (itemId, quantity) => {
     let cartData = structuredClone(cartItems);
+    const existing = cartData[itemId];
     if (quantity === 0) {
       delete cartData[itemId];
+    } else if (typeof existing === "object") {
+      existing.quantity = quantity;
     } else {
       cartData[itemId] = quantity;
     }
@@ -95,7 +132,6 @@ export const AppContextProvider = (props) => {
     if (user) {
       try {
         const token = await getToken();
-
         await axios.post(
           "/api/cart/update",
           { cartData },
@@ -111,8 +147,10 @@ export const AppContextProvider = (props) => {
   const getCartCount = () => {
     let totalCount = 0;
     for (const items in cartItems) {
-      if (cartItems[items] > 0) {
-        totalCount += cartItems[items];
+      const entry = cartItems[items];
+      const qty = typeof entry === "object" ? entry.quantity : entry;
+      if (qty > 0) {
+        totalCount += qty;
       }
     }
     return totalCount;
@@ -120,10 +158,17 @@ export const AppContextProvider = (props) => {
 
   const getCartAmount = () => {
     let totalAmount = 0;
-    for (const items in cartItems) {
-      let itemInfo = products.find((product) => product._id === items);
-      if (cartItems[items] > 0) {
-        totalAmount += itemInfo.offerPrice * cartItems[items];
+    for (const key in cartItems) {
+      const entry = cartItems[key];
+      if (typeof entry === "object") {
+        if (entry.quantity > 0) {
+          totalAmount += entry.price * entry.quantity;
+        }
+      } else {
+        let itemInfo = products.find((product) => product._id === key);
+        if (itemInfo && entry > 0) {
+          totalAmount += itemInfo.offerPrice * entry;
+        }
       }
     }
     return Math.floor(totalAmount * 100) / 100;

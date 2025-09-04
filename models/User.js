@@ -1,26 +1,18 @@
-// BOILERPLATE
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
+const UserSchema = new mongoose.Schema(
   {
-    _id: {
-      type: String,
-      required: true,
-    },
+    // Clerk user id (string) stored separately and uniquely
+    userId: { type: String, required: true, unique: true },
+
     name: { type: String, required: true },
     email: { type: String, required: true },
     imageUrl: { type: String, required: true },
-    cartItems: {
-      type: Object,
-      default: {},
-    },
+
+    // cart supports both numeric quantities and object line items
+    cartItems: { type: mongoose.Schema.Types.Mixed, default: {} },
   },
-  {
-    minimize: false,
-  }
+  { minimize: false }
 );
 
-const User = mongoose.models.User || mongoose.model("User", userSchema);
-
-export default User;
-// BOILERPLATE
+export default mongoose.models.User || mongoose.model("User", UserSchema);

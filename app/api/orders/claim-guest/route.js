@@ -31,9 +31,9 @@ export async function POST(request) {
     await connectDB();
 
     // ensure user exists to maintain parity with cart merges
-    let user = await User.findById(userId);
+    let user = await User.findOne({ userId });
     if (!user) {
-      user = await User.create({ _id: userId, cartItems: {} });
+      user = await User.create({ userId, cartItems: {} });
     }
 
     const cart = await Cart.findOne({ guestId });
