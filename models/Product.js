@@ -6,13 +6,11 @@ const productSchema = new mongoose.Schema({
   description: { type: String, required: true },
   price: { type: Number, required: true },
   offerPrice: { type: Number, default: null },
+  digitalPrice: { type: Number, default: 0 },
   image: { type: [String], required: true },
   category: { type: String, required: true },
   date: { type: Date, default: Date.now },
 });
 
-const Product =
-  mongoose.models.product || mongoose.model("product", productSchema);
-
+const Product = mongoose.models.product || mongoose.model("product", productSchema);
 export default Product;
-// BOILERPLATE

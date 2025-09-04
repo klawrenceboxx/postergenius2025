@@ -38,7 +38,22 @@ const CheckoutButton = ({
     }
 
     const cartItemsArray = Object.entries(cartItems)
-      .map(([product, quantity]) => ({ product, quantity }))
+      .map(([key, value]) => {
+        if (typeof value === "object") {
+          return {
+            product: value.productId,
+            quantity: value.quantity,
+            format: value.format,
+            dimensions: value.dimensions,
+            price: value.price,
+            title: value.title,
+            imageUrl: value.imageUrl,
+            slug: value.slug,
+            key,
+          };
+        }
+        return { product: key, quantity: value };
+      })
       .filter((item) => item.quantity > 0);
 
     if (cartItemsArray.length === 0) return toast.error("Your cart is empty");
