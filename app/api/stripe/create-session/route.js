@@ -10,14 +10,8 @@ export async function POST(request) {
   try {
     const auth = getAuth(request);
     const userId = auth.userId || "";
-    const {
-      items,
-      addressId,
-      guestAddress,
-      guestId,
-      successUrl,
-      cancelUrl,
-    } = await request.json();
+    const { items, addressId, guestAddress, guestId, successUrl, cancelUrl } =
+      await request.json();
 
     if (!items || items.length === 0) {
       return NextResponse.json({ success: false, message: "Invalid data" });
@@ -27,7 +21,10 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: "Address required" });
     }
     if (!userId && (!guestAddress || !guestId)) {
-      return NextResponse.json({ success: false, message: "Guest data required" });
+      return NextResponse.json({
+        success: false,
+        message: "Guest data required",
+      });
     }
 
     await connectDB();
@@ -65,8 +62,7 @@ export async function POST(request) {
     const total = subtotal + tax;
     let responseData;
 
-    const metadataAddress =
-      addressId || JSON.stringify(guestAddress || {});
+    const metadataAddress = addressId || JSON.stringify(guestAddress || {});
 
     if (cartTotal > 50000) {
       const paymentIntent = await stripe.paymentIntents.create({
@@ -88,7 +84,11 @@ export async function POST(request) {
         mode: "payment",
         payment_method_types: ["card"],
         line_items: lineItems,
-        success_url: successUrl || process.env.STRIPE_SUCCESS_URL,
+        // success_url: successUrl || process.env.STRIPE_SUCCESS_URL,
+        success_url: `${
+          successUrl || process.env.STRIPE_SUCCESS_URL
+        }?session_id={CHECKOUT_SESSION_ID}`,
+
         cancel_url: cancelUrl || process.env.STRIPE_CANCEL_URL,
         metadata: {
           userId,

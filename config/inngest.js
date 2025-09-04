@@ -86,6 +86,7 @@ export const createUserOrder = inngest.createFunction(
         tax: event.data.tax,
         amount: event.data.amount,
         date: event.data.date,
+        stripeSessionId: event.data.stripeSessionId,
       };
     });
 
