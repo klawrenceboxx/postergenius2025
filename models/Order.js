@@ -45,10 +45,20 @@ const orderSchema = new mongoose.Schema(
     tax: { type: Number, required: true },
     status: { type: String, required: true, default: "Order Placed" },
     date: { type: Number, required: true },
-    stripeSessionId: { type: String, unique: true }, // Add this field
+    stripeSessionId: { type: String, index: true },
   },
   {
     timestamps: true,
+  }
+);
+
+orderSchema.index(
+  { stripeSessionId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      stripeSessionId: { $exists: true, $ne: null },
+    },
   }
 );
 
