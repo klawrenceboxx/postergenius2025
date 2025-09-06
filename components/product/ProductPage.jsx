@@ -4,7 +4,9 @@ import PosterMockupViewer from "@/components/product/PosterMockupViewer";
 import Infos from "@/components/product/Infos";
 
 export default function ProductPage({ product }) {
-  const [selectedDimensions, setSelectedDimensions] = useState("12x18");
+  const [selectedDimensions, setSelectedDimensions] = useState(
+    product?.variations?.[0]?.sizes?.[0]?.size || "12x18"
+  );
   const [activeMockupIndex, setActiveMockupIndex] = useState(0);
   const [format, setFormat] = useState("physical"); // "physical" | "digital"
 
@@ -17,6 +19,7 @@ export default function ProductPage({ product }) {
           activeMockupIndex={activeMockupIndex}
           onMockupChange={setActiveMockupIndex}
           format={format}
+          orientation={product.orientation}
         />
       </div>
       <div className="w-full md:w-[360px] flex-shrink-0">

@@ -2,17 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-poppins: "Poppins", sans-serif;
+}
+html,
+body {
+  font-family: var(--font-poppins), sans-serif;
+}
+
 * {
-    scroll-behavior: smooth;
+  scroll-behavior: smooth;
 }
 
 @layer base {
-    input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button {
-      -webkit-appearance: none;
-      margin: 0;
-    }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
   }
+}
 
 ::-webkit-scrollbar {
   display: none;

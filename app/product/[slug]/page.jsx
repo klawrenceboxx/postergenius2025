@@ -1,12 +1,39 @@
+// app/product/[slug]/page.jsx
 import ProductPage from "@/components/product/ProductPage";
 import connectDB from "@/config/db";
 import Product from "@/models/Product";
+import mongoose from "mongoose";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
-async function getProduct(slug) {
+async function getProduct(slugOrId) {
   await connectDB();
-  const doc = await Product.findOne({ slug }).lean();
+
+  // try ObjectId first, then slug
+  let doc = null;
+  if (mongoose.Types.ObjectId.isValid(slugOrId)) {
+    doc = await Product.findById(slugOrId).lean();
+  }
+  if (!doc) {
+    doc = await Product.findOne({ slug: slugOrId }).lean();
+  }
   if (!doc) return null;
+
   const base = doc.offerPrice ?? doc.price;
+  const landscape = doc.orientation === "landscape";
+
+  const sizes = landscape
+    ? [
+        { size: "18x12", price: base },
+        { size: "24x18", price: Math.round(base * 1.2 * 100) / 100 },
+        { size: "36x24", price: Math.round(base * 1.5 * 100) / 100 },
+      ]
+    : [
+        { size: "12x18", price: base },
+        { size: "18x24", price: Math.round(base * 1.2 * 100) / 100 },
+        { size: "24x36", price: Math.round(base * 1.5 * 100) / 100 },
+      ];
+
   return {
     _id: doc._id.toString(),
     title: doc.name || doc.title || "",
@@ -17,8 +44,9 @@ async function getProduct(slug) {
     discount: 0,
     finalPrice: base,
     digitalPrice: doc.digitalPrice || 0,
-    slug: doc.slug || slug,
+    slug: doc.slug || slugOrId,
     reviews: doc.reviews || [],
+    orientation: doc.orientation || "portrait",
     variations: [
       {
         type: "default",
@@ -34,11 +62,28 @@ async function getProduct(slug) {
 }
 
 export default async function Page({ params }) {
-  const product = await getProduct(params.slug);
-  if (!product) return <div className="px-4 py-6">Product not found.</div>;
+  const { slug } = await params; // Next 15: params is a Promise
+  const product = await getProduct(slug);
+
+  if (!product) {
+    return (
+      <>
+        <Navbar />
+        <div className="px-6 md:px-16 lg:px-32 pt-14">
+          <div className="px-4 py-6">Product not found.</div>
+        </div>
+        <Footer />
+      </>
+    );
+  }
+
   return (
-    <div className="px-4 py-6">
-      <ProductPage product={product} />
-    </div>
+    <>
+      <Navbar />
+      <div className="px-6 md:px-16 lg:px-32 pt-14 space-y-10">
+        <ProductPage product={product} />
+      </div>
+      <Footer />
+    </>
   );
 }

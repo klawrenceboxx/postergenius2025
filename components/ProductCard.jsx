@@ -14,7 +14,7 @@ const ProductCard = ({ product }) => {
       }}
       className="flex flex-col items-start max-w-[250px] w-full cursor-pointer"
     >
-      <div className="cursor-pointer group relative bg-gray-500/10 rounded-lg w-full h-80 flex items-center justify-center">
+      <div className="cursor-pointer group relative bg-gray-500/10 w-full h-80 flex items-center justify-center shadow-poster">
         <Image
           src={product.image[0]}
           alt={product.name}
@@ -33,9 +33,9 @@ const ProductCard = ({ product }) => {
       {/* <p className="w-full text-xs text-gray-500/70 max-sm:hidden truncate">
         {product.description}
       </p> */}
-      <div className="flex items-center gap-2">
-        {/* <p className="text-xs">{4.5}</p> */}
-        {/* <div className="flex items-center gap-0.5">
+      {/* <div className="flex items-center gap-2"> */}
+      {/* <p className="text-xs">{4.5}</p> */}
+      {/* <div className="flex items-center gap-0.5">
           {Array.from({ length: 5 }).map((_, index) => (
             <Image
               key={index}
@@ -47,7 +47,7 @@ const ProductCard = ({ product }) => {
             />
           ))}
         </div> */}
-      </div>
+      {/* </div> */}
 
       {/* <div className="flex items-end justify-between w-full mt-1">
         <p className="text-base font-medium">

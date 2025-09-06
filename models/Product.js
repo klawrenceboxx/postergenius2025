@@ -9,8 +9,15 @@ const productSchema = new mongoose.Schema({
   digitalPrice: { type: Number, default: 0 },
   image: { type: [String], required: true },
   category: { type: String, required: true },
+  orientation: {
+    type: String,
+    enum: ["portrait", "landscape"],
+    default: "portrait",
+  }, // NEW
+
   date: { type: Date, default: Date.now },
 });
 
-const Product = mongoose.models.product || mongoose.model("product", productSchema);
+const Product =
+  mongoose.models.product || mongoose.model("product", productSchema);
 export default Product;

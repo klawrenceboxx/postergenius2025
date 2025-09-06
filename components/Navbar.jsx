@@ -7,8 +7,9 @@ import Image from "next/image";
 import { useClerk, UserButton } from "@clerk/nextjs";
 
 const Navbar = () => {
-  const { isSeller, router, user } = useAppContext();
+  const { isSeller, router, user, getCartCount } = useAppContext();
   const { openSignIn } = useClerk();
+  const cartCount = getCartCount();
 
   return (
     <nav className="flex items-center justify-between px-6 md:px-16 lg:px-32 py-3 border-b border-gray-300 text-gray-700">
@@ -18,18 +19,35 @@ const Navbar = () => {
         src={assets.logo}
         alt="logo"
       />
-      <div className="flex items-center gap-4 lg:gap-8 max-md:hidden">
-        <Link href="/" className="hover:text-gray-900 transition">
+      <div className="flex text-m items-center gap-4 lg:gap-12 max-md:hidden font-[600] font-blackhex ">
+        <Link
+          href="/"
+          className="relative hover:text-secondary transition-colors duration-300 group"
+        >
           Home
+          <span className="absolute bottom-0 left-0 h-0.5 bg-secondary w-0 group-hover:w-full transition-all duration-200"></span>{" "}
+          {/* Animated underline */}
         </Link>
-        <Link href="/all-products" className="hover:text-gray-900 transition">
+        <Link
+          href="/all-products"
+          className="relative hover:text-secondary transition-colors duration-300 group"
+        >
           Shop
+          <span className="absolute bottom-0 left-0 h-0.5 bg-secondary w-0 group-hover:w-full transition-all duration-200"></span>{" "}
         </Link>
-        <Link href="/about-us" className="hover:text-gray-900 transition">
+        <Link
+          href="/about-us"
+          className="relative hover:text-secondary transition-colors duration-300 group"
+        >
           About Us
+          <span className="absolute bottom-0 left-0 h-0.5 bg-secondary w-0 group-hover:w-full transition-all duration-200"></span>{" "}
         </Link>
-        <Link href="/contact-us" className="hover:text-gray-900 transition">
+        <Link
+          href="/contact-us"
+          className="relative hover:text-secondary transition-colors duration-300 group"
+        >
           Contact
+          <span className="absolute bottom-0 left-0 h-0.5 bg-secondary w-0 group-hover:w-full transition-all duration-200"></span>{" "}
         </Link>
 
         {isSeller && (
@@ -43,7 +61,29 @@ const Navbar = () => {
       </div>
 
       <ul className="hidden md:flex items-center gap-4 ">
-        <Image className="w-4 h-4" src={assets.search_icon} alt="search icon" />
+        <Link href="/search" className="hidden md:block">
+          <Image
+            className="w-5 h-5"
+            src={assets.search_icon}
+            alt="search icon"
+            width={24}
+            height={24}
+          />
+        </Link>
+        <Link href="/cart" className="relative">
+          <Image
+            className="w-5 h-5"
+            src={assets.cart_icon}
+            alt="cart icon"
+            width={24}
+            height={24}
+          />
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] leading-none px-1 rounded-full">
+              {cartCount > 99 ? "99+" : cartCount}
+            </span>
+          )}
+        </Link>{" "}
         {user ? (
           <>
             <UserButton user={user}>
@@ -82,7 +122,13 @@ const Navbar = () => {
             onClick={openSignIn}
             className="flex items-center gap-2 hover:text-gray-900 transition"
           >
-            <Image src={assets.user_icon} alt="user icon" />
+            <Image
+              className="w-5 h-5"
+              src={assets.user_icon}
+              alt="search icon"
+              width={24}
+              height={24}
+            />{" "}
             Account
           </button>
         )}

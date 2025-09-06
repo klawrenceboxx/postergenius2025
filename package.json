@@ -12,6 +12,7 @@
     "@aws-sdk/client-s3": "^3.858.0",
     "@aws-sdk/s3-request-presigner": "^3.858.0",
     "@clerk/nextjs": "^6.25.3",
+    "@reduxjs/toolkit": "^2.9.0",
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^7.5.0",
     "axios": "^1.10.0",
@@ -22,6 +23,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.1",
+    "react-redux": "^9.2.0",
     "stripe": "^13.11.0"
   },
   "devDependencies": {
