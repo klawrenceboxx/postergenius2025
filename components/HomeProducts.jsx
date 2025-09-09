@@ -7,7 +7,9 @@ const HomeProducts = () => {
 
   return (
     <div className="flex flex-col items-center pt-14  w-auto border-t mt-4">
-      <p className="mb-4 text-4xl text-blackhex font-[400]">Popular Products</p>
+      <p className=" text-4xl text-blackhex font-[400]">Popular Products</p>
+      <div className="w-28 h-0.5 bg-primary mt-2 mb-4"></div>
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 flex-col items-center gap-6 mt-6 pb-14 w-full">
         {products.map((product, index) => (
           <ProductCard key={index} product={product} />

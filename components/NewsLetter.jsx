@@ -1,26 +1,44 @@
 import React from "react";
+import Image from "next/image";
+import bgImage from "@/public/subscribe now.jpg"; // adjust path based on your setup
 
 const NewsLetter = () => {
   return (
-    <div className="flex flex-col items-center justify-center text-center space-y-2 pt-8 pb-14">
-      <h1 className="md:text-4xl text-2xl font-medium">
-        Subscribe now & get 20% off
-      </h1>
-      <p className="md:text-base text-gray-500/80 pb-8">
-        Lorem Ipsum is simply dummy text of the printing and typesetting
-        industry.
-      </p>
-      <div className="flex items-center justify-between max-w-2xl w-full md:h-14 h-12">
-        <input
-          className="border border-gray-500/30 rounded-md h-full border-r-0 outline-none w-full rounded-r-none px-3 text-gray-500"
-          type="text"
-          placeholder="Enter your email id"
+    <section className="relative w-full mb-6">
+      {/* Background image */}
+      <div className="absolute inset-0 -z-10 rounded-lg overflow-hidden">
+        <Image
+          src={bgImage}
+          alt="Subscribe background"
+          fill
+          className="object-cover"
+          priority
         />
-        <button className="md:px-12 px-8 h-full text-white bg-orange-600 rounded-md rounded-l-none">
-          Subscribe
-        </button>
+        <div className="absolute inset-0 bg-black/20" />{" "}
+        {/* dark overlay for contrast */}
       </div>
-    </div>
+
+      {/* Content aligned left */}
+      <div className="flex flex-col items-start text-left space-y-4 max-w-xl px-6 md:px-12 py-16">
+        <h1 className="md:text-4xl  lg:text-5xl text-2xl font-[700] text-white">
+          Subscribe Now & Get 20% Off
+        </h1>
+        <p className="md:text-base text-sm text-gray-200/90 max-w-md">
+          Join our newsletter for the latest discounts and Displate goodies.
+        </p>
+
+        <div className="flex items-center w-full md:max-w-lg">
+          <input
+            className="border border-gray-300 h-12 md:h-14 w-full px-4 text-gray-800 rounded-l-md outline-none"
+            type="text"
+            placeholder="Enter your email"
+          />
+          <button className="md:px-10 px-6 h-12 md:h-14 bg-primary text-white font-[700] rounded-r-md hover:bg-secondary transition">
+            Subscribe
+          </button>
+        </div>
+      </div>
+    </section>
   );
 };
 

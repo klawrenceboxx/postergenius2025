@@ -10,7 +10,7 @@ const ContactPage = () => {
       <div className="flex flex-col px-6 md:px-16 lg:px-32 pt-12 pb-24 text-gray-700">
         <div className="flex flex-col items-end">
           <p className="text-2xl font-medium">Contact Us</p>
-          <div className="w-16 h-0.5 bg-orange-600 rounded-full"></div>
+          <div className="w-16 h-0.5 bg-primary rounded-full"></div>
         </div>
 
         <div className="mt-12 space-y-10 max-w-3xl">
@@ -52,7 +52,7 @@ const ContactPage = () => {
             ></textarea>
             <button
               type="submit"
-              className="md:col-span-2 bg-orange-600 hover:bg-orange-700 text-white px-6 py-2 rounded-md text-sm font-medium"
+              className="md:col-span-2 bg-primary hover:bg-tertiary text-white px-6 py-2 rounded-md text-sm font-medium"
             >
               Send Message
             </button>

@@ -50,6 +50,9 @@ import product_details_page_apple_earphone_image3 from "./product_details_page_a
 import product_details_page_apple_earphone_image4 from "./product_details_page_apple_earphone_image4.png";
 import product_details_page_apple_earphone_image5 from "./product_details_page_apple_earphone_image5.png";
 import peacock_hero from "./peacock_hero.jpg";
+import category_space from "./category_space.png";
+import category_peacock from "./category_peacock.png";
+import category_vintage from "./category_vintage.png";
 
 import modernPeacock from "./modernPeacock.png";
 import spaceEmbark from "./spaceEmbark.png";
@@ -111,6 +114,9 @@ export const assets = {
   lion_category,
   forest_category,
   space_category,
+  category_space,
+  category_peacock,
+  category_vintage,
 };
 
 export const BagIcon = () => {

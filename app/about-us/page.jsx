@@ -10,7 +10,7 @@ const AboutPage = () => {
       <div className="flex flex-col items-start px-6 md:px-16 lg:px-32">
         <div className="flex flex-col items-end pt-12">
           <p className="text-2xl font-medium">About Us</p>
-          <div className="w-16 h-0.5 bg-orange-600 rounded-full"></div>
+          <div className="w-16 h-0.5 bg-primary rounded-full"></div>
         </div>
 
         <div className="mt-12 max-w-4xl text-gray-700 text-base leading-relaxed space-y-8">
@@ -49,7 +49,7 @@ const AboutPage = () => {
             Got questions or just want to connect? Reach out anytime at{" "}
             <a
               href="mailto:contact@postergenius.dev"
-              className="text-orange-600 underline"
+              className="text-secondary underline"
             >
               contact@postergenius.dev
             </a>
