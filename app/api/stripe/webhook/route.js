@@ -86,7 +86,7 @@ export async function POST(request) {
       });
 
       // Clear cart
-      const user = await User.findById(userId);
+      const user = await User.findOne({ userId });
       if (user) {
         user.cartItems = [];
         await user.save();
