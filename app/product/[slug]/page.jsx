@@ -37,16 +37,23 @@ async function getProduct(slugOrId) {
   return {
     _id: doc._id.toString(),
     title: doc.name || doc.title || "",
+    category: doc.category || null, // ← used for breadcrumb (optional)
     description: doc.description || "",
     imageUrl: doc.image?.[0] || "",
+    imageGallery: doc.image || [], // ← keep your gallery untouched
     price: doc.price,
     salePrice: doc.offerPrice,
     discount: 0,
     finalPrice: base,
-    digitalPrice: doc.digitalPrice || 0,
+    digitalPrice: doc.digitalPrice || base,
     slug: doc.slug || slugOrId,
     reviews: doc.reviews || [],
     orientation: doc.orientation || "portrait",
+    printfulEnabled: !!doc.printfulEnabled, // ← controls greying Physical
+    detailsHtml:
+      doc.detailsHtml || "Premium materials and high-resolution print.",
+    shippingHtml: doc.shippingHtml || "Ships in 3–5 business days.",
+    returnsHtml: doc.returnsHtml || "30-day return policy.",
     variations: [
       {
         type: "default",
@@ -80,7 +87,7 @@ export default async function Page({ params }) {
   return (
     <>
       <Navbar />
-      <div className="px-6 md:px-16 lg:px-32 pt-14 space-y-10">
+      <div className="px-6 md:px-16 lg:px-16 pt-6 space-y-10">
         <ProductPage product={product} />
       </div>
       <Footer />

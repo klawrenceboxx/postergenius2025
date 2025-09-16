@@ -12,14 +12,14 @@ const Navbar = () => {
   const cartCount = getCartCount();
 
   return (
-    <nav className="flex items-center justify-between px-6 md:px-16 lg:px-32 py-3 border-b border-gray-300 text-gray-700">
+    <nav className="sticky top-0 z-50 bg-white flex items-center justify-between px-6 md:px-16 lg:px-16 py-3 border-b border-gray-300 text-gray-600">
       <Image
-        className="cursor-pointer w-28 md:w-32"
+        className="cursor-pointer w-24 md:w-28"
         onClick={() => router.push("/")}
         src={assets.logo}
         alt="logo"
       />
-      <div className="flex text-m items-center gap-4 lg:gap-12 max-md:hidden font-[600] font-blackhex ">
+      <div className="flex text-m items-center gap-4 lg:gap-12 max-md:hidden font-[500] font-blackhex ">
         <Link
           href="/"
           className="relative hover:text-secondary transition-colors duration-300 group"

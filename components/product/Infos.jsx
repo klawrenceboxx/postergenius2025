@@ -1,10 +1,89 @@
+// components/product/InfosV2.jsx
 "use client";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 
-const label = (d)=> d==="12x18"?"M":d==="18x24"?"L":d==="24x36"?"XL":d;
+// tiny helper
+const cx = (...xs) => xs.filter(Boolean).join(" ");
 
-export default function Infos({
+function Price({ product, format }) {
+  const isPhysical = format === "physical";
+  const base = isPhysical
+    ? product.price
+    : product.digitalPrice ?? product.finalPrice;
+  const sale = isPhysical ? product.salePrice : undefined;
+
+  if (isPhysical && sale && sale < product.price) {
+    const pct = Math.round(((product.price - sale) / product.price) * 100);
+    return (
+      <div className="flex items-baseline gap-3">
+        <span className="text-2xl font-semibold">${sale.toFixed(2)}</span>
+        <span className="text-gray-400 line-through">
+          ${product.price.toFixed(2)}
+        </span>
+        <span className="text-green-600 text-sm font-medium">Save {pct}%</span>
+      </div>
+    );
+  }
+  return <div className="text-2xl font-semibold">${base.toFixed(2)}</div>;
+}
+
+function ReadMore({ text, limit = 50 }) {
+  const [open, setOpen] = useState(false);
+  if (!text) return null;
+  const short = text.length > limit ? text.slice(0, limit).trim() + "…" : text;
+  return (
+    <div className="text-sm text-gray-700 leading-relaxed">
+      <span>{open ? text : short} </span>
+      {text.length > limit && !open && (
+        <button
+          className="text-blue-600 hover:underline font-medium"
+          onClick={() => setOpen(true)}
+        >
+          Read more
+        </button>
+      )}
+    </div>
+  );
+}
+
+// --- Animated Accordion (simple) ---
+function Accordion({ title, children }) {
+  const [open, setOpen] = useState(false);
+  const id = useMemo(() => `acc_${title.replace(/\s+/g, "_")}`, [title]);
+
+  return (
+    <div className="border-b border-gray-200">
+      <button
+        className="w-full flex items-center justify-between py-4 text-left"
+        aria-controls={id}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className="font-medium">{title}</span>
+        <span
+          className={`transition-transform duration-300 ${
+            open ? "rotate-180" : ""
+          }`}
+        >
+          ▾
+        </span>
+      </button>
+
+      {/* Animate max-height + opacity instead of toggling display */}
+      <div
+        id={id}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          open ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="pb-4 text-sm text-gray-700">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+export default function InfosV2({
   product,
   selectedDimensions,
   onDimensionsChange,
@@ -14,67 +93,106 @@ export default function Infos({
   const { addToCart } = useAppContext();
 
   const sizes = useMemo(() => {
-    const s = product?.variations?.[0]?.sizes || [];
-    if (s.length) return s.map(x => ({ label: label(x.size), dimensions: x.size, price: x.price }));
-    const base = product.finalPrice ?? product.price;
-    return [
-      { label:"M", dimensions:"12x18", price: base },
-      { label:"L", dimensions:"18x24", price: Math.round(base*1.2*100)/100 },
-      { label:"XL", dimensions:"24x36", price: Math.round(base*1.5*100)/100 }
-    ];
+    // prefer flat sizes if present; otherwise variations[0].sizes
+    if (Array.isArray(product?.sizes) && product.sizes.length)
+      return product.sizes;
+    return product?.variations?.[0]?.sizes || [];
   }, [product]);
 
-  const currentPhysical = sizes.find(s => s.dimensions===selectedDimensions) || sizes[0];
-  const digitalPrice = product.digitalPrice ?? Math.round((product.finalPrice ?? product.price) * 0.6 * 100)/100;
-  const price = format==="digital" ? digitalPrice : currentPhysical.price;
+  const isPhysical = format === "physical";
+  const physicalDisabled = isPhysical && !product?.printfulEnabled; // flip per product when Printful is ready
 
-  const add = () => {
-    addToCart({
-      productId: product._id || "",
+  const effectivePrice = isPhysical
+    ? product.salePrice ?? product.finalPrice
+    : product.digitalPrice ?? product.finalPrice;
+
+  const handleAdd = async () => {
+    if (physicalDisabled) return;
+    await addToCart({
+      _id: product._id,
       title: product.title,
-      imageUrl: product.imageUrl,
-      price,
-      quantity: 1,
-      slug: product.slug,
+      price: effectivePrice,
       format,
-      dimensions: format === "digital" ? "digital" : selectedDimensions,
+      size: selectedDimensions || null,
     });
   };
 
-  return (
-    <div className="bg-white w-full">
-      <h1 className="text-2xl font-bold">{product.title}</h1>
-      <p className="text-gray-600 mt-2">{product.description || "No description available."}</p>
+  const labelForIndex = (i, s) => {
+    if (s?.label) return s.label;
+    if (sizes.length === 3) return ["M", "L", "XL"][i];
+    const scale = ["S", "M", "L", "XL", "XXL"];
+    return scale[i] || `#${i + 1}`;
+  };
 
-      {/* Format */}
-      <div className="mt-4">
-        <h3 className="text-md font-bold mb-2">Format</h3>
-        <div className="inline-flex items-center p-1 border border-gray-300 rounded-full bg-gray-100">
-          {["physical","digital"].map(opt=>{
-            const sel = opt===format;
+  return (
+    <aside className="lg:sticky lg:top-8 h-fit">
+      {/* Title */}
+      <h1 className="text-3xl font-semibold mb-2">
+        {product?.title || product?.name || "Product"}
+      </h1>
+
+      {/* Price */}
+      <Price product={product} format={format} />
+
+      {/* Short description (first 50 chars) with Read more */}
+      <div className="mt-6">
+        <ReadMore text={product?.description || ""} limit={50} />
+      </div>
+
+      {/* Format segmented control — logic unchanged */}
+      <div className="mt-5">
+        <div className="inline-flex rounded-full bg-gray-100 p-1">
+          {[
+            { key: "physical", label: "Physical Print" },
+            { key: "digital", label: "Digital Download" },
+          ].map((opt) => {
+            const active = format === opt.key;
             return (
-              <button key={opt} onClick={()=>onFormatChange(opt)}
-                className={`px-3 py-2 text-sm font-medium rounded-full transition-all ${sel?"bg-white text-blue-600 border border-blue-600 shadow":"text-gray-700 hover:bg-gray-200"}`}
-                style={{minWidth:120}}>
-                {opt==="physical"?"Physical Print":"Digital Download"}
+              <button
+                key={opt.key}
+                aria-pressed={active}
+                onClick={() => onFormatChange(opt.key)}
+                className={cx(
+                  "px-4 py-2 text-sm rounded-full transition",
+                  active
+                    ? "bg-white shadow border text-gray-900"
+                    : "text-gray-600 hover:text-gray-900"
+                )}
+              >
+                {opt.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Sizes (physical only) */}
-      {format==="physical" && (
-        <div className="mt-4">
-          <h3 className="text-md font-bold mb-2">Choose size</h3>
-          <div className="inline-flex items-center p-1 border border-gray-300 rounded-full bg-gray-100">
-            {sizes.map(s=>{
-              const sel = s.dimensions===selectedDimensions;
+      {/* Size segmented control */}
+      {sizes?.length > 0 && (
+        <div className="mt-6">
+          <div className="text-xs uppercase text-gray-500 mb-2">
+            Size (inches)
+          </div>
+
+          <div className="inline-flex items-center gap-2 bg-gray-100 rounded-full p-1">
+            {sizes.map((s, i) => {
+              const dims = s.dimensions || s.size; // "12x18"
+              const label = labelForIndex(i, s); // "M", "L", "XL"
+              const sel = selectedDimensions === dims;
+
               return (
-                <button key={s.dimensions} onClick={()=>onDimensionsChange(s.dimensions)}
-                  className={`px-3 py-2 text-sm font-medium rounded-full transition-all ${sel?"bg-white text-blue-600 border border-blue-600 shadow":"text-gray-700 hover:bg-gray-200"}`}
-                  style={{minWidth:60}}>
-                  {sel?`${s.label} (${s.dimensions})`:s.label}
+                <button
+                  key={`${label}-${dims}`}
+                  onClick={() => onDimensionsChange(dims)}
+                  className={`px-3 py-2 text-sm font-medium rounded-full 
+                    transition-colors transition-shadow duration-200 ease-in-out
+                    ${
+                      sel
+                        ? "bg-white text-secondary border border-secondary shadow"
+                        : "text-gray-700 hover:bg-gray-200"
+                    }`}
+                  style={{ minWidth: 60 }}
+                >
+                  {sel ? `${label} (${dims})` : label}
                 </button>
               );
             })}
@@ -82,35 +200,48 @@ export default function Infos({
         </div>
       )}
 
-      {/* Price */}
-      <div className="mt-4">
-        <p className="text-lg font-semibold">
-          ${price.toFixed(2)} {format==="digital" &&
-            <span className="ml-2 text-gray-500 text-sm">
-              instant download • includes common ratios (2:3, 3:4, 4:5, 1:1, A-series) • 300 DPI sRGB JPG/PNG • up to 24×36 • includes square, bordered & text variants
-            </span>}
+      {/* CTA + free shipping note */}
+      <div className="mt-6">
+        <button
+          onClick={handleAdd}
+          disabled={physicalDisabled}
+          className={cx(
+            "w-full h-14 rounded-full font-semibold text-white transition",
+            "bg-primary hover:bg-tertiary",
+            physicalDisabled && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          {/* ${effectivePrice.toFixed(2)} ADD TO CART */}
+          ADD TO CART
+        </button>
+        <p className="text-xs text-gray-500 text-center mt-2">
+          Enjoy free shipping over $50
         </p>
       </div>
 
-      {/* Reviews */}
-      <div className="mt-4">
-        <h2 className="text-lg font-semibold">Reviews:</h2>
-        {(product.reviews||[]).length
-          ? product.reviews.map((r,i)=>(
-              <div key={i} className="mt-2">
-                <div className="flex items-center text-yellow-400">{Array.from({length:Math.floor(r.rating||0)}).map((_,j)=><span key={j}>&#9733;</span>)}{r.rating%1!==0 && <span>&#9734;</span>}</div>
-                {r.reviewText && <p className="text-gray-800 mt-1">"{r.reviewText}"</p>}
-              </div>
-            ))
-          : <p className="text-gray-600">No reviews yet.</p>}
+      {/* Short description (first 50 chars) with Read more */}
+      <div className="mt-6">
+        <ReadMore text={product?.description || ""} limit={50} />
       </div>
 
-      <div className="mt-6">
-        <button onClick={add}
-          className="w-full bg-blue-500 text-white px-4 py-3 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition shadow hover:shadow-lg">
-          {format==="digital" ? "Buy Digital Download" : "Add to Cart"}
-        </button>
+      {/* Details / Shipping / Returns accordions */}
+      <div className="mt-6 divide-y divide-gray-100 border-t border-gray-200">
+        <Accordion title="Details">
+          <div className="text-sm text-gray-700">
+            Premium materials and high-resolution print.
+          </div>
+        </Accordion>
+        <Accordion title="Shipping">
+          <div className="text-sm text-gray-700">
+            Ships in 3–5 business days. Tracking provided.
+          </div>
+        </Accordion>
+        <Accordion title="Returns">
+          <div className="text-sm text-gray-700">
+            30-day return policy. Contact support for assistance.
+          </div>
+        </Accordion>
       </div>
-    </div>
+    </aside>
   );
 }

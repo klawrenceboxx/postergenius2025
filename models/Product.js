@@ -9,6 +9,7 @@ const productSchema = new mongoose.Schema({
   digitalPrice: { type: Number, default: 0 },
   image: { type: [String], required: true },
   category: { type: String, required: true },
+  PrintfulEnabled: { type: Boolean, default: false },
   orientation: {
     type: String,
     enum: ["portrait", "landscape"],
