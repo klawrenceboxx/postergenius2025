@@ -82,11 +82,36 @@ export const AppContextProvider = (props) => {
         slug,
         format,
         dimensions,
+        isDigital: rawIsDigital,
       } = payload;
-      const key = `${productId}-${format}-${dimensions}`;
+
+      if (!productId) {
+        return;
+      }
+
+      const resolvedFormat =
+        format || (rawIsDigital ? "digital" : "physical");
+      const isDigital =
+        typeof rawIsDigital === "boolean"
+          ? rawIsDigital
+          : resolvedFormat === "digital";
+      const normalizedDimensions = isDigital
+        ? null
+        : dimensions ?? null;
+      const dimensionKey =
+        normalizedDimensions ?? (isDigital ? "digital" : "default");
+      const key = `${productId}-${resolvedFormat}-${dimensionKey}`;
       const existing = cartData[key];
+
       if (existing && typeof existing === "object") {
         existing.quantity += quantity;
+        existing.format = resolvedFormat;
+        existing.dimensions = normalizedDimensions;
+        existing.isDigital = isDigital;
+        if (typeof title !== "undefined") existing.title = title;
+        if (typeof imageUrl !== "undefined") existing.imageUrl = imageUrl;
+        if (typeof price !== "undefined") existing.price = price;
+        if (typeof slug !== "undefined") existing.slug = slug;
       } else {
         cartData[key] = {
           productId,
@@ -95,8 +120,9 @@ export const AppContextProvider = (props) => {
           price,
           quantity,
           slug,
-          format,
-          dimensions,
+          format: resolvedFormat,
+          dimensions: normalizedDimensions,
+          isDigital,
         };
       }
     }

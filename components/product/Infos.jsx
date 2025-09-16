@@ -109,11 +109,14 @@ export default function InfosV2({
   const handleAdd = async () => {
     if (physicalDisabled) return;
     await addToCart({
-      _id: product._id,
+      productId: product._id,
       title: product.title,
+      imageUrl: product?.image?.[0],
       price: effectivePrice,
       format,
-      size: selectedDimensions || null,
+      dimensions: selectedDimensions || null,
+      isDigital: format === "digital",
+      slug: product?.slug,
     });
   };
 

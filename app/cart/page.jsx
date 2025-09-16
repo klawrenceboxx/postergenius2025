@@ -48,17 +48,83 @@ const Cart = () => {
                 {Object.entries(cartItems).map(([key, entry]) => {
                   const isObj = entry && typeof entry === "object";
                   const productId = isObj ? entry.productId : key;
-                  const product = products.find((p) => p._id === productId);
-                  if (!product) return null;
+                  const product = productId
+                    ? products.find((p) => p._id === productId)
+                    : undefined;
 
-                  const quantity = isObj ? entry.quantity : entry;
-                  if (!quantity || quantity <= 0) return null;
+                  if (!isObj && !product) return null;
 
-                  const unitPrice = isObj ? entry.price : product.offerPrice;
-                  const title = isObj ? entry.title : product.name;
-                  const imageUrl = isObj ? entry.imageUrl : product.image?.[0];
-                  const format = isObj ? entry.format : undefined;
-                  const dims = isObj ? entry.dimensions : undefined;
+                  const rawQuantity = isObj ? entry.quantity ?? 1 : entry;
+                  const quantity = Number(rawQuantity);
+                  if (!Number.isFinite(quantity) || quantity <= 0) return null;
+
+                  const rawUnitPrice = isObj
+                    ? entry.price
+                    : product?.salePrice ??
+                      product?.offerPrice ??
+                      product?.price ??
+                      product?.finalPrice ??
+                      product?.digitalPrice ??
+                      0;
+                  const parsedUnitPrice =
+                    typeof rawUnitPrice === "number"
+                      ? rawUnitPrice
+                      : Number(rawUnitPrice ?? 0);
+                  const unitPrice = Number.isFinite(parsedUnitPrice)
+                    ? parsedUnitPrice
+                    : 0;
+
+                  const fallbackTitle =
+                    product?.title ?? product?.name ?? product?.productName;
+                  const title =
+                    (isObj ? entry.title : fallbackTitle) || "Product";
+
+                  const rawFormat = isObj ? entry.format : undefined;
+                  const rawIsDigital = isObj ? entry.isDigital : undefined;
+                  const isDigital =
+                    typeof rawIsDigital === "boolean"
+                      ? rawIsDigital
+                      : rawFormat === "digital";
+
+                  const rawDimensions = isObj ? entry.dimensions : undefined;
+                  let normalizedDimensions =
+                    rawDimensions === undefined ? undefined : rawDimensions;
+                  if (
+                    normalizedDimensions === "" ||
+                    normalizedDimensions === null ||
+                    (typeof normalizedDimensions === "string" &&
+                      normalizedDimensions.toLowerCase() === "digital")
+                  ) {
+                    normalizedDimensions = null;
+                  }
+                  if (isDigital) {
+                    normalizedDimensions = null;
+                  }
+
+                  const resolvedFormat = isDigital
+                    ? "digital"
+                    : rawFormat || undefined;
+
+                  const imageUrl = isObj
+                    ? entry.imageUrl ?? product?.image?.[0]
+                    : product?.image?.[0];
+                  const resolvedImage = imageUrl || assets.upload_area;
+
+                  const detailParts = [];
+                  if (isDigital) {
+                    detailParts.push("Digital Download");
+                  } else if (resolvedFormat) {
+                    detailParts.push(
+                      resolvedFormat === "physical"
+                        ? "Physical Print"
+                        : resolvedFormat.charAt(0).toUpperCase() +
+                          resolvedFormat.slice(1)
+                    );
+                  }
+                  if (!isDigital && normalizedDimensions) {
+                    detailParts.push(normalizedDimensions);
+                  }
+                  const detailLabel = detailParts.join(" • ");
 
                   return (
                     <tr
@@ -70,7 +136,7 @@ const Cart = () => {
                         <div>
                           <div className="rounded-lg overflow-hidden bg-gray-100 p-2 shadow-sm">
                             <Image
-                              src={imageUrl}
+                              src={resolvedImage}
                               alt={title}
                               className="w-16 h-auto object-cover"
                               width={1280}
@@ -86,11 +152,8 @@ const Cart = () => {
                         </div>
                         <div className="text-sm hidden md:block">
                           <p className="text-blackhex">{title}</p>
-                          {isObj && (
-                            <p className="text-xs text-gray-500">
-                              {format}
-                              {dims && dims !== "digital" ? ` • ${dims}` : ""}
-                            </p>
+                          {detailLabel && (
+                            <p className="text-xs text-gray-500">{detailLabel}</p>
                           )}
                           <button
                             className="text-xs text-primary mt-1 hover:underline"

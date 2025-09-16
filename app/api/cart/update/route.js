@@ -28,8 +28,14 @@ export async function POST(request) {
     const payload = {};
     for (const [key, value] of Object.entries(cartData)) {
       if (value && typeof value === "object") {
-        const { quantity = 1, format, dimensions, ...rest } = value;
-        payload[key] = { quantity, format, dimensions, ...rest };
+        const { quantity = 1, format, dimensions, isDigital, ...rest } = value;
+        payload[key] = {
+          quantity,
+          format,
+          dimensions,
+          ...(typeof isDigital !== "undefined" ? { isDigital } : {}),
+          ...rest,
+        };
       } else if (typeof value === "number") {
         payload[key] = value;
       }
