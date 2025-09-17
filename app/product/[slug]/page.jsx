@@ -49,7 +49,8 @@ async function getProduct(slugOrId) {
     slug: doc.slug || slugOrId,
     reviews: doc.reviews || [],
     orientation: doc.orientation || "portrait",
-    printfulEnabled: !!doc.printfulEnabled, // ← controls greying Physical
+    // printfulEnabled: !!doc.printfulEnabled, // ← controls greying Physical
+    printfulEnabled: true, // ← controls greying Physical
     detailsHtml:
       doc.detailsHtml || "Premium materials and high-resolution print.",
     shippingHtml: doc.shippingHtml || "Ships in 3–5 business days.",
