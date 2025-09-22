@@ -1,59 +1,120 @@
 "use client";
+// 👆 This tells Next.js this file is a client component (runs in the browser, not only on the server)
 
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import toast from "react-hot-toast";
-import { loadStripe } from "@stripe/stripe-js";
+import React, { useEffect, useState } from "react"; // React core features
+import axios from "axios"; // HTTP requests to your backend API routes
+import toast from "react-hot-toast"; // Popup notifications (success/error messages)
+import { loadStripe } from "@stripe/stripe-js"; // Loads Stripe object from your public key
 import { Elements, useStripe } from "@stripe/react-stripe-js";
+// Elements = provider wrapper for Stripe context
+// useStripe = React hook to access Stripe inside your component
 import { useAppContext } from "@/context/AppContext";
+// 👆 Your global app context (cart, user, totals, router, etc.)
 import { useClerk } from "@clerk/nextjs";
+// 👆 Auth provider, handles login/signup with Clerk
 
-// Handles Stripe Checkout interaction
+// -------------------- Checkout Button --------------------
 const CheckoutButton = ({ selectedAddress, cartItems, getToken, user }) => {
-  const stripe = useStripe();
-  const { openSignIn } = useClerk();
-  const [loading, setLoading] = useState(false);
+  const stripe = useStripe(); // gets the Stripe instance created by <Elements>
+  const { openSignIn } = useClerk(); // Clerk helper to open the login modal
+  const [loading, setLoading] = useState(false); // tracks button loading state
 
+  // -------------------- Handle Checkout --------------------
   const handleCheckout = async () => {
+    console.log("🔹 Checkout started");
+    console.log("User:", user);
+    console.log("Selected Address:", selectedAddress);
+    console.log("Cart Items (raw):", cartItems);
+
+    // 🛑 Block if user isn’t logged in (open login modal instead)
     if (!user) {
+      console.warn("⚠️ No user, opening sign-in");
       openSignIn();
       return;
     }
-    if (!stripe) return toast.error("Stripe not ready");
-    if (!selectedAddress) return toast.error("Please select an address");
 
+    // 🛑 Block if Stripe object hasn’t loaded yet
+    if (!stripe) {
+      console.error("❌ Stripe not ready");
+      return toast.error("Stripe not ready");
+    }
+
+    // 🛑 Block if user hasn’t selected a shipping address
+    if (!selectedAddress) {
+      console.error("❌ No address selected");
+      return toast.error("Please select an address");
+    }
+
+    // 🔄 Convert cartItems (object) → array that the server understands
     const cartItemsArray = Object.entries(cartItems)
-      .map(([product, quantity]) => ({ product, quantity }))
-      .filter((item) => item.quantity > 0);
+      // Object.entries turns { key: value } into [[key, value], ...]
+      .map(([key, entry]) => {
+        const isObj = typeof entry === "object" && entry !== null;
+        // productId: either stored inside entry OR strip composite key (id-format-size → just id)
+        const productId = isObj ? entry.productId : key.split("-")[0];
+        // quantity: use entry.quantity if object, else number directly
+        const quantity = isObj ? entry.quantity : entry;
 
-    if (cartItemsArray.length === 0) return toast.error("Your cart is empty");
+        return {
+          productId, // ✅ Mongo ObjectId of product
+          quantity, // ✅ how many items of this product
+          ...(isObj
+            ? { format: entry.format, dimensions: entry.dimensions } // optional extras
+            : {}),
+        };
+      })
+      .filter((item) => item.quantity > 0); // remove anything with 0 or invalid quantity
 
+    console.log("Cart Items (normalized):", cartItemsArray);
+
+    // 🛑 Block if somehow nothing is left
+    if (cartItemsArray.length === 0) {
+      console.error("❌ Cart is empty after filtering");
+      return toast.error("Your cart is empty");
+    }
+
+    // -------------------- Try to create a Stripe Checkout session --------------------
     try {
-      setLoading(true);
+      setLoading(true); // disable button, show "Processing..."
       const token = await getToken();
+      // 👆 Clerk JWT (used so backend can verify the request comes from a logged-in user)
+      console.log("Auth Token:", token);
+
+      // POST request to your backend API
       const { data } = await axios.post(
-        "/api/stripe/create-session",
+        "/api/stripe/create-session", // your Next.js API route
         {
-          items: cartItemsArray,
-          address: selectedAddress._id,
-          successUrl: `${window.location.origin}/order-placed`,
-          cancelUrl: `${window.location.origin}/cart`,
+          items: cartItemsArray, // what you’re buying
+          address: selectedAddress._id, // which address to ship to
+          successUrl: `${window.location.origin}/order-placed`, // where to go if payment succeeds
+          cancelUrl: `${window.location.origin}/cart`, // where to go if payment cancelled
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } } // attach JWT for server auth
       );
 
+      console.log("Stripe session response:", data);
+
+      // ✅ If server successfully created session → redirect user to Stripe
       if (data.success) {
         const { error } = await stripe.redirectToCheckout({
           sessionId: data.sessionId,
         });
-        if (error) toast.error(error.message);
+        if (error) {
+          console.error("❌ Stripe redirect error:", error);
+          toast.error(error.message);
+        }
       } else {
+        // ❌ If backend returned failure
+        console.error("❌ Stripe session creation failed:", data.message);
         toast.error(data.message || "Unable to start checkout");
       }
     } catch (error) {
+      // ❌ If network error or backend error
+      console.error("❌ Checkout error:", error);
       toast.error(error?.response?.data?.message || error.message || "Error");
     } finally {
       setLoading(false);
+      console.log("✅ Checkout finished");
     }
   };
 
@@ -63,66 +124,92 @@ const CheckoutButton = ({ selectedAddress, cartItems, getToken, user }) => {
       className="w-full h-12 rounded-full font-semibold text-white 
                  bg-primary hover:bg-tertiary active:scale-[0.99]
                  shadow-md shadow-primary/20 transition-colors disabled:opacity-50"
-      disabled={loading}
+      disabled={loading} // disable if already processing
     >
       {loading ? "Processing..." : "Checkout"}
     </button>
   );
 };
 
+// -------------------- Order Summary (right panel) --------------------
 const OrderSummary = () => {
+  // 👇 Pull shared app state from your AppContext provider
   const {
-    currency,
-    router,
-    getCartCount,
-    getCartAmount,
-    getToken,
-    user,
-    cartItems,
+    currency, // currency symbol e.g. "$"
+    router, // Next.js router for navigation
+    getCartCount, // function to count total cart items
+    getCartAmount, // function to sum up subtotal
+    getToken, // function to fetch Clerk JWT
+    user, // logged-in user object (or null if guest)
+    cartItems, // current cart contents
   } = useAppContext();
 
-  const [selectedAddress, setSelectedAddress] = useState(null);
-  const [userAddresses, setUserAddresses] = useState([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [stripeReady, setStripeReady] = useState(null);
+  // Local state for this component only
+  const [selectedAddress, setSelectedAddress] = useState(null); // which shipping address selected
+  const [userAddresses, setUserAddresses] = useState([]); // all addresses saved to user
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // toggle address dropdown
+  const [stripeReady, setStripeReady] = useState(null); // Stripe instance once loaded
 
+  // -------------------- Load Stripe on mount --------------------
   useEffect(() => {
-    loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY).then((stripe) =>
-      setStripeReady(stripe)
+    loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY).then(
+      (stripe) => {
+        console.log("Stripe Loaded:", stripe);
+        setStripeReady(stripe);
+      }
     );
   }, []);
 
+  // -------------------- Fetch user addresses if logged in --------------------
   useEffect(() => {
     const fetchUserAddresses = async () => {
+      console.log("Fetching user addresses...");
       try {
-        const token = await getToken();
+        const token = await getToken(); // get Clerk JWT
+        console.log("Auth Token (addresses):", token);
+
         const { data } = await axios.get("/api/user/get-address", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        console.log("User addresses response:", data);
+
         if (data.success) {
-          setUserAddresses(data.addresses);
-          if (data.addresses.length > 0) setSelectedAddress(data.addresses[0]);
+          setUserAddresses(data.addresses); // save list of addresses
+          if (data.addresses.length > 0) {
+            setSelectedAddress(data.addresses[0]); // default: first address
+          }
         } else {
           toast.error(data.message || "Unable to fetch addresses");
         }
       } catch (error) {
+        console.error("❌ Error fetching addresses:", error);
         toast.error(error?.response?.data?.message || error.message || "Error");
       }
     };
 
-    if (user) fetchUserAddresses();
+    if (user) fetchUserAddresses(); // only run if logged in
   }, [user, getToken]);
 
-  const subtotal = getCartAmount();
-  const tax = parseFloat((subtotal * 0.13).toFixed(2));
-  const total = subtotal + tax;
+  // -------------------- Totals --------------------
+  const subtotal = getCartAmount(); // total price before tax
+  const tax = parseFloat((subtotal * 0.13).toFixed(2)); // 13% HST (hardcoded for Ontario)
+  const total = subtotal + tax; // final total
 
+  console.log("Cart Summary:", {
+    subtotal,
+    tax,
+    total,
+    itemCount: getCartCount(),
+  });
+
+  // -------------------- Input style helper --------------------
   const inputCls =
     "flex-grow w-full outline-none px-3 py-3 rounded-md text-blackhex placeholder-gray-500 " +
     "border border-gray-300 focus:border-primary focus:ring-2 focus:ring-secondary/40 " +
     "transition-colors";
 
+  // -------------------- Render --------------------
   return (
     <div className="w-full md:w-96 bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
       <h2 className="text-xl md:text-2xl font-semibold text-blackhex">
@@ -132,7 +219,7 @@ const OrderSummary = () => {
       <hr className="border-gray-200 my-5" />
 
       <div className="space-y-6">
-        {/* Address Selection */}
+        {/* -------------------- Address Dropdown -------------------- */}
         <div>
           <label className="text-sm font-medium uppercase text-blackhex block mb-2">
             Select Address
@@ -149,6 +236,7 @@ const OrderSummary = () => {
                   ? `${selectedAddress.fullName}, ${selectedAddress.area}, ${selectedAddress.city}, ${selectedAddress.state}`
                   : "Select Address"}
               </span>
+              {/* Chevron icon (rotates on open) */}
               <svg
                 className={`w-5 h-5 absolute right-3 top-1/2 -translate-y-1/2 transition-transform duration-200 ${
                   isDropdownOpen ? "rotate-180" : ""
@@ -167,6 +255,7 @@ const OrderSummary = () => {
               </svg>
             </button>
 
+            {/* Dropdown options */}
             {isDropdownOpen && (
               <ul className="absolute w-full bg-white border border-gray-200 rounded-md shadow-lg mt-1 z-10 py-1.5">
                 {userAddresses.map((address, index) => (
@@ -182,6 +271,7 @@ const OrderSummary = () => {
                     {address.state}
                   </li>
                 ))}
+                {/* Shortcut to add new address */}
                 <li
                   onClick={() => router.push("/add-address")}
                   className="px-4 py-2 cursor-pointer text-center text-primary hover:bg-secondary/10"
@@ -193,7 +283,7 @@ const OrderSummary = () => {
           </div>
         </div>
 
-        {/* Promo Code */}
+        {/* -------------------- Promo Code (not wired yet) -------------------- */}
         <div>
           <label className="text-sm font-medium uppercase text-blackhex block mb-2">
             Promo Code
@@ -214,7 +304,7 @@ const OrderSummary = () => {
           </div>
         </div>
 
-        {/* Totals */}
+        {/* -------------------- Totals -------------------- */}
         <div className="space-y-2">
           <div className="flex justify-between text-base font-medium">
             <p className="uppercase text-gray-600">Items - {getCartCount()}</p>
@@ -244,7 +334,7 @@ const OrderSummary = () => {
         </div>
       </div>
 
-      {/* Checkout */}
+      {/* -------------------- Checkout Button -------------------- */}
       <div className="mt-5">
         {stripeReady && (
           <Elements stripe={stripeReady}>

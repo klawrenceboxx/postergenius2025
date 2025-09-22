@@ -4,10 +4,9 @@ import User from "@/models/User";
 import Order from "@/models/Order";
 import mongoose from "mongoose";
 
-// Create a client to send and receive events
 export const inngest = new Inngest({ id: "postergenius-next" });
 
-// Innjest Function to save user data to a database
+// Clerk sync functions (no change)
 export const syncUserCreation = inngest.createFunction(
   { id: "sync-user-data" },
   { event: "clerk/user.created" },
@@ -28,7 +27,6 @@ export const syncUserCreation = inngest.createFunction(
   }
 );
 
-// Inngest Function to update user data in database
 export const syncUserUpdation = inngest.createFunction(
   { id: "update-user-from-clerk" },
   { event: "clerk/user.updated" },
@@ -41,15 +39,10 @@ export const syncUserUpdation = inngest.createFunction(
       imageUrl: image_url,
     };
     await connectDB();
-    await User.findOneAndUpdate(
-      { userId: id },
-      userData,
-      { new: true }
-    );
+    await User.findOneAndUpdate({ userId: id }, userData, { new: true });
   }
 );
 
-//Inngest Function to delete user data from database
 export const syncUserDeletion = inngest.createFunction(
   { id: "delete-user-with-clerk" },
   { event: "clerk/user.deleted" },
@@ -60,7 +53,7 @@ export const syncUserDeletion = inngest.createFunction(
   }
 );
 
-// Inngest Function to create user's order in database
+// ✅ FIXED createUserOrder
 export const createUserOrder = inngest.createFunction(
   {
     id: "create-user-order",
@@ -71,28 +64,60 @@ export const createUserOrder = inngest.createFunction(
   },
   { event: "order/created" },
   async ({ events }) => {
+    console.log(
+      "[DEBUG] Incoming order events:",
+      JSON.stringify(events, null, 2)
+    );
+
     const orders = events.map((event) => {
-      const addr = event.data.address;
-      const valid = mongoose.Types.ObjectId.isValid(addr);
-      console.log(
-        `Creating order for user ${event.data.userId} with address ${addr} (valid: ${valid})`
-      );
+      const {
+        userId,
+        address,
+        items,
+        subtotal,
+        tax,
+        amount,
+        date,
+        stripeSessionId,
+      } = event.data;
+
+      const valid = mongoose.Types.ObjectId.isValid(address);
       if (!valid) {
-        throw new Error(`Invalid address id: ${addr}`);
+        console.error("[ERROR] Invalid address ID:", address);
+        throw new Error(`Invalid address id: ${address}`);
       }
+
+      // ✅ Ensure product gets mapped correctly
+      const fixedItems = items.map((item, i) => {
+        const productId = item.productId || item.product; // accept either key
+        if (!productId) {
+          console.error(`[ERROR] Missing product ID for item[${i}]`, item);
+          throw new Error(`Missing product ID for item[${i}]`);
+        }
+        return {
+          product: productId,
+          quantity: item.quantity,
+        };
+      });
+
+      console.log("[DEBUG] Processed order items:", fixedItems);
+
       return {
-        userId: event.data.userId,
-        address: addr,
-        items: event.data.items,
-        subtotal: event.data.subtotal,
-        tax: event.data.tax,
-        amount: event.data.amount,
-        date: event.data.date,
+        userId,
+        address,
+        items: fixedItems,
+        subtotal,
+        tax,
+        amount,
+        date,
+        stripeSessionId: stripeSessionId || null,
       };
     });
 
     await connectDB();
-    await Order.insertMany(orders);
+    const result = await Order.insertMany(orders);
+    console.log("[DEBUG] Orders saved:", result);
+
     return {
       success: true,
       processed: orders.length,

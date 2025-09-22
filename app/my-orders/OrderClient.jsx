@@ -13,12 +13,14 @@ import Loading from "@/components/Loading";
 const OrderConfirmationWithOrders = () => {
   const { setCartItems, getToken, user, currency } = useAppContext();
   const searchParams = useSearchParams();
-  const [confirming, setConfirming] = useState(true);
-  const [orders, setOrders] = useState([]);
+  const [confirming, setConfirming] = useState(true); // ✅ Are we still confirming Stripe order?
+  const [orders, setOrders] = useState([]); // ✅ List of orders from backend
   const [loadingOrders, setLoadingOrders] = useState(true);
-  const [downloading, setDownloading] = useState(null); // track which item is downloading
+  const [downloading, setDownloading] = useState(null); // ✅ Track which product is downloading
 
+  // ------------------------------------
   // Step 1: Confirm order with Stripe session_id
+  // ------------------------------------
   useEffect(() => {
     const sessionId = searchParams.get("session_id");
     console.log("[DEBUG] Session ID from searchParams:", sessionId);
@@ -31,8 +33,10 @@ const OrderConfirmationWithOrders = () => {
     (async () => {
       try {
         const token = await getToken();
-        console.log("[DEBUG] Token for ordr confirmation:", token);
+        console.log("[DEBUG] Token for order confirmation:", token);
 
+        // 🔎 Check endpoint: should be /api/stripe/confirm or similar,
+        // but here you call /api/stripe/list (possible mismatch)
         const { data } = await axios.post(
           "/api/stripe/list",
           { sessionId },
@@ -57,12 +61,14 @@ const OrderConfirmationWithOrders = () => {
     })();
   }, [searchParams, getToken, setCartItems]);
 
-  // Step 2: Fetch orders after confirmation completes
+  // ------------------------------------
+  // Step 2: Fetch orders after confirmation
+  // ------------------------------------
   useEffect(() => {
     console.log("[DEBUG] User in order fetch effect:", user);
     console.log("[DEBUG] Confirming status:", confirming);
 
-    if (!user || confirming) return;
+    if (!user || confirming) return; // wait for confirm + user ready
 
     (async () => {
       try {
@@ -73,7 +79,7 @@ const OrderConfirmationWithOrders = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log("[DEBUG] Response from /api/prder/list:", data);
+        console.log("[DEBUG] Response from /api/order/list:", data);
 
         if (data.success) {
           setOrders(data.orders);
@@ -85,32 +91,44 @@ const OrderConfirmationWithOrders = () => {
       } catch (err) {
         console.error("[ERROR] Error fetching orders:", err);
         toast.error("Error fetching orders");
-        setOrders(orderDummyData);
+        setOrders(orderDummyData); // fallback data
       } finally {
         setLoadingOrders(false);
       }
     })();
   }, [user, confirming, getToken]);
 
-  // Step 3: Handle download for specific productId
+  // ------------------------------------
+  // Step 3: Handle download for a digital product
+  // ------------------------------------
   const handleDownload = async (productId) => {
     try {
+      console.log("[DEBUG] Attempting download for productId:", productId);
       setDownloading(productId);
+
       const { data } = await axios.get(
         `/api/download-link?productId=${productId}`
       );
+      console.log("[DEBUG] Response from /api/download-link:", data);
+
       if (data.success && data.url) {
+        console.log("[DEBUG] Redirecting to S3 signed URL:", data.url);
         window.location.href = data.url;
       } else {
+        console.error("[ERROR] Download failed:", data.message);
         toast.error(data.message || "Download failed");
       }
     } catch (err) {
+      console.error("[ERROR] Exception in handleDownload:", err);
       toast.error("Error preparing download");
     } finally {
       setDownloading(null);
     }
   };
 
+  // ------------------------------------
+  // Step 4: Render UI
+  // ------------------------------------
   return (
     <>
       <Navbar />
@@ -164,7 +182,7 @@ const OrderConfirmationWithOrders = () => {
                               {downloading === item.product._id
                                 ? "Preparing..."
                                 : "Download"}
-                            </button>{" "}
+                            </button>
                           </div>
                         );
                       })}

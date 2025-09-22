@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import connectDB from "@/config/db";
@@ -30,9 +31,32 @@ export async function GET(request) {
     await connectDB();
 
     // 4️⃣ Check if user purchased this product
+
+    // before the exists() query
+    const isValid = mongoose.Types.ObjectId.isValid(productId);
+    const oid = isValid ? new mongoose.Types.ObjectId(productId) : null;
+
+    console.log("[DL] userId:", userId);
+    console.log("[DL] productId (query):", productId);
+    console.log("[DL] oid valid?:", mongoose.Types.ObjectId.isValid(productId));
+    const match = await Order.findOne({
+      userId,
+      $or: [
+        { "items.product": productId },
+        ...(mongoose.Types.ObjectId.isValid(productId)
+          ? [{ "items.product": new mongoose.Types.ObjectId(productId) }]
+          : []),
+      ],
+    }).lean();
+    console.log("[DL] matched order? ", !!match, " orderId:", match?._id);
+
+    // check purchase (handles new ObjectId orders AND legacy string orders)
     const orderExists = await Order.exists({
       userId,
-      "items.product": productId,
+      $or: [
+        ...(oid ? [{ "items.product": oid }] : []),
+        { "items.product": productId }, // legacy string
+      ],
     });
 
     if (!orderExists) {
@@ -43,7 +67,7 @@ export async function GET(request) {
     }
 
     // 5️⃣ Fetch product to get matching S3 key (using product.name as key)
-    const product = await Product.findById(productId);
+    const product = await Product.findById(oid ?? productId);
     if (!product || !product.name) {
       return NextResponse.json(
         { success: false, message: "Product file not found" },

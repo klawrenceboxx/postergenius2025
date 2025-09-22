@@ -1,101 +1,98 @@
-// src/app/api/stripe/webhook/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import mongoose from "mongoose";
 import connectDB from "@/config/db";
-import Product from "@/models/Product";
-import User from "@/models/User";
-import { inngest } from "@/config/inngest";
 import Order from "@/models/Order";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2022-11-15",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
-export async function POST(request) {
-  const sig = request.headers.get("stripe-signature");
+export async function POST(req) {
+  console.log("=== [STRIPE WEBHOOK] START ===");
+  const body = await req.text();
+  const sig = req.headers.get("stripe-signature");
+
   let event;
-
   try {
-    const body = await request.text();
     event = stripe.webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET || ""
+      process.env.STRIPE_WEBHOOK_SECRET
     );
+    console.log("📩 Stripe Event:", event.type);
   } catch (err) {
-    console.error("Webhook Error:", err.message);
-    return new NextResponse(`Webhook Error: ${err.message}`, { status: 400 });
+    console.error("❌ Webhook signature verification failed:", err.message);
+    return NextResponse.json(
+      { success: false, message: err.message },
+      { status: 400 }
+    );
   }
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
 
-    try {
+  try {
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object;
+      const metadata = session.metadata || {};
+      console.log("✅ checkout.session.completed, metadata:", metadata);
+
+      // parse and remap items: { product: <id>, quantity: <n> }
+      let incoming = [];
+      try {
+        incoming = JSON.parse(metadata.items || "[]");
+      } catch (e) {
+        console.warn("⚠️ Failed to parse metadata.items, defaulting to []");
+        incoming = [];
+      }
+
+      const items = incoming.map((it) => ({
+        product: it.productId || it.product,
+        quantity: Number(it.quantity || 0),
+      }));
+
       await connectDB();
+      console.log("✅ DB connected in webhook");
 
-      // Check if order already exists for this session
-      const existingOrder = await Order.findOne({
-        stripeSessionId: session.id,
-      });
-
-      if (existingOrder) {
-        console.log("Order already exists for session:", session.id);
+      // prevent duplicate orders for same Stripe session
+      const existing = await Order.findOne({ stripeSessionId: session.id });
+      if (existing) {
+        console.log(
+          "ℹ️ Order already exists for session:",
+          session.id,
+          "orderId:",
+          existing._id
+        );
         return NextResponse.json({ received: true });
       }
 
-      const userId = session.metadata?.userId;
-      const addressId = session.metadata?.address;
-      console.log("Webhook metadata address:", addressId);
-      console.log("Type:", typeof addressId);
-      console.log(
-        "Valid ObjectId:",
-        mongoose.Types.ObjectId.isValid(addressId)
-      );
-      const items = JSON.parse(session.metadata?.items || "[]");
+      const subtotal = (session.amount_subtotal || 0) / 100;
+      const amount = (session.amount_total || 0) / 100;
+      const tax = amount - subtotal;
 
-      const isValidAddress = mongoose.Types.ObjectId.isValid(addressId);
-      if (!isValidAddress) {
-        console.error("Invalid address id in webhook:", addressId);
-        return new NextResponse(`Invalid address id`, { status: 400 });
-      }
-
-      // Calculate total
-      let cartTotal = 0;
-      for (const item of items) {
-        const product = await Product.findById(item.product);
-        if (!product) continue;
-        cartTotal += product.offerPrice * item.quantity;
-      }
-      const subtotal = cartTotal;
-      const tax = Number((subtotal * 0.13).toFixed(2));
-      const total = Number((subtotal + tax).toFixed(2));
-
-      // Trigger order event
-      await inngest.send({
-        name: "order/created",
-        data: {
-          userId,
-          address: addressId,
-          items,
-          subtotal,
-          tax,
-          amount: total,
-          date: Date.now(),
-          stripeSessionId: session.id,
-        },
+      const newOrder = new Order({
+        userId: metadata.userId,
+        address: (() => {
+          try {
+            return JSON.parse(metadata.address || "null");
+          } catch {
+            return metadata.address || null;
+          }
+        })(),
+        items,
+        subtotal,
+        tax,
+        amount,
+        date: new Date(),
+        stripeSessionId: session.id,
       });
 
-      // Clear cart
-      const user = await User.findOne({ userId });
-      if (user) {
-        user.cartItems = [];
-        await user.save();
-      }
-    } catch (err) {
-      console.error("Error processing order:", err.message);
-      return new NextResponse(`Webhook Processing Error`, { status: 500 });
+      await newOrder.save();
+      console.log("📝 Order saved:", newOrder._id);
     }
+  } catch (err) {
+    console.error("❌ ERROR processing webhook:", err?.message || err);
+    return NextResponse.json(
+      { success: false, message: "Webhook processing error" },
+      { status: 500 }
+    );
   }
 
+  console.log("=== [STRIPE WEBHOOK] END ===");
   return NextResponse.json({ received: true });
 }
