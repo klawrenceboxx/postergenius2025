@@ -15,7 +15,7 @@ export default function ProductPage({ product }) {
     <div className="w-full">
       {/* Breadcrumb spans the page, not just the left column */}
       <nav className="text-sm text-gray-600 mb-4">
-        <Link href="/all-products" className="hover:text-black">
+        <Link href="/shop" className="hover:text-black">
           Browse All
         </Link>
         <span className="mx-2">›</span>

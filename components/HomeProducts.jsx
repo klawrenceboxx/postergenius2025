@@ -18,7 +18,7 @@ const HomeProducts = () => {
       </div>
       <button
         onClick={() => {
-          router.push("/all-products");
+          router.push("/shop");
         }}
         className="px-10 py-4 rounded-full bg-white border-2 border-blackhex text-blackhex hover:bg-blackhex hover:text-white hover:border-white transition font-[700]"
       >

@@ -29,7 +29,7 @@ const Navbar = () => {
           {/* Animated underline */}
         </Link>
         <Link
-          href="/all-products"
+          href="/shop"
           className="relative hover:text-secondary transition-colors duration-300 group"
         >
           Shop
@@ -98,7 +98,7 @@ const Navbar = () => {
                 <UserButton.Action
                   label="Products"
                   labelIcon={<BoxIcon />}
-                  onClick={() => router.push("/all-products")}
+                  onClick={() => router.push("/shop")}
                 />
               </UserButton.MenuItems>
               <UserButton.MenuItems>
@@ -157,7 +157,7 @@ const Navbar = () => {
                 <UserButton.Action
                   label="Products"
                   labelIcon={<BoxIcon />}
-                  onClick={() => router.push("/all-products")}
+                  onClick={() => router.push("/shop")}
                 />
               </UserButton.MenuItems>
 
