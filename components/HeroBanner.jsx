@@ -20,7 +20,7 @@ const HeroBanner = () => {
           Explore the latest posters and premium materials.
         </p>
         <Link
-          href="/all-products"
+          href="/shop"
           className=" inline-block mt-8 bg-tertiary hover:bg-secondary text-white px-10 py-4 rounded-full transition font-[700]"
         >
           Shop Now

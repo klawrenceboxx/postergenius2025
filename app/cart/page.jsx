@@ -158,7 +158,7 @@ const Cart = () => {
 
           {/* Continue shopping */}
           <button
-            onClick={() => router.push("/all-products")}
+            onClick={() => router.push("/shop")}
             className="group flex items-center mt-6 gap-2 text-primary hover:text-tertiary transition-colors"
           >
             <Image

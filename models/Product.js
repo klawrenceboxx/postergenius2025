@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { CATEGORIES } from "@/src/constants/categories";
 
 const productSchema = new mongoose.Schema({
   userId: { type: String, required: true, ref: "User" },
@@ -8,7 +9,7 @@ const productSchema = new mongoose.Schema({
   offerPrice: { type: Number, default: null },
   digitalPrice: { type: Number, default: 0 },
   image: { type: [String], required: true },
-  category: { type: String, required: true },
+  category: { type: String, required: true, enum: CATEGORIES },
   PrintfulEnabled: { type: Boolean, default: false },
   orientation: {
     type: String,
