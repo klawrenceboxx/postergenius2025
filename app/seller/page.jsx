@@ -13,11 +13,13 @@ const AddProduct = () => {
   const defaultCategory = CATEGORIES[0] || "";
 
   const [files, setFiles] = useState([]);
+  const [digitalFile, setDigitalFile] = useState(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState(defaultCategory);
   const [price, setPrice] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
+  const [printfulEnabled, setPrintfulEnabled] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,8 +32,14 @@ const AddProduct = () => {
     formData.append("price", price);
     formData.append("offerPrice", offerPrice);
     for (let i = 0; i < files.length; i++) {
-      formData.append("images", files[i]);
+      if (files[i]) {
+        formData.append("images", files[i]);
+      }
     }
+    if (digitalFile) {
+      formData.append("digitalFile", digitalFile);
+    }
+    formData.append("printfulEnabled", printfulEnabled ? "true" : "false");
 
     try {
       const token = await getToken();
@@ -42,11 +50,13 @@ const AddProduct = () => {
       if (data.success) {
         toast.success(data.message);
         setFiles([]);
+        setDigitalFile(null);
         setName("");
         setDescription("");
         setCategory(defaultCategory);
         setPrice("");
         setOfferPrice("");
+        setPrintfulEnabled(false);
       } else {
         toast.error(data.message);
       }
@@ -120,6 +130,23 @@ const AddProduct = () => {
             required
           ></textarea>
         </div>
+        <div className="flex flex-col gap-1 max-w-md">
+          <label className="text-base font-medium" htmlFor="digital-file">
+            Digital File (PDF/ZIP)
+          </label>
+          <input
+            id="digital-file"
+            type="file"
+            accept=".pdf,.zip,.png,.jpg,.jpeg"
+            className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+            onChange={(e) => setDigitalFile(e.target.files?.[0] || null)}
+          />
+          {digitalFile && (
+            <span className="text-xs text-gray-500">
+              Selected: {digitalFile.name}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-5 flex-wrap">
           <div className="flex flex-col gap-1 w-32">
             <label className="text-base font-medium" htmlFor="category">
@@ -166,6 +193,18 @@ const AddProduct = () => {
               required
             />
           </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            id="printful-enabled"
+            type="checkbox"
+            className="h-4 w-4"
+            checked={printfulEnabled}
+            onChange={(e) => setPrintfulEnabled(e.target.checked)}
+          />
+          <label htmlFor="printful-enabled" className="text-base font-medium">
+            Enable Printful fulfillment
+          </label>
         </div>
         <button
           type="submit"

@@ -54,7 +54,7 @@ async function getProduct(slugOrId) {
     category: doc.category || null,
     reviews: doc.reviews || [],
     orientation: doc.orientation || "portrait",
-    printfulEnabled: true, // or !!doc.printfulEnabled
+    printfulEnabled: !!(doc.printfulEnabled ?? doc.PrintfulEnabled),
 
     detailsHtml:
       doc.detailsHtml || "Premium materials and high-resolution print.",
