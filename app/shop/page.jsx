@@ -38,9 +38,7 @@ const fetchProducts = async () => {
     const baseUrl = resolveBaseUrl();
     if (!baseUrl) return [];
 
-    const response = await fetch(`${baseUrl}/api/product/list`, {
-      cache: "no-store",
-    });
+    const response = await fetch(`${baseUrl}/api/product/list`);
 
     if (!response.ok) return [];
 
