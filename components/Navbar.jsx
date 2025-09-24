@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { assets, BagIcon, BoxIcon, CartIcon, HomeIcon } from "@/assets/assets";
 import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
@@ -10,6 +10,19 @@ const Navbar = () => {
   const { isSeller, router, user, getCartCount } = useAppContext();
   const { openSignIn } = useClerk();
   const cartCount = getCartCount();
+
+  // 👇 state for search
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+      setShowSearch(false); // hide field after submit
+      setSearchQuery("");
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white flex items-center justify-between px-6 md:px-16 lg:px-16 py-3 border-b border-gray-300 text-gray-600">
@@ -61,15 +74,57 @@ const Navbar = () => {
       </div>
 
       <ul className="hidden md:flex items-center gap-4 ">
-        <Link href="/search" className="hidden md:block">
+        {/* Desktop: always open search */}
+        <form
+          onSubmit={handleSearchSubmit}
+          className="hidden md:flex items-center border rounded-full px-3 py-1 w-52 
+             focus-within:border-secondary focus-within:ring-2 focus-within:ring-secondary/30
+             transition-all duration-300"
+        >
           <Image
-            className="w-5 h-5"
             src={assets.search_icon}
-            alt="search icon"
-            width={24}
-            height={24}
+            alt="search"
+            width={18}
+            height={18}
+            className="flex-shrink-0 w-5 h-5 text-gray-500"
           />
-        </Link>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search posters..."
+            className="ml-2 bg-transparent text-sm outline-none w-full"
+          />
+        </form>
+        {/* Mobile: toggle animation */}
+        <form
+          onSubmit={handleSearchSubmit}
+          className={`flex md:hidden items-center border rounded-full px-3 py-1 
+             transition-all duration-300 ease-in-out
+             ${showSearch ? "w-52" : "w-10 cursor-pointer"}`}
+          onClick={() => {
+            if (!showSearch) setShowSearch(true);
+          }}
+        >
+          <Image
+            src={assets.search_icon}
+            alt="search"
+            width={18}
+            height={18}
+            className="flex-shrink-0 w-5 h-5 text-gray-500"
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search..."
+            className={`ml-2 bg-transparent text-sm outline-none transition-all duration-300
+                ${showSearch ? "w-full opacity-100" : "w-0 opacity-0"}`}
+            autoFocus={showSearch}
+            onBlur={() => setShowSearch(false)}
+          />
+        </form>
+        {/* cart */}
         <Link href="/cart" className="relative">
           <Image
             className="w-5 h-5"

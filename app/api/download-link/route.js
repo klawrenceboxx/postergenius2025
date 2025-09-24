@@ -79,6 +79,20 @@ export async function GET(request) {
     const url = await getDownloadUrl(product.name);
     // change later to accept zips
 
+    // ⚠️ TODO: Upgrade download logic later
+    //
+    // Current code assumes product.name === S3 key (fragile).
+    //
+    // New code adds support for:
+    //  1. digitalFileKey → true S3 object key (needed for signed URLs). => fileKey is how s3 identifies files. if you give this name to s3 it will locate the file within itself.
+    //  2. digitalFileUrl → fallback if only a full URL was saved. => if your bucket was public you could put this url in the browser and return this
+    //  3. digitalFileName → nice filename shown to the customer when downloading. => when the customer downloads the file this is the name they will see
+    //  4. Better error handling if no file is linked.
+    //  5. Decouples product name from S3 key (you can rename products without breaking downloads).
+    //  6. Supports multiple file types (PDF, ZIP, etc.).
+    //
+    // Keep this in mind when merging new code → don't rely on product.name for file lookup.
+
     return NextResponse.json({ success: true, url });
   } catch (error) {
     console.error("Download link error:", error);

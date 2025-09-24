@@ -1,7 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import Fuse from "fuse.js";
 import ProductCard from "@/components/ProductCard";
+import SearchBar from "./SearchBar";
 import { CATEGORIES } from "@/src/constants/categories";
 
 const SORT_OPTIONS = [
@@ -20,20 +23,43 @@ const getComparablePrice = (product) => {
 
 const normalizeProducts = (products) =>
   Array.isArray(products)
-    ? products.filter((product) =>
-        product && typeof product === "object" && product.image?.length
+    ? products.filter(
+        (product) =>
+          product && typeof product === "object" && product.image?.length
       )
     : [];
 
 const ShopClient = ({ products }) => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("search") || "";
+  const [searchTerm, setSearchTerm] = useState(initialQuery);
+
   const [activeCategory, setActiveCategory] = useState("all");
   const [sortOrder, setSortOrder] = useState(SORT_OPTIONS[0].value);
+
+  // keep searchTerm synced with query string (if URL changes)
+  useEffect(() => {
+    setSearchTerm(initialQuery);
+  }, [initialQuery]);
 
   const normalizedProducts = useMemo(
     () => normalizeProducts(products),
     [products]
   );
+
+  const fuse = useMemo(() => {
+    const options = {
+      keys: [
+        { name: "name", weight: 0.5 },
+        { name: "description", weight: 0.3 },
+        { name: "category", weight: 0.2 },
+      ],
+      threshold: 0.35,
+      ignoreLocation: true,
+    };
+
+    return new Fuse(normalizedProducts, options);
+  }, [normalizedProducts]);
 
   const categoryCounts = useMemo(() => {
     const counts = new Map();
@@ -51,22 +77,18 @@ const ShopClient = ({ products }) => {
   }, [normalizedProducts]);
 
   const filteredProducts = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    const matchesSearch = (product) => {
-      if (!term) return true;
-      return (
-        product.name?.toLowerCase().includes(term) ||
-        product.description?.toLowerCase().includes(term)
-      );
-    };
+    const term = searchTerm.trim();
+    const searchResults = term
+      ? fuse.search(term).map((result) => result.item)
+      : normalizedProducts;
 
     const matchesCategory = (product) => {
       if (activeCategory === "all") return true;
       return product.category === activeCategory;
     };
 
-    const sortedProducts = normalizedProducts
-      .filter((product) => matchesSearch(product) && matchesCategory(product))
+    const sortedProducts = searchResults
+      .filter((product) => matchesCategory(product))
       .map((product) => ({ ...product }));
 
     if (sortOrder === "price-asc" || sortOrder === "price-desc") {
@@ -79,7 +101,7 @@ const ShopClient = ({ products }) => {
     }
 
     return sortedProducts;
-  }, [activeCategory, normalizedProducts, searchTerm, sortOrder]);
+  }, [activeCategory, fuse, normalizedProducts, searchTerm, sortOrder]);
 
   return (
     <main className="px-6 md:px-10 lg:px-16 xl:px-24 py-12">
@@ -87,7 +109,9 @@ const ShopClient = ({ products }) => {
         <aside className="lg:w-64 flex-shrink-0">
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Categories</h2>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Categories
+              </h2>
               <button
                 type="button"
                 onClick={() => setActiveCategory("all")}
@@ -140,20 +164,16 @@ const ShopClient = ({ products }) => {
             <div>
               <h1 className="text-3xl font-semibold text-gray-900">Shop</h1>
               <p className="mt-1 text-sm text-gray-500">
-                Showing {filteredProducts.length} of {normalizedProducts.length} products
+                Showing {filteredProducts.length} of {normalizedProducts.length}{" "}
+                products
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <label className="flex items-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-2 shadow-sm">
-                <span className="text-sm text-gray-500">Search</span>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  placeholder="Products, categories..."
-                  className="w-40 bg-transparent text-sm outline-none placeholder:text-gray-400"
-                />
-              </label>
+              <SearchBar
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Products, categories..."
+              />
               <label className="flex items-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-2 shadow-sm">
                 <span className="text-sm text-gray-500">Sort by</span>
                 <select
@@ -174,7 +194,10 @@ const ShopClient = ({ products }) => {
           {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 gap-6 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {filteredProducts.map((product) => (
-                <ProductCard key={product?._id ?? product?.productId} product={product} />
+                <ProductCard
+                  key={product?._id ?? product?.productId}
+                  product={product}
+                />
               ))}
             </div>
           ) : (

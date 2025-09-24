@@ -17,6 +17,7 @@
     "@stripe/stripe-js": "^7.5.0",
     "axios": "^1.10.0",
     "cloudinary": "^2.7.0",
+    "fuse.js": "^7.1.0",
     "inngest": "^3.40.1",
     "mongoose": "^8.16.4",
     "next": "^15.4.1",

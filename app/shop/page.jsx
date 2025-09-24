@@ -13,6 +13,7 @@ const ensureAbsoluteUrl = (value) => {
   return `${protocol}://${value.replace(/\/$/, "")}`;
 };
 
+// change later to explicitly pass postergenius.ca as next public site url
 const resolveBaseUrl = () => {
   const envUrl =
     ensureAbsoluteUrl(process.env.NEXT_PUBLIC_SITE_URL) ||
@@ -27,7 +28,8 @@ const resolveBaseUrl = () => {
   const host = headerList.get("host");
   if (!host) return undefined;
 
-  const protocol = host.includes("localhost") || host.startsWith("127.") ? "http" : "https";
+  const protocol =
+    host.includes("localhost") || host.startsWith("127.") ? "http" : "https";
   return `${protocol}://${host}`;
 };
 
