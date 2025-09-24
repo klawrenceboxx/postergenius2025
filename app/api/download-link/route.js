@@ -68,16 +68,42 @@ export async function GET(request) {
 
     // 5️⃣ Fetch product to get matching S3 key (using product.name as key)
     const product = await Product.findById(oid ?? productId);
-    if (!product || !product.name) {
+    if (!product) {
       return NextResponse.json(
         { success: false, message: "Product file not found" },
         { status: 404 }
       );
     }
 
-    // 6️⃣ Generate signed URL from S3 (name matches S3 key)
-    const url = await getDownloadUrl(product.name);
-    // change later to accept zips
+    let key = product.digitalFileKey || null;
+    if (!key && product.digitalFileUrl) {
+      try {
+        const parsed = new URL(product.digitalFileUrl);
+        key = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+      } catch (error) {
+        console.warn("Failed to parse digital file url", error);
+      }
+    }
+
+    if (!key) {
+      return NextResponse.json(
+        { success: false, message: "Product file not available" },
+        { status: 404 }
+      );
+    }
+
+    const downloadName =
+      product.digitalFileName || product.name || "digital-download";
+
+    // 6️⃣ Generate signed URL from S3
+    const url = await getDownloadUrl(key, { downloadName });
+
+    if (!url) {
+      return NextResponse.json(
+        { success: false, message: "Unable to generate download link" },
+        { status: 500 }
+      );
+    }
 
     // ⚠️ TODO: Upgrade download logic later
     //

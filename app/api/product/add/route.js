@@ -4,6 +4,8 @@ import authSeller from "@/lib/authSeller";
 import connectDB from "@/config/db";
 import Product from "@/models/Product";
 import { NextResponse } from "next/server";
+import { uploadFileToS3 } from "@/lib/s3";
+import { validateDigitalFile } from "@/lib/digitalFiles";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -17,7 +19,7 @@ export async function POST(request) {
     const { userId } = getAuth(request);
 
     const isSeller = await authSeller(userId);
-    if (!isSeller) {
+    if (isSeller !== true) {
       return NextResponse.json({ success: false, message: "Unauthorized" });
     }
 
@@ -28,8 +30,53 @@ export async function POST(request) {
     const category = formData.get("category");
     const price = formData.get("price");
     const offerPrice = formData.get("offerPrice");
+    const printfulEnabled = formData.get("printfulEnabled") === "true" ||
+      formData.get("printfulEnabled") === "on";
+    const digitalFile = formData.get("digitalFile");
 
-    const files = formData.getAll("images");
+    const files = (formData.getAll("images") || []).filter(
+      (file) => file && typeof file.arrayBuffer === "function"
+    );
+
+    const numericPrice = Number(price);
+    const numericOfferPrice = offerPrice ? Number(offerPrice) : null;
+
+    if (Number.isNaN(numericPrice)) {
+      return NextResponse.json({
+        success: false,
+        message: "Price must be a valid number",
+      });
+    }
+
+    if (numericPrice <= 0) {
+      return NextResponse.json({
+        success: false,
+        message: "Price must be greater than zero",
+      });
+    }
+
+    if (offerPrice && Number.isNaN(numericOfferPrice)) {
+      return NextResponse.json({
+        success: false,
+        message: "Offer price must be a valid number",
+      });
+    }
+
+    if (numericOfferPrice !== null) {
+      if (numericOfferPrice <= 0) {
+        return NextResponse.json({
+          success: false,
+          message: "Offer price must be greater than zero",
+        });
+      }
+
+      if (numericOfferPrice >= numericPrice) {
+        return NextResponse.json({
+          success: false,
+          message: "Offer price must be less than the price",
+        });
+      }
+    }
 
     if (!files || files.length === 0) {
       return NextResponse.json({
@@ -60,15 +107,36 @@ export async function POST(request) {
 
     const image = result.map((result) => result.secure_url);
 
+    let digitalFileMeta = { key: null };
+    let digitalFileName = null;
+
+    if (digitalFile && typeof digitalFile.arrayBuffer === "function") {
+      const { ok, error } = validateDigitalFile(digitalFile);
+      if (!ok) {
+        return NextResponse.json({
+          success: false,
+          message: error,
+        });
+      }
+      digitalFileMeta = await uploadFileToS3(digitalFile, {
+        keyPrefix: `products/${userId}`,
+      });
+      digitalFileName = digitalFile.name || null;
+    }
+
     await connectDB();
     const newProduct = await Product.create({
       userId,
       name,
       description,
       category,
-      price: Number(price),
-      offerPrice: Number(offerPrice) || null,
+      price: numericPrice,
+      offerPrice: numericOfferPrice,
       image,
+      printfulEnabled,
+      digitalFileKey: digitalFileMeta.key,
+      digitalFileUrl: null,
+      digitalFileName,
       date: Date.now(),
     });
 
