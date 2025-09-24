@@ -32,6 +32,14 @@ const uploadImageToCloudinary = async (file) => {
   });
 };
 
+const buildS3PublicUrl = (key) => {
+  if (!key) return null;
+  const bucket = process.env.S3_BUCKET_NAME;
+  const region = process.env.AWS_REGION;
+  if (!bucket || !region) return null;
+  return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+};
+
 export async function GET(request, { params }) {
   try {
     const { userId } = getAuth(request);
@@ -70,6 +78,8 @@ export async function PUT(request, { params }) {
     const category = formData.get("category");
     const price = formData.get("price");
     const offerPrice = formData.get("offerPrice");
+    const digitalPrice = formData.get("digitalPrice");
+    const orientation = formData.get("orientation");
     const printfulEnabled =
       formData.get("printfulEnabled") === "true" ||
       formData.get("printfulEnabled") === "on";
@@ -116,6 +126,11 @@ export async function PUT(request, { params }) {
 
     const numericPrice = Number(price);
     const numericOfferPrice = offerPrice ? Number(offerPrice) : null;
+    const rawDigitalPrice = digitalPrice ?? "";
+    const normalizedDigitalPrice =
+      rawDigitalPrice === "" || rawDigitalPrice === null
+        ? 0
+        : Number(rawDigitalPrice);
 
     if (Number.isNaN(numericPrice)) {
       return NextResponse.json({
@@ -154,12 +169,31 @@ export async function PUT(request, { params }) {
       }
     }
 
+    if (Number.isNaN(normalizedDigitalPrice)) {
+      return NextResponse.json({
+        success: false,
+        message: "Digital price must be a valid number",
+      });
+    }
+
+    if (normalizedDigitalPrice < 0) {
+      return NextResponse.json({
+        success: false,
+        message: "Digital price must be zero or a positive number",
+      });
+    }
+
+    const normalizedOrientation =
+      orientation === "landscape" ? "landscape" : "portrait";
+
     product.name = name;
     product.description = description;
     product.category = category;
     product.price = numericPrice;
     product.offerPrice = numericOfferPrice;
     product.printfulEnabled = printfulEnabled;
+    product.digitalPrice = normalizedDigitalPrice;
+    product.orientation = normalizedOrientation;
 
     const finalImages = [...existingImages, ...uploadedImages];
     if (finalImages.length > 0) {
@@ -181,7 +215,8 @@ export async function PUT(request, { params }) {
         keyPrefix: `products/${userId}`,
       });
       product.digitalFileKey = upload.key;
-      product.digitalFileUrl = null;
+      product.digitalFileUrl =
+        upload.url || buildS3PublicUrl(upload.key) || null;
       product.digitalFileName = digitalFile.name || null;
       if (previousDigitalFileKey && previousDigitalFileKey !== upload.key) {
         digitalFileKeyToDelete = previousDigitalFileKey;
@@ -202,6 +237,36 @@ export async function PUT(request, { params }) {
     }
 
     return NextResponse.json({ success: true, product });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: error.message });
+  }
+}
+
+export async function DELETE(request, { params }) {
+  try {
+    const { userId } = getAuth(request);
+    const isSeller = await authSeller(userId);
+
+    if (isSeller !== true) {
+      return NextResponse.json({ success: false, message: "Unauthorized" });
+    }
+
+    await connectDB();
+
+    const product = await Product.findById(params.id);
+    if (!product || product.userId !== userId) {
+      return NextResponse.json({ success: false, message: "Product not found" });
+    }
+
+    const digitalFileKey = product.digitalFileKey;
+
+    await product.deleteOne();
+
+    if (digitalFileKey) {
+      await deleteFileFromS3(digitalFileKey);
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json({ success: false, message: error.message });
   }
