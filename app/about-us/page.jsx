@@ -22,7 +22,7 @@ const AboutPage = () => {
           </p>
 
           <p>
-            Whether you're a gamer, dreamer, or designer, our mission is to help
+            Whether you&apos;re a gamer, dreamer, or designer, our mission is to help
             you express your identity through art that speaks louder than words.
             We specialize in unique prints that blend pop culture, minimalism,
             and emotional storytelling—all crafted for creators, collectors, and
@@ -31,7 +31,7 @@ const AboutPage = () => {
 
           <p>
             Built on creativity, honesty, and community, PosterGenius is more
-            than a store—it's a canvas for people who care about meaningful
+            than a store—it&apos;s a canvas for people who care about meaningful
             design. Every product we offer is part of a journey to spark
             curiosity, inspiration, or even just a smile.
           </p>

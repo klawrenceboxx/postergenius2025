@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 
 // Replace these with your real paths (the 3 photos you sent: dining peacocks, yellow peacock, lion canvas)
 const images = [
@@ -23,11 +24,13 @@ export default function CommunityMasonry() {
         <div className="columns-1 sm:columns-2 lg:columns-4 gap-4 [column-fill:_balance]">
           {images.map((src, i) => (
             <figure key={i} className="mb-4 break-inside-avoid">
-              <img
+              <Image
                 src={src}
-                alt=""
-                loading="lazy"
+                alt={`Community spotlight ${i + 1}`}
+                width={800}
+                height={1000}
                 className="w-full h-auto rounded-xl object-cover shadow-sm"
+                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
               />
             </figure>
           ))}

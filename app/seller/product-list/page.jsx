@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { assets } from "@/assets/assets";
 import Image from "next/image";
 import { useAppContext } from "@/context/AppContext";
@@ -13,9 +13,11 @@ const ProductList = () => {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
 
-  const fetchSellerProduct = async () => {
+  const fetchSellerProduct = useCallback(async () => {
     try {
+      setLoading(true);
       const token = await getToken();
 
       const { data } = await axios.get("/api/product/seller-list", {
@@ -24,20 +26,48 @@ const ProductList = () => {
 
       if (data.success) {
         setProducts(data.products);
-        setLoading(false);
       } else {
         toast.error(data.message);
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [getToken]);
 
   useEffect(() => {
     if (user) {
       fetchSellerProduct();
     }
-  }, []);
+  }, [user, fetchSellerProduct]);
+
+  const handleDelete = async (productId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this product?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setDeletingId(productId);
+      const token = await getToken();
+      const { data } = await axios.delete(`/api/product/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (data.success) {
+        toast.success("Product deleted");
+        setProducts((prev) => prev.filter((item) => item._id !== productId));
+      } else {
+        toast.error(data.message || "Failed to delete product");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to delete product");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="flex-1 min-h-screen flex flex-col justify-between">
@@ -104,6 +134,13 @@ const ProductList = () => {
                             className="px-3 py-2 border border-gray-300 rounded-md text-sm"
                           >
                             Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product._id)}
+                            disabled={deletingId === product._id}
+                            className="px-3 py-2 border border-red-300 text-red-600 rounded-md text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                          >
+                            {deletingId === product._id ? "Deleting..." : "Delete"}
                           </button>
                           <button
                             onClick={() => router.push(`/product/${product._id}`)}
