@@ -58,7 +58,10 @@ const ShopPage = async () => {
   return (
     <>
       <Navbar />
-      <ShopClient products={products} />
+      <Suspense fallback={<div>Loading shop...</div>}>
+        <ShopClient products={products} />
+      </Suspense>
+
       <Footer />
     </>
   );
