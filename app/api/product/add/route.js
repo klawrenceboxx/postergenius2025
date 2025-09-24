@@ -30,6 +30,8 @@ export async function POST(request) {
     const category = formData.get("category");
     const price = formData.get("price");
     const offerPrice = formData.get("offerPrice");
+    const digitalPrice = formData.get("digitalPrice");
+    const orientation = formData.get("orientation");
     const printfulEnabled =
       formData.get("printfulEnabled") === "true" ||
       formData.get("printfulEnabled") === "on";
@@ -41,6 +43,7 @@ export async function POST(request) {
 
     const numericPrice = Number(price);
     const numericOfferPrice = offerPrice ? Number(offerPrice) : null;
+    const numericDigitalPrice = digitalPrice ? Number(digitalPrice) : 0;
 
     if (Number.isNaN(numericPrice)) {
       return NextResponse.json({
@@ -86,6 +89,16 @@ export async function POST(request) {
       });
     }
 
+    if (Number.isNaN(numericDigitalPrice) || numericDigitalPrice < 0) {
+      return NextResponse.json({
+        success: false,
+        message: "Digital price must be zero or a positive number",
+      });
+    }
+
+    const normalizedOrientation =
+      orientation === "landscape" ? "landscape" : "portrait";
+
     const result = await Promise.all(
       files.map(async (file) => {
         const arrayBuffer = await file.arrayBuffer();
@@ -108,7 +121,7 @@ export async function POST(request) {
 
     const image = result.map((result) => result.secure_url);
 
-    let digitalFileMeta = { key: null };
+    let digitalFileMeta = { key: null, url: null };
     let digitalFileName = null;
 
     if (digitalFile && typeof digitalFile.arrayBuffer === "function") {
@@ -134,13 +147,17 @@ export async function POST(request) {
       category,
       price: numericPrice,
       offerPrice: numericOfferPrice,
+      digitalPrice: numericDigitalPrice,
       image,
       printfulEnabled,
       digitalFileKey: digitalFileMeta.key,
       digitalFileUrl:
         digitalFileMeta.url ||
-        `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${digitalFileMeta.key}`,
+        (digitalFileMeta.key
+          ? `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${digitalFileMeta.key}`
+          : null),
       digitalFileName,
+      orientation: normalizedOrientation,
       date: Date.now(),
     });
 

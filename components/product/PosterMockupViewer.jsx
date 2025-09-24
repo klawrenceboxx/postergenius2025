@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 import React from "react";
 
 /** Calibrate each physical room mockup once using percentages (scales at all widths). */

@@ -1,6 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import { assets, orderDummyData } from "@/assets/assets";
+import React, { useCallback, useEffect, useState } from "react";
+import { assets } from "@/assets/assets";
 import Image from "next/image";
 import { useAppContext } from "@/context/AppContext";
 import Footer from "@/components/seller/Footer";
@@ -14,8 +14,9 @@ const Orders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchSellerOrders = async () => {
+  const fetchSellerOrders = useCallback(async () => {
     try {
+      setLoading(true);
       const token = await getToken();
 
       const { data } = await axios.get("/api/order/seller-orders", {
@@ -24,20 +25,21 @@ const Orders = () => {
 
       if (data.success) {
         setOrders(data.orders);
-        setLoading(false);
       } else {
         toast.error(data.message || "Failed to fetch ordersss");
       }
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [getToken]);
 
   useEffect(() => {
     if (user) {
       fetchSellerOrders();
     }
-  }, [user]);
+  }, [user, fetchSellerOrders]);
 
   return (
     <div className="flex-1 h-screen overflow-scroll flex flex-col justify-between text-sm">

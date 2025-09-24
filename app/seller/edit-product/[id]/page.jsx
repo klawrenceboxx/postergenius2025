@@ -28,6 +28,8 @@ const EditProductPage = () => {
   const [category, setCategory] = useState(defaultCategory);
   const [price, setPrice] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
+  const [digitalPrice, setDigitalPrice] = useState("");
+  const [orientation, setOrientation] = useState("portrait");
   const [printfulEnabled, setPrintfulEnabled] = useState(false);
 
   const [digitalFile, setDigitalFile] = useState(null);
@@ -54,10 +56,14 @@ const EditProductPage = () => {
         setOfferPrice(
           product.offerPrice != null ? String(product.offerPrice) : ""
         );
+        setDigitalPrice(
+          product.digitalPrice != null ? String(product.digitalPrice) : ""
+        );
         setExistingImages(product.image || []);
         setPrintfulEnabled(
           Boolean(product.printfulEnabled ?? product.PrintfulEnabled)
         );
+        setOrientation(product.orientation || "portrait");
 
         const hasFile = Boolean(
           product.digitalFileKey || product.digitalFileUrl
@@ -116,8 +122,10 @@ const EditProductPage = () => {
       formData.append("category", category);
       formData.append("price", price);
       formData.append("offerPrice", offerPrice);
+      formData.append("digitalPrice", digitalPrice);
       formData.append("existingImages", JSON.stringify(existingImages));
       formData.append("printfulEnabled", printfulEnabled ? "true" : "false");
+      formData.append("orientation", orientation);
 
       files.forEach((file) => {
         if (file) {
@@ -345,6 +353,34 @@ const EditProductPage = () => {
               value={offerPrice}
             />
           </div>
+          <div className="flex flex-col gap-1 w-32">
+            <label className="text-base font-medium" htmlFor="digital-price">
+              Digital Price
+            </label>
+            <input
+              id="digital-price"
+              type="number"
+              placeholder="0"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              onChange={(e) => setDigitalPrice(e.target.value)}
+              value={digitalPrice}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1 w-40">
+          <label className="text-base font-medium" htmlFor="orientation">
+            Orientation
+          </label>
+          <select
+            id="orientation"
+            className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+            value={orientation}
+            onChange={(e) => setOrientation(e.target.value)}
+          >
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
         </div>
 
         <div className="flex items-center gap-3">
