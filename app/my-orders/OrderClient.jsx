@@ -7,7 +7,7 @@ import Footer from "@/components/Footer";
 import { useAppContext } from "@/context/AppContext";
 import toast from "react-hot-toast";
 import Image from "next/image";
-import { assets, orderDummyData } from "@/assets/assets";
+import { orderDummyData } from "@/assets/assets";
 import Loading from "@/components/Loading";
 
 const OrderConfirmationWithOrders = () => {
@@ -102,6 +102,10 @@ const OrderConfirmationWithOrders = () => {
   // Step 3: Handle download for a digital product
   // ------------------------------------
   const handleDownload = async (productId) => {
+    if (!productId) {
+      toast.error("Download unavailable for this item");
+      return;
+    }
     try {
       console.log("[DEBUG] Attempting download for productId:", productId);
       setDownloading(productId);
@@ -156,46 +160,59 @@ const OrderConfirmationWithOrders = () => {
                     className="flex flex-col md:flex-row gap-5 justify-between p-5 border-b border-gray-300"
                   >
                     <div className="flex-1 flex gap-5 max-w-80">
-                      {order.items.map((item, i) => {
+                      {(order.items || []).map((item, i) => {
                         console.log(
                           `[DEBUG] Rendering item[${i}] in order[${index}]:`,
                           item
                         );
+                        const product = item?.product || null;
+                        const productName = product?.name || "Unnamed product";
+                        const productImage = product?.image?.[0] || null;
+                        const productId = product?._id;
+                        const isDownloading = downloading === productId;
                         return (
                           <div
                             key={i}
                             className="flex flex-col items-start gap-2"
                           >
-                            <Image
-                              key={i}
-                              src={item.product.image?.[0] || assets.box_icon}
-                              alt={item.product.name}
-                              className="max-w-16 max-h-16 object-cover"
-                              width={64}
-                              height={64}
-                            />
+                            {productImage ? (
+                              <Image
+                                key={i}
+                                src={productImage}
+                                alt={productName}
+                                className="max-w-16 max-h-16 object-cover"
+                                width={64}
+                                height={64}
+                              />
+                            ) : (
+                              <div className="flex h-16 w-16 items-center justify-center rounded border border-dashed border-gray-300 text-center text-[10px] text-gray-500">
+                                Image unavailable
+                              </div>
+                            )}
+                            <span className="text-xs font-medium text-gray-700">
+                              {productName}
+                            </span>
                             <button
-                              onClick={() => handleDownload(item.product._id)}
-                              disabled={downloading === item.product._id}
+                              onClick={() => handleDownload(productId)}
+                              disabled={!productId || isDownloading}
                               className="px-3 py-1 bg-blue-600 text-white rounded text-xs disabled:opacity-50"
                             >
-                              {downloading === item.product._id
-                                ? "Preparing..."
-                                : "Download"}
+                              {isDownloading ? "Preparing..." : "Download"}
                             </button>
                           </div>
                         );
                       })}
                       <p className="flex flex-col gap-3">
                         <span className="font-medium text-base">
-                          {order.items
-                            .map(
-                              (item) =>
-                                item.product.name + ` x ${item.quantity}`
-                            )
+                          {(order.items || [])
+                            .map((item) => {
+                              const productName =
+                                item?.product?.name || "Unnamed product";
+                              return `${productName} x ${item?.quantity ?? 0}`;
+                            })
                             .join(", ")}
                         </span>
-                        <span>Items : {order.items.length}</span>
+                        <span>Items : {order.items?.length || 0}</span>
                       </p>
                     </div>
                     <div>
