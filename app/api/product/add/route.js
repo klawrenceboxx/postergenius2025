@@ -30,7 +30,8 @@ export async function POST(request) {
     const category = formData.get("category");
     const price = formData.get("price");
     const offerPrice = formData.get("offerPrice");
-    const printfulEnabled = formData.get("printfulEnabled") === "true" ||
+    const printfulEnabled =
+      formData.get("printfulEnabled") === "true" ||
       formData.get("printfulEnabled") === "on";
     const digitalFile = formData.get("digitalFile");
 
@@ -124,6 +125,7 @@ export async function POST(request) {
       digitalFileName = digitalFile.name || null;
     }
 
+    // Save product
     await connectDB();
     const newProduct = await Product.create({
       userId,
@@ -135,7 +137,9 @@ export async function POST(request) {
       image,
       printfulEnabled,
       digitalFileKey: digitalFileMeta.key,
-      digitalFileUrl: null,
+      digitalFileUrl:
+        digitalFileMeta.url ||
+        `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${digitalFileMeta.key}`,
       digitalFileName,
       date: Date.now(),
     });

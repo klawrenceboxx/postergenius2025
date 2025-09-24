@@ -19,6 +19,8 @@ const AddProduct = () => {
   const [category, setCategory] = useState(defaultCategory);
   const [price, setPrice] = useState("");
   const [offerPrice, setOfferPrice] = useState("");
+  const [digitalPrice, setDigitalPrice] = useState(""); // 🆕 digital price
+  const [orientation, setOrientation] = useState("portrait"); // 🆕 orientation
   const [printfulEnabled, setPrintfulEnabled] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -31,14 +33,20 @@ const AddProduct = () => {
     formData.append("category", category);
     formData.append("price", price);
     formData.append("offerPrice", offerPrice);
+    formData.append("digitalPrice", digitalPrice || 0); // 🆕 push digital price
+    formData.append("orientation", orientation); // 🆕 push orientation
+
     for (let i = 0; i < files.length; i++) {
       if (files[i]) {
         formData.append("images", files[i]);
       }
     }
+
     if (digitalFile) {
-      formData.append("digitalFile", digitalFile);
+      console.log("Uploading digital file:", digitalFile.name); // 🛠 debug
+      formData.append("digitalFile", digitalFile, digitalFile.name); // 🆕 include filename
     }
+
     formData.append("printfulEnabled", printfulEnabled ? "true" : "false");
 
     try {
@@ -56,6 +64,8 @@ const AddProduct = () => {
         setCategory(defaultCategory);
         setPrice("");
         setOfferPrice("");
+        setDigitalPrice(""); // reset 🆕
+        setOrientation("portrait"); // reset 🆕
         setPrintfulEnabled(false);
       } else {
         toast.error(data.message);
@@ -68,6 +78,7 @@ const AddProduct = () => {
   return (
     <div className="flex-1 min-h-screen flex flex-col justify-between">
       <form onSubmit={handleSubmit} className="md:p-10 p-4 space-y-5 max-w-lg">
+        {/* Images */}
         <div>
           <p className="text-base font-medium">Product Image</p>
           <div className="flex flex-wrap items-center gap-3 mt-2">
@@ -99,6 +110,8 @@ const AddProduct = () => {
             ))}
           </div>
         </div>
+
+        {/* Product Name */}
         <div className="flex flex-col gap-1 max-w-md">
           <label className="text-base font-medium" htmlFor="product-name">
             Product Name
@@ -113,6 +126,8 @@ const AddProduct = () => {
             required
           />
         </div>
+
+        {/* Description */}
         <div className="flex flex-col gap-1 max-w-md">
           <label
             className="text-base font-medium"
@@ -130,9 +145,11 @@ const AddProduct = () => {
             required
           ></textarea>
         </div>
+
+        {/* Digital File */}
         <div className="flex flex-col gap-1 max-w-md">
           <label className="text-base font-medium" htmlFor="digital-file">
-            Digital File (PDF/ZIP)
+            Digital File (PDF/ZIP/PNG/JPG)
           </label>
           <input
             id="digital-file"
@@ -147,6 +164,8 @@ const AddProduct = () => {
             </span>
           )}
         </div>
+
+        {/* Category + Prices */}
         <div className="flex items-center gap-5 flex-wrap">
           <div className="flex flex-col gap-1 w-32">
             <label className="text-base font-medium" htmlFor="category">
@@ -190,10 +209,40 @@ const AddProduct = () => {
               className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
               onChange={(e) => setOfferPrice(e.target.value)}
               value={offerPrice}
-              required
+            />
+          </div>
+          <div className="flex flex-col gap-1 w-32">
+            <label className="text-base font-medium" htmlFor="digital-price">
+              Digital Price
+            </label>
+            <input
+              id="digital-price"
+              type="number"
+              placeholder="0"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              onChange={(e) => setDigitalPrice(e.target.value)}
+              value={digitalPrice}
             />
           </div>
         </div>
+
+        {/* Orientation */}
+        <div className="flex flex-col gap-1 w-40">
+          <label className="text-base font-medium" htmlFor="orientation">
+            Orientation
+          </label>
+          <select
+            id="orientation"
+            className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+            value={orientation}
+            onChange={(e) => setOrientation(e.target.value)}
+          >
+            <option value="portrait">Portrait</option>
+            <option value="landscape">Landscape</option>
+          </select>
+        </div>
+
+        {/* Printful */}
         <div className="flex items-center gap-3">
           <input
             id="printful-enabled"
@@ -206,6 +255,7 @@ const AddProduct = () => {
             Enable Printful fulfillment
           </label>
         </div>
+
         <button
           type="submit"
           className="px-8 py-2.5 bg-orange-600 text-white font-medium rounded"
@@ -213,7 +263,6 @@ const AddProduct = () => {
           ADD
         </button>
       </form>
-      {/* <Footer /> */}
     </div>
   );
 };

@@ -11,6 +11,8 @@ const Navbar = () => {
   const { openSignIn } = useClerk();
   const cartCount = getCartCount();
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   // 👇 state for search
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
