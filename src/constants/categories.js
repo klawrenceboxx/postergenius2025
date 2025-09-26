@@ -1,9 +1,9 @@
 export const CATEGORIES = Object.freeze([
-  "Earphone",
-  "Headphone",
-  "Watch",
-  "Smartphone",
-  "Laptop",
-  "Camera",
-  "Accessories",
+  "animals",
+  "superheroes",
+  "scenery",
+  "botanicals",
+  "wildlife",
+  "vintage",
+  "sports",
 ]);
