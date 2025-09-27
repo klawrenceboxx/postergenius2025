@@ -2,6 +2,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 import { useAppContext } from "@/context/AppContext";
+import ReviewSummary from "@/components/ReviewSummary";
 
 // tiny helper
 const cx = (...xs) => xs.filter(Boolean).join(" ");
@@ -92,6 +93,16 @@ export default function InfosV2({
 }) {
   const { addToCart } = useAppContext();
 
+  const productId = useMemo(() => {
+    const id = product?._id ?? product?.id;
+    if (!id) return "";
+    if (typeof id === "string") return id;
+    if (typeof id === "object" && typeof id.toString === "function") {
+      return id.toString();
+    }
+    return "";
+  }, [product?._id, product?.id]);
+
   const sizes = useMemo(() => {
     // prefer flat sizes if present; otherwise variations[0].sizes
     if (Array.isArray(product?.sizes) && product.sizes.length)
@@ -136,6 +147,10 @@ export default function InfosV2({
 
       {/* Price */}
       <Price product={product} format={format} />
+
+      <div className="mt-3">
+        <ReviewSummary productId={productId} />
+      </div>
 
       {/* Short description (first 50 chars) with Read more */}
       <div className="mt-6">
