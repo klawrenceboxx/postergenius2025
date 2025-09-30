@@ -1,7 +1,7 @@
 import { v2 as cloudinary } from "cloudinary";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import authSeller from "@/lib/authSeller";
+import authAdmin from "@/lib/authAdmin";
 import connectDB from "@/config/db";
 import Product from "@/models/Product";
 import { uploadFileToS3, deleteFileFromS3 } from "@/lib/s3";
@@ -43,16 +43,16 @@ const buildS3PublicUrl = (key) => {
 export async function GET(request, { params }) {
   try {
     const { userId } = getAuth(request);
-    const isSeller = await authSeller(userId);
+    const isAdmin = await authAdmin(userId);
 
-    if (isSeller !== true) {
+    if (isAdmin !== true) {
       return NextResponse.json({ success: false, message: "Unauthorized" });
     }
 
     await connectDB();
 
     const product = await Product.findById(params.id);
-    if (!product || product.userId !== userId) {
+    if (!product) {
       return NextResponse.json({ success: false, message: "Product not found" });
     }
 
@@ -65,9 +65,9 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const { userId } = getAuth(request);
-    const isSeller = await authSeller(userId);
+    const isAdmin = await authAdmin(userId);
 
-    if (isSeller !== true) {
+    if (isAdmin !== true) {
       return NextResponse.json({ success: false, message: "Unauthorized" });
     }
 
@@ -113,7 +113,7 @@ export async function PUT(request, { params }) {
     await connectDB();
 
     const product = await Product.findById(params.id);
-    if (!product || product.userId !== userId) {
+    if (!product) {
       return NextResponse.json({ success: false, message: "Product not found" });
     }
 
@@ -203,6 +203,9 @@ export async function PUT(request, { params }) {
     const previousDigitalFileKey = product.digitalFileKey;
     let digitalFileKeyToDelete = null;
 
+    const ownerId =
+      product.userId?.toString?.() ?? product.userId ?? userId ?? "unknown";
+
     if (digitalFile && typeof digitalFile.arrayBuffer === "function") {
       const { ok, error } = validateDigitalFile(digitalFile);
       if (!ok) {
@@ -212,7 +215,7 @@ export async function PUT(request, { params }) {
         });
       }
       const upload = await uploadFileToS3(digitalFile, {
-        keyPrefix: `products/${userId}`,
+        keyPrefix: `products/${ownerId}`,
       });
       product.digitalFileKey = upload.key;
       product.digitalFileUrl =
@@ -245,16 +248,16 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const { userId } = getAuth(request);
-    const isSeller = await authSeller(userId);
+    const isAdmin = await authAdmin(userId);
 
-    if (isSeller !== true) {
+    if (isAdmin !== true) {
       return NextResponse.json({ success: false, message: "Unauthorized" });
     }
 
     await connectDB();
 
     const product = await Product.findById(params.id);
-    if (!product || product.userId !== userId) {
+    if (!product) {
       return NextResponse.json({ success: false, message: "Product not found" });
     }
 

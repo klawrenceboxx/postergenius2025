@@ -8,7 +8,7 @@ import { useClerk, UserButton } from "@clerk/nextjs";
 import TopBanner from "@/components/TopBanner";
 
 const Navbar = () => {
-  const { isSeller, router, user, getCartCount } = useAppContext();
+  const { isAdmin, router, user, getCartCount } = useAppContext();
   const { openSignIn } = useClerk();
   const cartCount = getCartCount();
 
@@ -68,7 +68,7 @@ const Navbar = () => {
             <span className="absolute bottom-0 left-0 h-0.5 bg-secondary w-0 group-hover:w-full transition-all duration-200"></span>{" "}
           </Link>
 
-          {isSeller && (
+          {isAdmin && (
             <button
               onClick={() => router.push("/seller")}
               className="text-xs border px-4 py-1.5 rounded-full"
@@ -195,7 +195,7 @@ const Navbar = () => {
         </ul>
 
         <div className="flex items-center md:hidden gap-3">
-          {isSeller && (
+          {isAdmin && (
             <button
               onClick={() => router.push("/seller")}
               className="text-xs border px-4 py-1.5 rounded-full"

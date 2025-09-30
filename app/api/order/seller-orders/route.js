@@ -1,5 +1,5 @@
 import connectDB from "@/config/db";
-import authSeller from "@/lib/authSeller";
+import authAdmin from "@/lib/authAdmin";
 import Address from "@/models/Address";
 import Order from "@/models/Order";
 import { getAuth } from "@clerk/nextjs/server";
@@ -9,9 +9,9 @@ export async function GET(request) {
   try {
     const { userId } = getAuth(request);
 
-    const isSeller = await authSeller(userId);
+    const isAdmin = await authAdmin(userId);
 
-    if (!isSeller) {
+    if (!isAdmin) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 

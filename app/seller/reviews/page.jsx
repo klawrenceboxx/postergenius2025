@@ -113,13 +113,13 @@ export default function SellerReviewsPage() {
   const [rating, setRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
 
-  const { isSeller } = useAppContext();
+  const { isAdmin } = useAppContext();
 
   useEffect(() => {
-    if (isLoaded && (!isSignedIn || !isSeller)) {
+    if (isLoaded && (!isSignedIn || !isAdmin)) {
       router.push("/");
     }
-  }, [isLoaded, isSignedIn, isSeller, router]);
+  }, [isLoaded, isSignedIn, isAdmin, router]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -200,7 +200,7 @@ export default function SellerReviewsPage() {
     );
   }
 
-  if (!isSeller) {
+  if (!isAdmin) {
     return <div className="p-10 text-sm text-red-500">Access denied.</div>;
   }
 
