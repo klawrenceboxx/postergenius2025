@@ -3,12 +3,8 @@ import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
 import ShopClient from "@/components/ShopClient";
 
-const resolveBaseUrl = () => {
-  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-};
-
 const fetchProducts = async () => {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  const baseUrl = process.env.SITE_URL || "http://localhost:3000";
   const response = await fetch(`${baseUrl}/api/product/list`, {
     cache: "no-store",
   });
