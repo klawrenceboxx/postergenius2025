@@ -15,6 +15,8 @@ export async function GET(request) {
       return NextResponse.json({ success: false, message: "Unauthorized" });
     }
 
+    console.log("User authenticated successfully:", userId);
+
     await connectDB();
 
     const products = await Product.find({ userId }).sort({ date: -1 });

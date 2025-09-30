@@ -14,11 +14,11 @@ const ProductCard = ({ product }) => {
       }}
       className="flex flex-col items-start max-w-[250px] w-full cursor-pointer"
     >
-      <div className="cursor-pointer group relative bg-gray-500/10 w-full h-80 flex items-center justify-center shadow-poster">
+      <div className="cursor-pointer group relative w-full h-80 flex items-center justify-center shadow-poster">
         <Image
           src={product.image[0]}
           alt={product.name}
-          className="group-hover:scale-105 transition object-cover w-4/5 h-4/5 md:w-full md:h-full"
+          className="group-hover:scale-105 transition w-full h-full object-cover md:w-full md:h-full"
           width={800}
           height={800}
         />

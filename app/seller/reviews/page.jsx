@@ -3,6 +3,7 @@
 import { useAuth, useUser, SignInButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useAppContext } from "@/context/AppContext";
 import toast from "react-hot-toast";
 
 function ProductDropdown({ value, onChange, disabled }) {
@@ -12,7 +13,9 @@ function ProductDropdown({ value, onChange, disabled }) {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const response = await fetch("/api/products", { cache: "no-store" });
+        const response = await fetch("/api/product/list", {
+          cache: "no-store",
+        });
         const payload = await response.json();
         if (response.ok && payload.success) {
           setProducts(payload.products || []);
@@ -90,9 +93,7 @@ const StarSelector = ({ value, onChange, disabled }) => {
               stroke="currentColor"
               strokeWidth="1.5"
             >
-              <path
-                d="m12 3.25 2.694 5.457 6.026.877-4.36 4.252 1.029 6.009L12 16.99l-5.389 2.855 1.03-6.009-4.36-4.252 6.026-.877L12 3.25Z"
-              />
+              <path d="m12 3.25 2.694 5.457 6.026.877-4.36 4.252 1.029 6.009L12 16.99l-5.389 2.855 1.03-6.009-4.36-4.252 6.026-.877L12 3.25Z" />
             </svg>
           </button>
         );
@@ -112,16 +113,13 @@ export default function SellerReviewsPage() {
   const [rating, setRating] = useState(5);
   const [submitting, setSubmitting] = useState(false);
 
-  const isAdmin = useMemo(
-    () => user?.publicMetadata?.role === "admin",
-    [user?.publicMetadata?.role]
-  );
+  const { isSeller } = useAppContext();
 
   useEffect(() => {
-    if (isLoaded && (!isSignedIn || !isAdmin)) {
+    if (isLoaded && (!isSignedIn || !isSeller)) {
       router.push("/");
     }
-  }, [isLoaded, isSignedIn, isAdmin, router]);
+  }, [isLoaded, isSignedIn, isSeller, router]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -202,7 +200,7 @@ export default function SellerReviewsPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isSeller) {
     return <div className="p-10 text-sm text-red-500">Access denied.</div>;
   }
 
@@ -210,7 +208,8 @@ export default function SellerReviewsPage() {
     <div className="mx-auto max-w-xl p-6">
       <h1 className="text-2xl font-semibold">Add a customer review</h1>
       <p className="mt-1 text-sm text-gray-500">
-        Reviews added here appear exactly like customer feedback on product pages.
+        Reviews added here appear exactly like customer feedback on product
+        pages.
       </p>
       <form onSubmit={handleSubmit} className="mt-6 space-y-5">
         <ProductDropdown
@@ -242,7 +241,11 @@ export default function SellerReviewsPage() {
           <label className="block text-sm font-medium text-gray-700">
             Rating
           </label>
-          <StarSelector value={rating} onChange={setRating} disabled={submitting} />
+          <StarSelector
+            value={rating}
+            onChange={setRating}
+            disabled={submitting}
+          />
         </div>
 
         <div>
