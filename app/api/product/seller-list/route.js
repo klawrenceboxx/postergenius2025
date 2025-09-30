@@ -1,21 +1,21 @@
 import connectDB from "@/config/db";
-import authSeller from "@/lib/authSeller";
+import authAdmin from "@/lib/authAdmin";
 import Product from "@/models/Product";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 export async function GET(request) {
   try {
-    // Authenticate the seller
+    // Authenticate the admin user
     const { userId } = getAuth(request);
 
-    const isSeller = await authSeller(userId);
+    const isAdmin = await authAdmin(userId);
 
-    if (isSeller !== true) {
+    if (isAdmin !== true) {
       return NextResponse.json({ success: false, message: "Unauthorized" });
     }
 
-    console.log("User authenticated successfully:", userId);
+    console.log("Admin authenticated successfully:", userId);
 
     await connectDB();
 
