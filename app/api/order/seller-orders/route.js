@@ -19,7 +19,9 @@ export async function GET(request) {
 
     Address.length;
 
-    const orders = await Order.find({}).populate("address items.product");
+    const orders = await Order.find({})
+      .populate("address")
+      .populate({ path: "items.product", model: "product" });
 
     return NextResponse.json({ success: true, orders });
   } catch (error) {
