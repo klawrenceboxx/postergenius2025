@@ -4,12 +4,24 @@ import Navbar from "@/components/Navbar";
 import ShopClient from "@/components/ShopClient";
 
 const fetchProducts = async () => {
-  const baseUrl = process.env.SITE_URL || "http://localhost:3000";
-  const response = await fetch(`${baseUrl}/api/product/list`, {
-    cache: "no-store",
-  });
-  const data = await response.json();
-  return data?.success ? data.products : [];
+  try {
+    // ✅ relative API route works in all environments
+    const response = await fetch("/api/product/list", {
+      cache: "no-store",
+      // Optionally revalidate every X seconds:
+      // next: { revalidate: 60 },
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch products");
+    }
+
+    const data = await response.json();
+    return data?.success ? data.products : [];
+  } catch (err) {
+    console.error("fetchProducts error:", err);
+    return [];
+  }
 };
 
 const ShopPage = async () => {
@@ -21,7 +33,6 @@ const ShopPage = async () => {
       <Suspense fallback={<div>Loading shop...</div>}>
         <ShopClient products={products} />
       </Suspense>
-
       <Footer />
     </>
   );
