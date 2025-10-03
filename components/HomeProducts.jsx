@@ -11,7 +11,7 @@ const HomeProducts = () => {
       <div className="w-28 h-0.5 bg-primary mt-2 mb-4"></div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 flex-col items-center gap-6 mt-6 pb-14 w-full">
-        {products.map((product, index) => (
+        {products.slice(0, 15).map((product, index) => (
           <ProductCard key={index} product={product} />
           // <ProductCard key={index} product={product} orientation={product.orientation} />
         ))}
