@@ -2,33 +2,39 @@ import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ShopClient from "@/components/ShopClient";
+import connectDB from "@/config/db";
+import Product from "@/models/Product";
 
-// ✅ force dynamic because we want live data
 export const dynamic = "force-dynamic";
 
-const fetchProducts = async () => {
+const getProducts = async () => {
   try {
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_URL}/api/product/list`,
-      {
-        cache: "no-store",
-      }
-    );
+    await connectDB();
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch products");
-    }
+    const products = await Product.find({})
+      .sort({ date: -1 })
+      .lean();
 
-    const data = await response.json();
-    return data?.success ? data.products : [];
-  } catch (err) {
-    console.error("fetchProducts error:", err);
+    return products.map((product) => ({
+      ...product,
+      _id: product._id?.toString?.() ?? "",
+      userId:
+        typeof product.userId === "object" && product.userId !== null
+          ? product.userId.toString()
+          : product.userId ?? "",
+      date:
+        product.date instanceof Date
+          ? product.date.toISOString()
+          : product.date ?? null,
+    }));
+  } catch (error) {
+    console.error("getProducts error:", error);
     return [];
   }
 };
 
 const ShopPage = async () => {
-  const products = await fetchProducts();
+  const products = await getProducts();
 
   return (
     <>
