@@ -3,7 +3,7 @@ import nodemailer from "nodemailer";
 
 const REQUIRED_FIELDS = ["name", "email", "message"];
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX_REQUESTS = 5;
+const RATE_LIMIT_MAX_REQUESTS = 3;
 const submissionTracker = new Map();
 
 const sanitizeEmail = (value) => value?.trim().toLowerCase() || "";

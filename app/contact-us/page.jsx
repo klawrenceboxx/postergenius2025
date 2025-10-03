@@ -22,7 +22,7 @@ const ContactPage = () => {
     event.preventDefault();
     setStatus({ type: "loading", message: "" });
 
-    console.log("Submitting form data:", formData);
+    // console.log("Submitting form data:", formData);
 
     try {
       const response = await fetch("/api/contact", {
