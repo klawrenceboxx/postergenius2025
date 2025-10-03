@@ -1,16 +1,19 @@
-import React, { Suspense } from "react";
-import Footer from "@/components/Footer";
+import React from "react";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import ShopClient from "@/components/ShopClient";
+
+// ✅ force dynamic because we want live data
+export const dynamic = "force-dynamic";
 
 const fetchProducts = async () => {
   try {
-    // ✅ relative API route works in all environments
-    const response = await fetch("/api/product/list", {
-      cache: "no-store",
-      // Optionally revalidate every X seconds:
-      // next: { revalidate: 60 },
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_BASE_URL}/api/product/list`,
+      {
+        cache: "no-store",
+      }
+    );
 
     if (!response.ok) {
       throw new Error("Failed to fetch products");
@@ -30,9 +33,7 @@ const ShopPage = async () => {
   return (
     <>
       <Navbar />
-      <Suspense fallback={<div>Loading shop...</div>}>
-        <ShopClient products={products} />
-      </Suspense>
+      <ShopClient products={products} />
       <Footer />
     </>
   );
