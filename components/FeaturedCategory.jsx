@@ -1,13 +1,15 @@
 import React from "react";
+import Link from "next/link";
 import { assets } from "@/assets/assets";
 
 const products = [
   {
     id: 1,
     image: assets.category_space,
-    title: "Cosmic Horizons",
-    description: "Posters of astronauts, planets, and galaxies.",
+    title: "8-bit & heroes",
+    description: "Retro comic styles and pixel-perfect vigilantes.",
     posY: 10, // move visible crop downward (show more TOP of photo)
+    category: "superheroes",
   },
   {
     id: 2,
@@ -15,6 +17,7 @@ const products = [
     title: "Nature Elegance",
     description: "Wildlife captured in vibrant detail.",
     posY: 40, // closer to center
+    category: "animals",
   },
   {
     id: 3,
@@ -22,6 +25,7 @@ const products = [
     title: "Timeless Vintage",
     description: "Classic posters with retro charm.",
     posY: 10, // show more BOTTOM of photo
+    category: "vintage",
   },
 ];
 
@@ -49,50 +53,57 @@ const FeaturedCategory = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-8 mt-12 md:px-14 px-4">
-        {products.map(({ id, image, title, description, posY }) => (
-          <div
-            key={id}
-            className={`group relative w-full ${cardHeights} overflow-hidden rounded-xl border`}
-          >
-            {/* Background image layer with per-card vertical offset */}
-            <div
-              className="absolute inset-0 bg-cover"
-              style={{
-                backgroundImage: `url(${toUrl(image)})`,
-                backgroundPosition: `center ${posY ?? 50}%`,
-              }}
-            />
+        {products.map(({ id, image, title, description, posY, category }) => {
+          const href = category
+            ? `/shop?category=${encodeURIComponent(category)}`
+            : "/shop";
 
-            {/* Optional subtle darken on hover */}
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"></div>
-
-            {/* Fixed-height bottom bar (stays pinned; no gap on hover) */}
-            <div
-              className={`absolute inset-x-0 bottom-0 ${barHeights} bg-black/60 group-hover:bg-black/70 text-white transition-colors overflow-hidden`}
+          return (
+            <Link
+              key={id}
+              href={href}
+              className={`group relative w-full ${cardHeights} overflow-hidden rounded-xl border`}
             >
-              {/* Only inner content moves slightly; bar remains flush to bottom */}
-              <div className="p-4 pt-6 transform transition-transform duration-300 group-hover:-translate-y-1">
-                <p
-                  className="font-semibold text-lg sm:text-xl lg:text-xl"
-                  style={clamp2}
-                >
-                  {title}
-                </p>
+              {/* Background image layer with per-card vertical offset */}
+              <div
+                className="absolute inset-0 bg-cover"
+                style={{
+                  backgroundImage: `url(${toUrl(image)})`,
+                  backgroundPosition: `center ${posY ?? 50}%`,
+                }}
+              />
 
-                <p
-                  className="mt-1 text-xs sm:text-sm lg:text-base leading-5 opacity-90"
-                  style={clamp2}
-                >
-                  {description}
-                </p>
-                {/* (Optional) CTA — add back your icon if you want */}
-                {/* <button className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-orange-600 px-3 py-2 text-xs sm:text-sm font-medium hover:bg-orange-500">
-                  Buy now
-                </button> */}
+              {/* Optional subtle darken on hover */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors"></div>
+
+              {/* Fixed-height bottom bar (stays pinned; no gap on hover) */}
+              <div
+                className={`absolute inset-x-0 bottom-0 ${barHeights} bg-black/60 group-hover:bg-black/70 text-white transition-colors overflow-hidden`}
+              >
+                {/* Only inner content moves slightly; bar remains flush to bottom */}
+                <div className="p-4 pt-6 transform transition-transform duration-300 group-hover:-translate-y-1">
+                  <p
+                    className="font-semibold text-lg sm:text-xl lg:text-xl"
+                    style={clamp2}
+                  >
+                    {title}
+                  </p>
+
+                  <p
+                    className="mt-1 text-xs sm:text-sm lg:text-base leading-5 opacity-90"
+                    style={clamp2}
+                  >
+                    {description}
+                  </p>
+                  {/* (Optional) CTA — add back your icon if you want */}
+                  {/* <button className="mt-3 inline-flex items-center gap-1.5 rounded-md bg-orange-600 px-3 py-2 text-xs sm:text-sm font-medium hover:bg-orange-500"> */}
+                  {/*   Buy now */}
+                  {/* </button> */}
+                </div>
               </div>
-            </div>
-          </div>
-        ))}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

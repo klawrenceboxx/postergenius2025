@@ -3,7 +3,56 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+import { useState } from "react";
+
 const ContactPage = () => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    message: "",
+  });
+  const [status, setStatus] = useState({ type: "idle", message: "" });
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((previous) => ({ ...previous, [name]: value }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setStatus({ type: "loading", message: "" });
+
+    console.log("Submitting form data:", formData);
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Failed to send message.");
+      }
+
+      setStatus({
+        type: "success",
+        message: "Thank you! Your message has been sent.",
+      });
+      setFormData({ name: "", email: "", message: "" });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message:
+          error.message || "Something went wrong. Please try again later.",
+      });
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -34,29 +83,55 @@ const ContactPage = () => {
             </p>
           </div>
 
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8">
+          <form
+            onSubmit={handleSubmit}
+            className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8"
+          >
             <input
               type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
               placeholder="Your Name"
               className="border border-gray-300 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              required
             />
             <input
               type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               placeholder="Your Email"
               className="border border-gray-300 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              required
             />
             <textarea
+              name="message"
+              value={formData.message}
+              onChange={handleChange}
               placeholder="Your Message"
               rows={5}
               className="md:col-span-2 border border-gray-300 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              required
             ></textarea>
             <button
               type="submit"
-              className="md:col-span-2 bg-primary hover:bg-tertiary text-white px-6 py-2 rounded-md text-sm font-medium"
+              className="md:col-span-2 bg-primary hover:bg-tertiary text-white px-6 py-2 rounded-md text-sm font-medium disabled:opacity-75"
+              disabled={status.type === "loading"}
             >
-              Send Message
+              {status.type === "loading" ? "Sending..." : "Send Message"}
             </button>
           </form>
+
+          {status.type !== "idle" && status.message && (
+            <p
+              className={`text-sm ${
+                status.type === "success" ? "text-green-600" : "text-red-600"
+              }`}
+            >
+              {status.message}
+            </p>
+          )}
         </div>
       </div>
       <Footer />
