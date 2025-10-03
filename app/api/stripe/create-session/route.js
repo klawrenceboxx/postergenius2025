@@ -3,6 +3,7 @@ import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import connectDB from "@/config/db";
 import Product from "@/models/Product";
+import { computePricing } from "@/lib/pricing";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -34,20 +35,50 @@ export async function POST(request) {
     const lineItems = [];
     let cartTotal = 0;
     for (const item of items) {
-      const product = await Product.findById(item.productId);
+      const product = await Product.findById(item.productId).lean();
       if (!product) {
         console.warn("⚠️ Product not found for ID:", item.productId);
         continue;
       }
-      const subtotal = product.offerPrice * item.quantity;
+
+      const pricing = computePricing(product);
+      const format = (item.format || "physical").toLowerCase();
+      const dimensions = item.dimensions || pricing.defaultPhysicalDimensions;
+
+      let unitPrice = pricing.defaultPhysicalFinalPrice;
+      let descriptor = "Physical";
+
+      if (format === "digital") {
+        unitPrice = pricing.digitalFinalPrice;
+        descriptor = "Digital";
+      } else if (dimensions) {
+        const match = pricing.physicalPricing?.[dimensions];
+        if (match?.finalPrice != null) {
+          unitPrice = match.finalPrice;
+        }
+      }
+
+      unitPrice = Math.max(0, Number(unitPrice) || 0);
+      if (unitPrice === 0) {
+        console.warn("⚠️ Computed price was zero for product", product._id);
+        continue;
+      }
+
+      const quantity = Math.max(1, Number(item.quantity) || 1);
+      const subtotal = unitPrice * quantity;
       cartTotal += subtotal;
+
+      const nameSegments = [product.name];
+      if (descriptor) nameSegments.push(descriptor);
+      if (format !== "digital" && dimensions) nameSegments.push(dimensions);
+
       lineItems.push({
         price_data: {
           currency: "usd",
-          product_data: { name: product.name },
-          unit_amount: Math.round(product.offerPrice * 100),
+          product_data: { name: nameSegments.filter(Boolean).join(" – ") },
+          unit_amount: Math.round(unitPrice * 100),
         },
-        quantity: item.quantity,
+        quantity,
       });
     }
 
@@ -92,11 +123,13 @@ export async function POST(request) {
         metadata: {
           userId,
           address,
-          // ✅ only send productId + quantity to keep payload clean
+          // ✅ include format/dimensions for fulfillment context
           items: JSON.stringify(
             items.map((i) => ({
               productId: i.productId,
               quantity: i.quantity,
+              format: i.format ?? null,
+              dimensions: i.dimensions ?? null,
             }))
           ),
         },

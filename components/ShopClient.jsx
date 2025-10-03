@@ -14,11 +14,13 @@ const SORT_OPTIONS = [
 ];
 
 const getComparablePrice = (product) => {
-  const offer = Number(product?.offerPrice ?? 0);
-  const price = Number(product?.price ?? 0);
-  if (!Number.isNaN(offer) && offer > 0) return offer;
-  if (!Number.isNaN(price) && price > 0) return price;
-  return 0;
+  const pricing = product?.pricing;
+  if (pricing) {
+    const value = Number(pricing.defaultPhysicalFinalPrice ?? 0);
+    if (!Number.isNaN(value) && value > 0) return value;
+  }
+  const fallback = Number(product?.finalPrice ?? product?.price ?? 0);
+  return Number.isNaN(fallback) ? 0 : fallback;
 };
 
 const normalizeProducts = (products) =>

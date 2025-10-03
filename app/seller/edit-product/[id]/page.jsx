@@ -18,6 +18,7 @@ const EditProductPage = () => {
   const { getToken, router } = useAppContext();
 
   const defaultCategory = CATEGORIES[0] || "";
+  const discountOptions = Array.from({ length: 21 }, (_, index) => index * 5);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,9 +27,12 @@ const EditProductPage = () => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState(defaultCategory);
-  const [price, setPrice] = useState("");
-  const [offerPrice, setOfferPrice] = useState("");
-  const [digitalPrice, setDigitalPrice] = useState("");
+  const [physicalPriceM, setPhysicalPriceM] = useState("30");
+  const [physicalPriceL, setPhysicalPriceL] = useState("40");
+  const [physicalPriceXL, setPhysicalPriceXL] = useState("50");
+  const [physicalDiscount, setPhysicalDiscount] = useState("0");
+  const [digitalDiscount, setDigitalDiscount] = useState("0");
+  const [digitalPrice, setDigitalPrice] = useState("6.5");
   const [orientation, setOrientation] = useState("portrait");
   const [printfulEnabled, setPrintfulEnabled] = useState(false);
 
@@ -52,12 +56,33 @@ const EditProductPage = () => {
         setName(product.name || "");
         setDescription(product.description || "");
         setCategory(product.category || defaultCategory);
-        setPrice(product.price != null ? String(product.price) : "");
-        setOfferPrice(
-          product.offerPrice != null ? String(product.offerPrice) : ""
+        setPhysicalPriceM(
+          product.physicalPrices?.M != null
+            ? String(product.physicalPrices.M)
+            : "30"
+        );
+        setPhysicalPriceL(
+          product.physicalPrices?.L != null
+            ? String(product.physicalPrices.L)
+            : "40"
+        );
+        setPhysicalPriceXL(
+          product.physicalPrices?.XL != null
+            ? String(product.physicalPrices.XL)
+            : "50"
+        );
+        setPhysicalDiscount(
+          product.physicalDiscount != null
+            ? String(product.physicalDiscount)
+            : "0"
+        );
+        setDigitalDiscount(
+          product.digitalDiscount != null
+            ? String(product.digitalDiscount)
+            : "0"
         );
         setDigitalPrice(
-          product.digitalPrice != null ? String(product.digitalPrice) : ""
+          product.digitalPrice != null ? String(product.digitalPrice) : "6.5"
         );
         setExistingImages(product.image || []);
         setPrintfulEnabled(
@@ -120,8 +145,11 @@ const EditProductPage = () => {
       formData.append("name", name);
       formData.append("description", description);
       formData.append("category", category);
-      formData.append("price", price);
-      formData.append("offerPrice", offerPrice);
+      formData.append("physicalPriceM", physicalPriceM);
+      formData.append("physicalPriceL", physicalPriceL);
+      formData.append("physicalPriceXL", physicalPriceXL);
+      formData.append("physicalDiscount", physicalDiscount);
+      formData.append("digitalDiscount", digitalDiscount);
       formData.append("digitalPrice", digitalPrice);
       formData.append("existingImages", JSON.stringify(existingImages));
       formData.append("printfulEnabled", printfulEnabled ? "true" : "false");
@@ -327,44 +355,102 @@ const EditProductPage = () => {
             </select>
           </div>
           <div className="flex flex-col gap-1 w-32">
-            <label className="text-base font-medium" htmlFor="product-price">
-              Product Price
-            </label>
-            <input
-              id="product-price"
-              type="number"
-              placeholder="0"
-              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
-              onChange={(e) => setPrice(e.target.value)}
-              value={price}
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-1 w-32">
-            <label className="text-base font-medium" htmlFor="offer-price">
-              Offer Price
-            </label>
-            <input
-              id="offer-price"
-              type="number"
-              placeholder="0"
-              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
-              onChange={(e) => setOfferPrice(e.target.value)}
-              value={offerPrice}
-            />
-          </div>
-          <div className="flex flex-col gap-1 w-32">
             <label className="text-base font-medium" htmlFor="digital-price">
               Digital Price
             </label>
             <input
               id="digital-price"
               type="number"
+              min="0"
+              step="0.01"
               placeholder="0"
               className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
               onChange={(e) => setDigitalPrice(e.target.value)}
               value={digitalPrice}
             />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-5 flex-wrap">
+          <div className="flex flex-col gap-1 w-32">
+            <label className="text-base font-medium" htmlFor="physical-price-m">
+              Product (M) Price
+            </label>
+            <input
+              id="physical-price-m"
+              type="number"
+              min="0.01"
+              step="0.01"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              onChange={(e) => setPhysicalPriceM(e.target.value)}
+              value={physicalPriceM}
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1 w-32">
+            <label className="text-base font-medium" htmlFor="physical-price-l">
+              Product (L) Price
+            </label>
+            <input
+              id="physical-price-l"
+              type="number"
+              min="0.01"
+              step="0.01"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              onChange={(e) => setPhysicalPriceL(e.target.value)}
+              value={physicalPriceL}
+            />
+          </div>
+          <div className="flex flex-col gap-1 w-32">
+            <label className="text-base font-medium" htmlFor="physical-price-xl">
+              Product (XL) Price
+            </label>
+            <input
+              id="physical-price-xl"
+              type="number"
+              min="0.01"
+              step="0.01"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              onChange={(e) => setPhysicalPriceXL(e.target.value)}
+              value={physicalPriceXL}
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-5 flex-wrap">
+          <div className="flex flex-col gap-1 w-40">
+            <label className="text-base font-medium" htmlFor="physical-discount">
+              Physical Discount (%)
+            </label>
+            <select
+              id="physical-discount"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              value={physicalDiscount}
+              onChange={(e) => setPhysicalDiscount(e.target.value)}
+            >
+              {discountOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}%
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1 w-40">
+            <label className="text-base font-medium" htmlFor="digital-discount">
+              Digital Discount (%)
+            </label>
+            <select
+              id="digital-discount"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              value={digitalDiscount}
+              onChange={(e) => setDigitalDiscount(e.target.value)}
+            >
+              {discountOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}%
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

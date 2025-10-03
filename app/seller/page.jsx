@@ -11,15 +11,19 @@ const AddProduct = () => {
   const { getToken } = useAppContext();
 
   const defaultCategory = CATEGORIES[0] || "";
+  const discountOptions = Array.from({ length: 21 }, (_, index) => index * 5);
 
   const [files, setFiles] = useState([]);
   const [digitalFile, setDigitalFile] = useState(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState(defaultCategory);
-  const [price, setPrice] = useState("");
-  const [offerPrice, setOfferPrice] = useState("");
-  const [digitalPrice, setDigitalPrice] = useState(""); // 🆕 digital price
+  const [physicalPriceM, setPhysicalPriceM] = useState("30");
+  const [physicalPriceL, setPhysicalPriceL] = useState("40");
+  const [physicalPriceXL, setPhysicalPriceXL] = useState("50");
+  const [physicalDiscount, setPhysicalDiscount] = useState("0");
+  const [digitalDiscount, setDigitalDiscount] = useState("0");
+  const [digitalPrice, setDigitalPrice] = useState("6.5");
   const [orientation, setOrientation] = useState("portrait"); // 🆕 orientation
   const [printfulEnabled, setPrintfulEnabled] = useState(false);
 
@@ -31,9 +35,12 @@ const AddProduct = () => {
     formData.append("name", name);
     formData.append("description", description);
     formData.append("category", category);
-    formData.append("price", price);
-    formData.append("offerPrice", offerPrice);
-    formData.append("digitalPrice", digitalPrice || 0); // 🆕 push digital price
+    formData.append("physicalPriceM", physicalPriceM);
+    formData.append("physicalPriceL", physicalPriceL);
+    formData.append("physicalPriceXL", physicalPriceXL);
+    formData.append("physicalDiscount", physicalDiscount);
+    formData.append("digitalDiscount", digitalDiscount);
+    formData.append("digitalPrice", digitalPrice || 0);
     formData.append("orientation", orientation); // 🆕 push orientation
 
     for (let i = 0; i < files.length; i++) {
@@ -62,9 +69,12 @@ const AddProduct = () => {
         setName("");
         setDescription("");
         setCategory(defaultCategory);
-        setPrice("");
-        setOfferPrice("");
-        setDigitalPrice(""); // reset 🆕
+        setPhysicalPriceM("30");
+        setPhysicalPriceL("40");
+        setPhysicalPriceXL("50");
+        setPhysicalDiscount("0");
+        setDigitalDiscount("0");
+        setDigitalPrice("6.5");
         setOrientation("portrait"); // reset 🆕
         setPrintfulEnabled(false);
       } else {
@@ -165,7 +175,7 @@ const AddProduct = () => {
           )}
         </div>
 
-        {/* Category + Prices */}
+        {/* Category + Digital */}
         <div className="flex items-center gap-5 flex-wrap">
           <div className="flex flex-col gap-1 w-32">
             <label className="text-base font-medium" htmlFor="category">
@@ -185,44 +195,104 @@ const AddProduct = () => {
             </select>
           </div>
           <div className="flex flex-col gap-1 w-32">
-            <label className="text-base font-medium" htmlFor="product-price">
-              Product Price
-            </label>
-            <input
-              id="product-price"
-              type="number"
-              placeholder="0"
-              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
-              onChange={(e) => setPrice(e.target.value)}
-              value={price}
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-1 w-32">
-            <label className="text-base font-medium" htmlFor="offer-price">
-              Offer Price
-            </label>
-            <input
-              id="offer-price"
-              type="number"
-              placeholder="0"
-              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
-              onChange={(e) => setOfferPrice(e.target.value)}
-              value={offerPrice}
-            />
-          </div>
-          <div className="flex flex-col gap-1 w-32">
             <label className="text-base font-medium" htmlFor="digital-price">
               Digital Price
             </label>
             <input
               id="digital-price"
               type="number"
+              min="0"
+              step="0.01"
               placeholder="0"
               className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
               onChange={(e) => setDigitalPrice(e.target.value)}
               value={digitalPrice}
             />
+          </div>
+        </div>
+
+        {/* Physical Prices */}
+        <div className="flex items-center gap-5 flex-wrap">
+          <div className="flex flex-col gap-1 w-32">
+            <label className="text-base font-medium" htmlFor="physical-price-m">
+              Product (M) Price
+            </label>
+            <input
+              id="physical-price-m"
+              type="number"
+              min="0.01"
+              step="0.01"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              onChange={(e) => setPhysicalPriceM(e.target.value)}
+              value={physicalPriceM}
+              required
+            />
+          </div>
+          <div className="flex flex-col gap-1 w-32">
+            <label className="text-base font-medium" htmlFor="physical-price-l">
+              Product (L) Price
+            </label>
+            <input
+              id="physical-price-l"
+              type="number"
+              min="0.01"
+              step="0.01"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              onChange={(e) => setPhysicalPriceL(e.target.value)}
+              value={physicalPriceL}
+            />
+          </div>
+          <div className="flex flex-col gap-1 w-32">
+            <label className="text-base font-medium" htmlFor="physical-price-xl">
+              Product (XL) Price
+            </label>
+            <input
+              id="physical-price-xl"
+              type="number"
+              min="0.01"
+              step="0.01"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              onChange={(e) => setPhysicalPriceXL(e.target.value)}
+              value={physicalPriceXL}
+            />
+          </div>
+        </div>
+
+        {/* Discounts */}
+        <div className="flex items-center gap-5 flex-wrap">
+          <div className="flex flex-col gap-1 w-40">
+            <label className="text-base font-medium" htmlFor="physical-discount">
+              Physical Discount (%)
+            </label>
+            <select
+              id="physical-discount"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              value={physicalDiscount}
+              onChange={(e) => setPhysicalDiscount(e.target.value)}
+            >
+              {discountOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}%
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1 w-40">
+            <label className="text-base font-medium" htmlFor="digital-discount">
+              Digital Discount (%)
+            </label>
+            <select
+              id="digital-discount"
+              className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+              value={digitalDiscount}
+              onChange={(e) => setDigitalDiscount(e.target.value)}
+            >
+              {discountOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}%
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

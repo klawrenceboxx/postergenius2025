@@ -98,12 +98,18 @@ const ProductList = () => {
                     Array.isArray(product.image) && product.image.length > 0
                       ? product.image[0]
                       : assets.upload_area;
-                  const displayedPrice =
-                    product.offerPrice != null && product.offerPrice > 0
-                      ? product.offerPrice
-                      : product.price;
-                  const numericPrice = Number(displayedPrice);
-                  const hasValidPrice = Number.isFinite(numericPrice);
+                  const pricing = product.pricing || {};
+                  const basePrice = Number(
+                    pricing.defaultPhysicalBasePrice ?? product.price ?? 0
+                  );
+                  const finalPrice = Number(
+                    pricing.defaultPhysicalFinalPrice ?? product.finalPrice ?? basePrice
+                  );
+                  const hasValidPrice = Number.isFinite(finalPrice) && finalPrice > 0;
+                  const showDiscount =
+                    Number.isFinite(basePrice) &&
+                    basePrice > 0 &&
+                    Math.abs(basePrice - finalPrice) > 0.009;
 
                   return (
                     <tr key={index} className="border-t border-gray-500/20">
@@ -123,7 +129,18 @@ const ProductList = () => {
                         {product.category}
                       </td>
                       <td className="px-4 py-3">
-                        {hasValidPrice ? `$${numericPrice.toFixed(2)}` : "-"}
+                        {hasValidPrice ? (
+                          <div className="flex flex-col">
+                            <span>${finalPrice.toFixed(2)}</span>
+                            {showDiscount && (
+                              <span className="text-xs text-gray-500 line-through">
+                                ${basePrice.toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          "-"
+                        )}
                       </td>
                       <td className="px-4 py-3 max-sm:hidden">
                         <div className="flex items-center gap-2">
