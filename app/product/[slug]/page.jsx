@@ -5,6 +5,7 @@ import Product from "@/models/Product";
 import mongoose from "mongoose";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { augmentProductWithPricing } from "@/lib/pricing";
 
 async function getProduct(slugOrId) {
   await connectDB();
@@ -19,53 +20,55 @@ async function getProduct(slugOrId) {
   }
   if (!doc) return null;
 
-  const base = doc.offerPrice ?? doc.price;
-  const landscape = doc.orientation === "landscape";
+  const plain = {
+    ...doc,
+    _id: doc._id.toString(),
+    productId: doc._id.toString(),
+  };
 
-  const sizes = landscape
-    ? [
-        { size: "18x12", price: base },
-        { size: "24x18", price: Math.round(base * 1.2 * 100) / 100 },
-        { size: "36x24", price: Math.round(base * 1.5 * 100) / 100 },
-      ]
-    : [
-        { size: "12x18", price: base },
-        { size: "18x24", price: Math.round(base * 1.2 * 100) / 100 },
-        { size: "24x36", price: Math.round(base * 1.5 * 100) / 100 },
-      ];
+  const enriched = augmentProductWithPricing(plain);
+  const pricing = enriched.pricing;
+
+  const sizes = (pricing?.physicalOptions || []).map((option) => ({
+    size: option.dimensions,
+    price: option.finalPrice,
+    label: option.label,
+    basePrice: option.basePrice,
+  }));
 
   return {
-    // expose BOTH for compatibility
-    _id: doc._id.toString(),
-    productId: doc._id.toString(), // alias for frontend/cart
-
-    title: doc.name || doc.title || "",
-    imageUrl: doc.image?.[0] || "",
-    imageGallery: doc.image || [],
-    description: doc.description || "",
-
-    // prices
-    price: doc.price,
-    salePrice: doc.offerPrice ?? null,
-    finalPrice: base, // default physical price
-    digitalPrice: doc.digitalPrice || base,
-
-    slug: doc.slug || slugOrId,
-    category: doc.category || null,
-    reviews: doc.reviews || [],
-    orientation: doc.orientation || "portrait",
-    printfulEnabled: !!(doc.printfulEnabled ?? doc.PrintfulEnabled),
-
+    ...enriched,
+    title: enriched.name || enriched.title || "",
+    imageUrl: enriched.image?.[0] || "",
+    imageGallery: enriched.image || [],
+    description: enriched.description || "",
+    price: pricing?.defaultPhysicalBasePrice ?? enriched.price ?? 0,
+    finalPrice: pricing?.defaultPhysicalFinalPrice ?? enriched.finalPrice ?? 0,
+    salePrice:
+      pricing?.physicalDiscount > 0
+        ? pricing.defaultPhysicalFinalPrice
+        : null,
+    digitalPrice: enriched.digitalPrice ?? pricing?.digitalBasePrice ?? 6.5,
+    digitalDisplayPrice: pricing?.digitalFinalPrice ?? enriched.digitalDisplayPrice,
+    slug: enriched.slug || slugOrId,
+    category: enriched.category || null,
+    reviews: enriched.reviews || [],
+    orientation: enriched.orientation || "portrait",
+    printfulEnabled: !!(enriched.printfulEnabled ?? enriched.PrintfulEnabled),
     detailsHtml:
-      doc.detailsHtml || "Premium materials and high-resolution print.",
-    shippingHtml: doc.shippingHtml || "Ships in 3–5 business days.",
-    returnsHtml: doc.returnsHtml || "30-day return policy.",
-
+      enriched.detailsHtml || "Premium materials and high-resolution print.",
+    shippingHtml:
+      enriched.shippingHtml || "Ships in 3–5 business days.",
+    returnsHtml: enriched.returnsHtml || "30-day return policy.",
+    physicalPricing: pricing?.physicalPricing || {},
+    physicalOptions: sizes,
+    defaultPhysicalDimensions:
+      pricing?.defaultPhysicalDimensions || enriched.defaultPhysicalDimensions,
     variations: [
       {
         type: "default",
-        imageUrl: doc.image?.[0] || "",
-        sizes, // [{ size, price }, ...]
+        imageUrl: enriched.image?.[0] || "",
+        sizes,
       },
     ],
   };

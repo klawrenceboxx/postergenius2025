@@ -4,6 +4,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { augmentProductWithPricing } from "@/lib/pricing";
 
 export const AppContext = createContext();
 export const useAppContext = () => useContext(AppContext);
@@ -21,10 +22,24 @@ export const AppContextProvider = (props) => {
   const [cartItems, setCartItems] = useState({});
 
   // normalize _id -> productId
-  const mapProduct = (p) => ({
-    ...p,
-    productId: p?.productId || p?._id?.toString?.() || p?._id || "",
-  });
+  const mapProduct = (p) => {
+    const normalizedId =
+      p?.productId ||
+      (typeof p?._id === "object" && p?._id !== null
+        ? p._id.toString()
+        : p?._id ?? "");
+
+    const normalized = {
+      ...p,
+      _id:
+        typeof p?._id === "object" && p?._id !== null
+          ? p._id.toString()
+          : p?._id ?? normalizedId,
+      productId: normalizedId,
+    };
+
+    return augmentProductWithPricing(normalized);
+  };
 
   const fetchProductData = async () => {
     try {
@@ -182,8 +197,12 @@ export const AppContextProvider = (props) => {
           (p) => (p.productId || p._id?.toString?.() || p._id) === key
         );
         if (itemInfo && entry > 0) {
-          const offer = itemInfo.offerPrice ?? itemInfo.price ?? 0;
-          totalAmount += Number(offer) * entry;
+          const defaultPrice =
+            itemInfo?.pricing?.defaultPhysicalFinalPrice ??
+            itemInfo?.finalPrice ??
+            itemInfo?.price ??
+            0;
+          totalAmount += Number(defaultPrice) * entry;
         }
       }
     }

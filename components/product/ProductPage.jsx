@@ -5,8 +5,13 @@ import Infos from "@/components/product/Infos";
 import Link from "next/link";
 
 export default function ProductPage({ product }) {
+  const initialDimensions =
+    product?.defaultPhysicalDimensions ||
+    product?.variations?.[0]?.sizes?.[0]?.size ||
+    "12x18";
+
   const [selectedDimensions, setSelectedDimensions] = useState(
-    product?.variations?.[0]?.sizes?.[0]?.size || "12x18"
+    initialDimensions
   );
   const [activeMockupIndex, setActiveMockupIndex] = useState(0);
   const [format, setFormat] = useState("physical"); // "physical" | "digital"

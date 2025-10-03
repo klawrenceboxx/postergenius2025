@@ -7,26 +7,84 @@ import ReviewSummary from "@/components/ReviewSummary";
 // tiny helper
 const cx = (...xs) => xs.filter(Boolean).join(" ");
 
-function Price({ product, format }) {
+function Price({ product, format, selectedDimensions }) {
+  const pricing = product?.pricing || {};
   const isPhysical = format === "physical";
-  const base = isPhysical
-    ? product.price
-    : product.digitalPrice ?? product.finalPrice;
-  const sale = isPhysical ? product.salePrice : undefined;
 
-  if (isPhysical && sale && sale < product.price) {
-    const pct = Math.round(((product.price - sale) / product.price) * 100);
+  if (isPhysical) {
+    const physicalPricing = product?.physicalPricing || pricing.physicalPricing || {};
+    const defaultDimensions =
+      selectedDimensions ||
+      product?.defaultPhysicalDimensions ||
+      Object.keys(physicalPricing)[0];
+    const selected = physicalPricing[defaultDimensions] || null;
+
+    const basePrice = Number(
+      selected?.basePrice ??
+        product?.price ??
+        pricing.defaultPhysicalBasePrice ??
+        0
+    );
+    const finalPrice = Number(
+      selected?.finalPrice ??
+        product?.finalPrice ??
+        pricing.defaultPhysicalFinalPrice ??
+        basePrice
+    );
+
+    const hasDiscount =
+      basePrice > 0 && Math.abs(basePrice - finalPrice) > 0.009;
+    const pct = hasDiscount
+      ? Math.round(((basePrice - finalPrice) / basePrice) * 100)
+      : 0;
+
+    if (hasDiscount) {
+      return (
+        <div className="flex items-baseline gap-3">
+          <span className="text-2xl font-semibold">
+            ${finalPrice.toFixed(2)}
+          </span>
+          <span className="text-gray-400 line-through">
+            ${basePrice.toFixed(2)}
+          </span>
+          <span className="text-green-600 text-sm font-medium">
+            Save {pct}%
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="text-2xl font-semibold">${finalPrice.toFixed(2)}</div>
+    );
+  }
+
+  const basePrice = Number(
+    product?.digitalPrice ?? pricing.digitalBasePrice ?? pricing.defaultPhysicalBasePrice ?? 0
+  );
+  const finalPrice = Number(
+    product?.digitalDisplayPrice ?? pricing.digitalFinalPrice ?? basePrice
+  );
+  const hasDiscount = basePrice > 0 && Math.abs(basePrice - finalPrice) > 0.009;
+  const pct = hasDiscount
+    ? Math.round(((basePrice - finalPrice) / basePrice) * 100)
+    : 0;
+
+  if (hasDiscount) {
     return (
       <div className="flex items-baseline gap-3">
-        <span className="text-2xl font-semibold">${sale.toFixed(2)}</span>
+        <span className="text-2xl font-semibold">${finalPrice.toFixed(2)}</span>
         <span className="text-gray-400 line-through">
-          ${product.price.toFixed(2)}
+          ${basePrice.toFixed(2)}
         </span>
-        <span className="text-green-600 text-sm font-medium">Save {pct}%</span>
+        <span className="text-green-600 text-sm font-medium">
+          Save {pct}%
+        </span>
       </div>
     );
   }
-  return <div className="text-2xl font-semibold">${base.toFixed(2)}</div>;
+
+  return <div className="text-2xl font-semibold">${finalPrice.toFixed(2)}</div>;
 }
 
 function ReadMore({ text, limit = 50 }) {
@@ -93,6 +151,8 @@ export default function InfosV2({
 }) {
   const { addToCart } = useAppContext();
 
+  const pricing = product?.pricing || {};
+
   const productId = useMemo(() => {
     const id = product?._id ?? product?.id;
     if (!id) return "";
@@ -104,18 +164,49 @@ export default function InfosV2({
   }, [product?._id, product?.id]);
 
   const sizes = useMemo(() => {
-    // prefer flat sizes if present; otherwise variations[0].sizes
-    if (Array.isArray(product?.sizes) && product.sizes.length)
-      return product.sizes;
-    return product?.variations?.[0]?.sizes || [];
+    if (Array.isArray(product?.physicalOptions) && product.physicalOptions.length) {
+      return product.physicalOptions.map((option) => ({
+        ...option,
+        size: option.size || option.dimensions,
+        dimensions: option.dimensions || option.size,
+        label: option.label || option.key || option.size,
+      }));
+    }
+    const variationSizes = product?.variations?.[0]?.sizes || [];
+    return variationSizes.map((option, index) => ({
+      ...option,
+      size: option.size || option.dimensions,
+      dimensions: option.dimensions || option.size,
+      label:
+        option.label || option.key || ["M", "L", "XL"][index] || option.size,
+    }));
   }, [product]);
 
   const isPhysical = format === "physical";
   const physicalDisabled = isPhysical && !product?.printfulEnabled; // flip per product when Printful is ready
 
-  const effectivePrice = isPhysical
-    ? product.salePrice ?? product.finalPrice
-    : product.digitalPrice ?? product.finalPrice;
+  const physicalPricing = product?.physicalPricing || pricing?.physicalPricing || {};
+  const defaultDimensions =
+    selectedDimensions ||
+    product?.defaultPhysicalDimensions ||
+    Object.keys(physicalPricing)[0];
+  const selectedPhysical = physicalPricing[defaultDimensions];
+
+  const physicalPrice = Number(
+    selectedPhysical?.finalPrice ??
+      product?.finalPrice ??
+      pricing?.defaultPhysicalFinalPrice ??
+      0
+  );
+  const digitalPriceValue = Number(
+    product?.digitalDisplayPrice ??
+      pricing?.digitalFinalPrice ??
+      product?.digitalPrice ??
+      product?.finalPrice ??
+      0
+  );
+
+  const effectivePrice = isPhysical ? physicalPrice : digitalPriceValue;
 
   const handleAdd = async () => {
     if (physicalDisabled) return;
@@ -127,7 +218,10 @@ export default function InfosV2({
       quantity: 1,
       slug: product.slug,
       format,
-      dimensions: selectedDimensions || null, // ✅ correct key
+      dimensions:
+        format === "digital"
+          ? "digital"
+          : selectedDimensions || product?.defaultPhysicalDimensions || null,
     });
   };
 
@@ -146,7 +240,11 @@ export default function InfosV2({
       </h1>
 
       {/* Price */}
-      <Price product={product} format={format} />
+      <Price
+        product={product}
+        format={format}
+        selectedDimensions={selectedDimensions}
+      />
 
       <div className="mt-3">
         <ReviewSummary productId={productId} />
@@ -193,8 +291,8 @@ export default function InfosV2({
 
           <div className="inline-flex items-center gap-2 bg-gray-100 rounded-full p-1">
             {sizes.map((s, i) => {
-              const dims = s.dimensions || s.size; // "12x18"
-              const label = labelForIndex(i, s); // "M", "L", "XL"
+              const dims = s.dimensions || s.size;
+              const label = s.label || labelForIndex(i, s);
               const sel = selectedDimensions === dims;
 
               return (

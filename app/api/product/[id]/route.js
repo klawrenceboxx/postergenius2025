@@ -76,8 +76,11 @@ export async function PUT(request, { params }) {
     const name = formData.get("name");
     const description = formData.get("description");
     const category = formData.get("category");
-    const price = formData.get("price");
-    const offerPrice = formData.get("offerPrice");
+    const physicalPriceM = formData.get("physicalPriceM");
+    const physicalPriceL = formData.get("physicalPriceL");
+    const physicalPriceXL = formData.get("physicalPriceXL");
+    const physicalDiscount = formData.get("physicalDiscount");
+    const digitalDiscount = formData.get("digitalDiscount");
     const digitalPrice = formData.get("digitalPrice");
     const orientation = formData.get("orientation");
     const printfulEnabled =
@@ -117,57 +120,47 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ success: false, message: "Product not found" });
     }
 
-    if (!name || !description || !category || !price) {
+    if (!name || !description || !category) {
       return NextResponse.json({
         success: false,
         message: "Missing required fields",
       });
     }
 
-    const numericPrice = Number(price);
-    const numericOfferPrice = offerPrice ? Number(offerPrice) : null;
-    const rawDigitalPrice = digitalPrice ?? "";
+    const parsePhysicalPrice = (value, fallback) => {
+      if (value === null || value === undefined || value === "") {
+        return { price: fallback, error: null };
+      }
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        return {
+          price: fallback,
+          error: "Physical prices must be positive numbers",
+        };
+      }
+      return { price: Math.round(parsed * 100) / 100, error: null };
+    };
+
+    const mParsed = parsePhysicalPrice(physicalPriceM, product.physicalPrices?.M ?? 30);
+    const lParsed = parsePhysicalPrice(physicalPriceL, product.physicalPrices?.L ?? 40);
+    const xlParsed = parsePhysicalPrice(
+      physicalPriceXL,
+      product.physicalPrices?.XL ?? 50
+    );
+
+    const physicalError = mParsed.error || lParsed.error || xlParsed.error;
+    if (physicalError) {
+      return NextResponse.json({ success: false, message: physicalError });
+    }
+
+    const mPrice = mParsed.price;
+    const lPrice = lParsed.price;
+    const xlPrice = xlParsed.price;
+
     const normalizedDigitalPrice =
-      rawDigitalPrice === "" || rawDigitalPrice === null
-        ? 0
-        : Number(rawDigitalPrice);
-
-    if (Number.isNaN(numericPrice)) {
-      return NextResponse.json({
-        success: false,
-        message: "Price must be a valid number",
-      });
-    }
-
-    if (offerPrice && Number.isNaN(numericOfferPrice)) {
-      return NextResponse.json({
-        success: false,
-        message: "Offer price must be a valid number",
-      });
-    }
-
-    if (numericPrice <= 0) {
-      return NextResponse.json({
-        success: false,
-        message: "Price must be greater than zero",
-      });
-    }
-
-    if (numericOfferPrice !== null) {
-      if (numericOfferPrice <= 0) {
-        return NextResponse.json({
-          success: false,
-          message: "Offer price must be greater than zero",
-        });
-      }
-
-      if (numericOfferPrice >= numericPrice) {
-        return NextResponse.json({
-          success: false,
-          message: "Offer price must be less than the price",
-        });
-      }
-    }
+      digitalPrice !== null && digitalPrice !== undefined && digitalPrice !== ""
+        ? Number(digitalPrice)
+        : product.digitalPrice ?? 6.5;
 
     if (Number.isNaN(normalizedDigitalPrice)) {
       return NextResponse.json({
@@ -183,16 +176,38 @@ export async function PUT(request, { params }) {
       });
     }
 
+    const normalizeDiscount = (value, fallback = 0) => {
+      if (value === null || value === undefined || value === "") {
+        return fallback;
+      }
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed < 0) return 0;
+      if (parsed > 100) return 100;
+      return Math.round(parsed);
+    };
+
+    const normalizedPhysicalDiscount = normalizeDiscount(
+      physicalDiscount,
+      product.physicalDiscount ?? 0
+    );
+    const normalizedDigitalDiscount = normalizeDiscount(
+      digitalDiscount,
+      product.digitalDiscount ?? 0
+    );
+
     const normalizedOrientation =
       orientation === "landscape" ? "landscape" : "portrait";
 
     product.name = name;
     product.description = description;
     product.category = category;
-    product.price = numericPrice;
-    product.offerPrice = numericOfferPrice;
+    product.physicalPrices = { M: mPrice, L: lPrice, XL: xlPrice };
+    product.physicalDiscount = normalizedPhysicalDiscount;
+    product.digitalDiscount = normalizedDigitalDiscount;
+    product.price = mPrice;
+    product.offerPrice = null;
     product.printfulEnabled = printfulEnabled;
-    product.digitalPrice = normalizedDigitalPrice;
+    product.digitalPrice = Math.round(normalizedDigitalPrice * 100) / 100;
     product.orientation = normalizedOrientation;
 
     const finalImages = [...existingImages, ...uploadedImages];

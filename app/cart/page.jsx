@@ -55,7 +55,14 @@ const Cart = () => {
                   const quantity = isObj ? entry.quantity : entry;
                   if (!quantity || quantity <= 0) return null;
 
-                  const unitPrice = isObj ? entry.price : product.offerPrice;
+                  const unitPrice = isObj
+                    ? Number(entry.price || 0)
+                    : Number(
+                        product?.pricing?.defaultPhysicalFinalPrice ??
+                          product.finalPrice ??
+                          product.price ??
+                          0
+                      );
                   const title = isObj ? entry.title : product.name;
                   const imageUrl = isObj ? entry.imageUrl : product.image?.[0];
                   const format = isObj ? entry.format : undefined;

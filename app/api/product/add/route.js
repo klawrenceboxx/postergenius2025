@@ -28,8 +28,11 @@ export async function POST(request) {
     const name = formData.get("name");
     const description = formData.get("description");
     const category = formData.get("category");
-    const price = formData.get("price");
-    const offerPrice = formData.get("offerPrice");
+    const physicalPriceM = formData.get("physicalPriceM");
+    const physicalPriceL = formData.get("physicalPriceL");
+    const physicalPriceXL = formData.get("physicalPriceXL");
+    const physicalDiscount = formData.get("physicalDiscount");
+    const digitalDiscount = formData.get("digitalDiscount");
     const digitalPrice = formData.get("digitalPrice");
     const orientation = formData.get("orientation");
     const printfulEnabled =
@@ -41,58 +44,52 @@ export async function POST(request) {
       (file) => file && typeof file.arrayBuffer === "function"
     );
 
-    const numericPrice = Number(price);
-    const numericOfferPrice = offerPrice ? Number(offerPrice) : null;
-    const numericDigitalPrice = digitalPrice ? Number(digitalPrice) : 0;
-
-    if (Number.isNaN(numericPrice)) {
-      return NextResponse.json({
-        success: false,
-        message: "Price must be a valid number",
-      });
-    }
-
-    if (numericPrice <= 0) {
-      return NextResponse.json({
-        success: false,
-        message: "Price must be greater than zero",
-      });
-    }
-
-    if (offerPrice && Number.isNaN(numericOfferPrice)) {
-      return NextResponse.json({
-        success: false,
-        message: "Offer price must be a valid number",
-      });
-    }
-
-    if (numericOfferPrice !== null) {
-      if (numericOfferPrice <= 0) {
-        return NextResponse.json({
-          success: false,
-          message: "Offer price must be greater than zero",
-        });
+    const parsePhysicalPrice = (value, fallback) => {
+      if (value === null || value === undefined || value === "") {
+        return { price: fallback, error: null };
       }
-
-      if (numericOfferPrice >= numericPrice) {
-        return NextResponse.json({
-          success: false,
-          message: "Offer price must be less than the price",
-        });
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        return { price: fallback, error: "Physical prices must be positive numbers" };
       }
+      return { price: Math.round(parsed * 100) / 100, error: null };
+    };
+
+    const mParsed = parsePhysicalPrice(physicalPriceM, 30);
+    const lParsed = parsePhysicalPrice(physicalPriceL, 40);
+    const xlParsed = parsePhysicalPrice(physicalPriceXL, 50);
+
+    const physicalError = mParsed.error || lParsed.error || xlParsed.error;
+    if (physicalError) {
+      return NextResponse.json({ success: false, message: physicalError });
     }
+
+    const mPrice = mParsed.price;
+    const lPrice = lParsed.price;
+    const xlPrice = xlParsed.price;
+
+    const numericDigitalPrice = digitalPrice ? Number(digitalPrice) : 6.5;
+    if (Number.isNaN(numericDigitalPrice) || numericDigitalPrice < 0) {
+      return NextResponse.json({
+        success: false,
+        message: "Digital price must be zero or a positive number",
+      });
+    }
+
+    const normalizeDiscount = (value) => {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed < 0) return 0;
+      if (parsed > 100) return 100;
+      return Math.round(parsed);
+    };
+
+    const normalizedPhysicalDiscount = normalizeDiscount(physicalDiscount);
+    const normalizedDigitalDiscount = normalizeDiscount(digitalDiscount);
 
     if (!files || files.length === 0) {
       return NextResponse.json({
         success: false,
         message: "No files uploaded",
-      });
-    }
-
-    if (Number.isNaN(numericDigitalPrice) || numericDigitalPrice < 0) {
-      return NextResponse.json({
-        success: false,
-        message: "Digital price must be zero or a positive number",
       });
     }
 
@@ -145,9 +142,12 @@ export async function POST(request) {
       name,
       description,
       category,
-      price: numericPrice,
-      offerPrice: numericOfferPrice,
-      digitalPrice: numericDigitalPrice,
+      physicalPrices: { M: mPrice, L: lPrice, XL: xlPrice },
+      physicalDiscount: normalizedPhysicalDiscount,
+      digitalDiscount: normalizedDigitalDiscount,
+      digitalPrice: Math.round(numericDigitalPrice * 100) / 100,
+      price: mPrice,
+      offerPrice: null,
       image,
       printfulEnabled,
       digitalFileKey: digitalFileMeta.key,
