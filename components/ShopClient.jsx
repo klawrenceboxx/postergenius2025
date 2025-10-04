@@ -36,13 +36,36 @@ const ShopClient = ({ products }) => {
   const initialQuery = searchParams.get("search") || "";
   const [searchTerm, setSearchTerm] = useState(initialQuery);
 
-  const [activeCategory, setActiveCategory] = useState("all");
+  const getInitialCategory = () => {
+    const categoryParam = searchParams.get("category");
+    return categoryParam && CATEGORIES.includes(categoryParam)
+      ? categoryParam
+      : "all";
+  };
+
+  const [activeCategory, setActiveCategory] = useState(getInitialCategory);
   const [sortOrder, setSortOrder] = useState(SORT_OPTIONS[0].value);
 
   // keep searchTerm synced with query string (if URL changes)
   useEffect(() => {
     setSearchTerm(initialQuery);
   }, [initialQuery]);
+
+  useEffect(() => {
+    const categoryParam = searchParams.get("category");
+
+    if (categoryParam && CATEGORIES.includes(categoryParam)) {
+      setActiveCategory(categoryParam);
+      return;
+    }
+
+    if (
+      !categoryParam ||
+      (categoryParam && !CATEGORIES.includes(categoryParam))
+    ) {
+      setActiveCategory("all");
+    }
+  }, [searchParams]);
 
   const normalizedProducts = useMemo(
     () => normalizeProducts(products),
