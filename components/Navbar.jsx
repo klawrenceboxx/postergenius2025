@@ -236,7 +236,7 @@ const Navbar = () => {
           onClick={closeMenu}
         />
         <div
-          className={`absolute left-0 top-full w-full bg-white border-b border-gray-200 shadow-lg lg:hidden transform transition-all duration-300 ease-in-out origin-top ${
+          className={`absolute left-0 top-full w-full bg-white border-b border-gray-200 shadow-lg lg:hidden transform transition-all duration-300 ease-in-out origin-top z-50 ${
             isMenuOpen
               ? "opacity-100 translate-y-0 pointer-events-auto"
               : "opacity-0 -translate-y-2 pointer-events-none"
