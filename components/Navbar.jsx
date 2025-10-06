@@ -236,13 +236,13 @@ const Navbar = () => {
           onClick={closeMenu}
         />
         <div
-          className={`absolute left-0 top-full w-full bg-white border-b border-gray-200 shadow-lg lg:hidden transform transition-all duration-300 ease-in-out origin-top z-50 ${
+          className={`fixed right-0 top-0 h-full w-3/4 max-w-sm bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${
             isMenuOpen
-              ? "opacity-100 translate-y-0 pointer-events-auto"
-              : "opacity-0 -translate-y-2 pointer-events-none"
+              ? "translate-x-0 pointer-events-auto"
+              : "translate-x-full pointer-events-none"
           }`}
         >
-          <div className="flex flex-col gap-4 px-6 py-6 text-gray-700">
+          <div className="flex flex-col gap-4 px-6 py-6 text-gray-700 h-full overflow-y-auto">
             <form
               onSubmit={handleSearchSubmit}
               className="flex items-center gap-2 border rounded-full px-4 py-2 focus-within:border-secondary focus-within:ring-2 focus-within:ring-secondary/30 transition-all duration-300"
