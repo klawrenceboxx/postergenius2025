@@ -12,7 +12,8 @@ function Price({ product, format, selectedDimensions }) {
   const isPhysical = format === "physical";
 
   if (isPhysical) {
-    const physicalPricing = product?.physicalPricing || pricing.physicalPricing || {};
+    const physicalPricing =
+      product?.physicalPricing || pricing.physicalPricing || {};
     const defaultDimensions =
       selectedDimensions ||
       product?.defaultPhysicalDimensions ||
@@ -60,7 +61,10 @@ function Price({ product, format, selectedDimensions }) {
   }
 
   const basePrice = Number(
-    product?.digitalPrice ?? pricing.digitalBasePrice ?? pricing.defaultPhysicalBasePrice ?? 0
+    product?.digitalPrice ??
+      pricing.digitalBasePrice ??
+      pricing.defaultPhysicalBasePrice ??
+      0
   );
   const finalPrice = Number(
     product?.digitalDisplayPrice ?? pricing.digitalFinalPrice ?? basePrice
@@ -77,9 +81,7 @@ function Price({ product, format, selectedDimensions }) {
         <span className="text-gray-400 line-through">
           ${basePrice.toFixed(2)}
         </span>
-        <span className="text-green-600 text-sm font-medium">
-          Save {pct}%
-        </span>
+        <span className="text-green-600 text-sm font-medium">Save {pct}%</span>
       </div>
     );
   }
@@ -164,7 +166,10 @@ export default function InfosV2({
   }, [product?._id, product?.id]);
 
   const sizes = useMemo(() => {
-    if (Array.isArray(product?.physicalOptions) && product.physicalOptions.length) {
+    if (
+      Array.isArray(product?.physicalOptions) &&
+      product.physicalOptions.length
+    ) {
       return product.physicalOptions.map((option) => ({
         ...option,
         size: option.size || option.dimensions,
@@ -185,7 +190,8 @@ export default function InfosV2({
   const isPhysical = format === "physical";
   const physicalDisabled = isPhysical && !product?.printfulEnabled; // flip per product when Printful is ready
 
-  const physicalPricing = product?.physicalPricing || pricing?.physicalPricing || {};
+  const physicalPricing =
+    product?.physicalPricing || pricing?.physicalPricing || {};
   const defaultDimensions =
     selectedDimensions ||
     product?.defaultPhysicalDimensions ||
@@ -336,9 +342,9 @@ export default function InfosV2({
       </div>
 
       {/* Short description (first 50 chars) with Read more */}
-      <div className="mt-6">
+      {/* <div className="mt-6">
         <ReadMore text={product?.description || ""} limit={50} />
-      </div>
+      </div> */}
 
       {/* Details / Shipping / Returns accordions */}
       <div className="mt-6 divide-y divide-gray-100 border-t border-gray-200">
