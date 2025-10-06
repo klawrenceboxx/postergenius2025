@@ -13,60 +13,47 @@ const Navbar = () => {
   const cartCount = getCartCount();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const closeMenu = () => setIsMenuOpen(false);
 
-  // 👇 state for search
-  const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const navLinks = [
+    { href: "/", label: "Home" },
+    { href: "/shop", label: "Shop" },
+    { href: "/about-us", label: "About Us" },
+    { href: "/contact-us", label: "Contact" },
+  ];
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
-      setShowSearch(false); // hide field after submit
-      setSearchQuery("");
-    }
+    if (!searchQuery.trim()) return;
+
+    router.push(`/shop?search=${encodeURIComponent(searchQuery.trim())}`);
+    setSearchQuery("");
+    setIsMenuOpen(false);
   };
 
   return (
     <div>
       <TopBanner />
-      <nav className="sticky top-0 z-50 bg-white flex items-center justify-between px-6 md:px-16 lg:px-16 py-3 border-b border-gray-300 text-gray-600">
+      <nav className="sticky top-0 z-50 bg-white flex items-center justify-between px-6 md:px-16 lg:px-16 py-3 border-b border-gray-300 text-gray-600 relative">
         <Image
           className="cursor-pointer w-24 md:w-28"
           onClick={() => router.push("/")}
           src={assets.logo}
           alt="logo"
         />
-        <div className="flex text-m items-center gap-4 lg:gap-12 max-md:hidden font-[500] font-blackhex ">
-          <Link
-            href="/"
-            className="relative hover:text-secondary transition-colors duration-300 group"
-          >
-            Home
-            <span className="absolute bottom-0 left-0 h-0.5 bg-secondary w-0 group-hover:w-full transition-all duration-200"></span>{" "}
-            {/* Animated underline */}
-          </Link>
-          <Link
-            href="/shop"
-            className="relative hover:text-secondary transition-colors duration-300 group"
-          >
-            Shop
-            <span className="absolute bottom-0 left-0 h-0.5 bg-secondary w-0 group-hover:w-full transition-all duration-200"></span>{" "}
-          </Link>
-          <Link
-            href="/about-us"
-            className="relative hover:text-secondary transition-colors duration-300 group"
-          >
-            About Us
-            <span className="absolute bottom-0 left-0 h-0.5 bg-secondary w-0 group-hover:w-full transition-all duration-200"></span>{" "}
-          </Link>
-          <Link
-            href="/contact-us"
-            className="relative hover:text-secondary transition-colors duration-300 group"
-          >
-            Contact
-            <span className="absolute bottom-0 left-0 h-0.5 bg-secondary w-0 group-hover:w-full transition-all duration-200"></span>{" "}
-          </Link>
+        <div className="hidden lg:flex text-m items-center gap-4 lg:gap-12 font-[500] font-blackhex ">
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className="relative hover:text-secondary transition-colors duration-300 group"
+            >
+              {link.label}
+              <span className="absolute bottom-0 left-0 h-0.5 bg-secondary w-0 group-hover:w-full transition-all duration-200"></span>{" "}
+            </Link>
+          ))}
 
           {isAdmin && (
             <button
@@ -78,11 +65,11 @@ const Navbar = () => {
           )}
         </div>
 
-        <ul className="hidden md:flex items-center gap-4 ">
+        <ul className="hidden lg:flex items-center gap-4 ">
           {/* Desktop: always open search */}
           <form
             onSubmit={handleSearchSubmit}
-            className="hidden md:flex items-center border rounded-full px-3 py-1 w-52 
+            className="flex items-center border rounded-full px-3 py-1 w-52
              focus-within:border-secondary focus-within:ring-2 focus-within:ring-secondary/30
              transition-all duration-300"
           >
@@ -99,34 +86,6 @@ const Navbar = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search posters..."
               className="ml-2 bg-transparent text-sm outline-none w-full"
-            />
-          </form>
-          {/* Mobile: toggle animation */}
-          <form
-            onSubmit={handleSearchSubmit}
-            className={`flex md:hidden items-center border rounded-full px-3 py-1 
-             transition-all duration-300 ease-in-out
-             ${showSearch ? "w-52" : "w-10 cursor-pointer"}`}
-            onClick={() => {
-              if (!showSearch) setShowSearch(true);
-            }}
-          >
-            <Image
-              src={assets.search_icon}
-              alt="search"
-              width={18}
-              height={18}
-              className="flex-shrink-0 w-5 h-5 text-gray-500"
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search..."
-              className={`ml-2 bg-transparent text-sm outline-none transition-all duration-300
-                ${showSearch ? "w-full opacity-100" : "w-0 opacity-0"}`}
-              autoFocus={showSearch}
-              onBlur={() => setShowSearch(false)}
             />
           </form>
           {/* cart */}
@@ -194,7 +153,21 @@ const Navbar = () => {
           )}
         </ul>
 
-        <div className="flex items-center md:hidden gap-3">
+        <div className="flex items-center lg:hidden gap-3">
+          <Link href="/cart" className="relative">
+            <Image
+              className="w-6 h-6"
+              src={assets.cart_icon}
+              alt="cart icon"
+              width={24}
+              height={24}
+            />
+            {cartCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] leading-none px-1 rounded-full">
+                {cartCount > 99 ? "99+" : cartCount}
+              </span>
+            )}
+          </Link>
           {isAdmin && (
             <button
               onClick={() => router.push("/seller")}
@@ -246,6 +219,74 @@ const Navbar = () => {
               Account
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+            className="p-2 border rounded-md hover:bg-gray-50 transition"
+            aria-label="Toggle navigation menu"
+            aria-expanded={isMenuOpen}
+          >
+            <Image src={assets.menu_icon} alt="menu icon" width={18} height={18} />
+          </button>
+        </div>
+        <div
+          className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ease-in-out lg:hidden ${
+            isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+          }`}
+          onClick={closeMenu}
+        />
+        <div
+          className={`absolute left-0 top-full w-full bg-white border-b border-gray-200 shadow-lg lg:hidden transform transition-all duration-300 ease-in-out origin-top ${
+            isMenuOpen
+              ? "opacity-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 -translate-y-2 pointer-events-none"
+          }`}
+        >
+          <div className="flex flex-col gap-4 px-6 py-6 text-gray-700">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="flex items-center gap-2 border rounded-full px-4 py-2 focus-within:border-secondary focus-within:ring-2 focus-within:ring-secondary/30 transition-all duration-300"
+            >
+              <Image
+                src={assets.search_icon}
+                alt="search"
+                width={18}
+                height={18}
+                className="flex-shrink-0 w-5 h-5 text-gray-500"
+              />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search posters..."
+                className="flex-1 bg-transparent text-sm outline-none"
+              />
+            </form>
+            <div className="flex flex-col gap-3 text-base font-medium font-blackhex">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={closeMenu}
+                  className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0 hover:text-secondary transition-colors duration-200"
+                >
+                  {link.label}
+                  <span className="text-lg">›</span>
+                </Link>
+              ))}
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    closeMenu();
+                    router.push("/seller");
+                  }}
+                  className="text-left py-2 border-b border-gray-100 last:border-b-0 hover:text-secondary transition-colors duration-200"
+                >
+                  Seller Dashboard
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </nav>
     </div>
