@@ -9,8 +9,6 @@ Add the following variables to your deployment environment (for local work, plac
 | Variable | Purpose |
 | --- | --- |
 | `PRINTFUL_API_KEY` | Required. Bearer token used for all Printful API calls. |
-| `PRINTFUL_WEBHOOK_SECRET` | Required. Shared secret for verifying Printful webhook signatures. |
-| `PRINTFUL_API_BASE` | Optional. Override the default `https://api.printful.com` base URL. |
 | `PRINTFUL_DEFAULT_COUNTRY` | Optional. Two-letter ISO country fallback when an address omits a country. Defaults to `US`. |
 
 ## Poster variant mapping
@@ -51,7 +49,7 @@ After Stripe reports a paid checkout session, the webhook handler creates a unif
 
 ### `/api/printful/webhook`
 
-Printful webhooks update local order status. Events are signature-verified before the handler merges in the latest Printful status, tracking information, and failure reasons. Unsupported or unknown events safely log and exit without mutating data.【F:app/api/printful/webhook/route.js†L1-L109】
+Printful webhooks update local order status. Events are verified by checking the account store ID before the handler merges in the latest Printful status, tracking information, and failure reasons. Unsupported or unknown events safely log and exit without mutating data.【F:app/api/printful/webhook/route.js†L1-L89】
 
 ## Data model changes
 
@@ -66,11 +64,11 @@ The `Order` model now supports both fulfillment paths:
 
 All Printful-specific logic is centralized in `lib/printful.js`, which provides:
 
-- `printfulRequest` for authenticated HTTP requests with consistent error handling.
+- `fetchFromPrintful` for authenticated HTTP requests with consistent error handling.
 - Size/variant helpers (`normalizeDimensions`, `assertVariantId`) and recipient formatting utilities.
 - Shipping utilities (`calculateShippingRates`, `pickCheapestRate`).
 - Order utilities (`createPrintfulOrder`, `mapPrintfulStatus`, `extractTrackingFromPrintful`).
-- Webhook helpers for signature verification and parsing.【F:lib/printful.js†L1-L213】
+- Webhook helpers for parsing Printful payloads.【F:lib/printful.js†L1-L218】
 
 Keeping these helpers server-only ensures API keys never reach the client while making it easy to share logic between routes.
 

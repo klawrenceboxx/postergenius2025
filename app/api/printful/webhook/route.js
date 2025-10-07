@@ -1,7 +1,8 @@
+// Printful does NOT provide a webhook secret or signature.
+// Verification is done by checking the `store` ID in the payload.
 import { NextResponse } from "next/server";
 import connectDB from "@/config/db";
 import WebhookFailure from "@/models/WebhookFailure";
-import { verifyWebhookSignature } from "@/lib/printful";
 import { processPrintfulWebhook } from "@/lib/printful-webhook-processor";
 
 export const runtime = "nodejs";
@@ -20,40 +21,39 @@ async function recordWebhookFailure({ eventType, rawBody, error }) {
 }
 
 export async function POST(request) {
-  const signature = request.headers.get("x-printful-signature");
-  const rawBody = await request.text();
+  let rawBody = null;
+  let body = null;
 
   try {
-    if (!verifyWebhookSignature(rawBody, signature)) {
-      const error = new Error("Invalid webhook signature");
-      await recordWebhookFailure({
-        eventType: "invalid_signature",
-        rawBody,
-        error,
-      });
-      return NextResponse.json(
-        { success: false, message: error.message },
-        { status: 401 }
-      );
-    }
-
-    const result = await processPrintfulWebhook(rawBody);
-
-    return NextResponse.json({ success: true, result });
+    rawBody = await request.text();
+    body = rawBody ? JSON.parse(rawBody) : null;
   } catch (error) {
-    console.error("[Printful] Webhook processing failed:", error);
+    console.error("[Printful] Failed to parse webhook body:", error);
     await recordWebhookFailure({
-      eventType: "processing_error",
+      eventType: "invalid_payload",
       rawBody,
       error,
     });
-    const status = error.status || 500;
-    return NextResponse.json(
-      {
-        success: false,
-        message: error.message,
-      },
-      { status }
-    );
+    return NextResponse.json({ error: "Webhook error" }, { status: 400 });
+  }
+
+  try {
+    if (body?.store !== 16958262) {
+      throw new Error("Unrecognized Printful store ID");
+    }
+
+    console.log("✅ Printful webhook received:", body?.type || "unknown");
+
+    await processPrintfulWebhook(body);
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("[Printful] Webhook processing failed:", error);
+    await recordWebhookFailure({
+      eventType: body?.type || "processing_error",
+      rawBody,
+      error,
+    });
+    return NextResponse.json({ error: "Webhook error" }, { status: 400 });
   }
 }
