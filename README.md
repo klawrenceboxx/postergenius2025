@@ -1,43 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# PosterGenius
 
-## Getting Started
+PosterGenius is a Next.js 15 e-commerce storefront built with the App Router. This README covers local development and the Printful fulfillment integration.
 
-First, run the development server:
+## Getting started
+
+Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open [http://localhost:3000](http://localhost:3000) to explore the storefront.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Printful integration overview
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+PosterGenius communicates with Printful exclusively through server-only route handlers in the App Router. The integration includes:
 
-## Learn More
+- `/api/printful/shipping` – server-side shipping quotes against Printful for the active cart.
+- `/api/stripe/create-session` – Stripe Checkout session builder that injects Printful shipping costs and flags order metadata.
+- `/api/stripe/webhook` – persists orders, generates digital download links, and auto-creates Printful orders after successful payment.
+- `/api/printful/webhook` – receives Printful status updates, syncing tracking numbers and fulfillment state locally.
 
-To learn more about Next.js, take a look at the following resources:
+All request logic is centralized in `lib/printful.js`, which authenticates using environment variables and exposes reusable helpers for other server modules.【F:lib/printful.js†L10-L213】
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [docs/printful-integration.md](docs/printful-integration.md) for detailed setup instructions, endpoint usage, and trade-offs between direct API calls and SDK-based approaches.【F:docs/printful-integration.md†L1-L82】
 
 ## Maintenance
 
-If upgrading from a version that enforced a unique `stripeSessionId` index, drop the old index once so the new partial index can be created:
+If you upgraded from a version that enforced a unique `stripeSessionId` index, drop the old index once so the new partial index can be created:
 
 ```
 db.orders.dropIndex("stripeSessionId_1")
