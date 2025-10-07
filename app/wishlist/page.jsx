@@ -1,51 +1,70 @@
 "use client";
 
+import { useEffect, useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import { useAppContext } from "@/context/AppContext";
+import ProductCard from "@/components/ProductCard";
 import { Heart } from "lucide-react";
-
-const resolveProductId = (product) => {
-  if (!product) return "";
-  if (typeof product?._id === "object" && product?._id !== null) {
-    return product._id.toString();
-  }
-  return product?._id ?? product?.productId ?? product?.id ?? "";
-};
-
-const resolvePrice = (product) => {
-  const value =
-    product?.pricing?.defaultPhysicalFinalPrice ??
-    product?.pricing?.defaultDigitalFinalPrice ??
-    product?.pricing?.defaultFinalPrice ??
-    product?.offerPrice ??
-    product?.finalPrice ??
-    product?.price ??
-    0;
-
-  const parsed = Number(value);
-  if (Number.isNaN(parsed)) return 0;
-  return Math.max(parsed, 0);
-};
-
-const resolveImage = (product) => {
-  if (!product) return "";
-  if (Array.isArray(product.image) && product.image.length > 0) {
-    return product.image[0];
-  }
-  if (Array.isArray(product.images) && product.images.length > 0) {
-    return product.images[0];
-  }
-  return product.imageUrl || product.thumbnail || "";
-};
+import { useAppContext } from "@/context/AppContext";
+import ProductOverlay from "@/components/ProductOverlay";
 
 const WishlistPage = () => {
-  const { wishlist, currency, removeFromWishlist, router } = useAppContext();
+  const { products, router, addToCart, removeFromWishlist } = useAppContext();
+  const [wishlist, setWishlist] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const wishlistProducts = (wishlist || [])
-    .map((entry) => entry?.product ?? entry)
-    .filter((product) => resolveProductId(product));
+  // Fetch wishlist (productId array) from backend
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      try {
+        const res = await fetch("/api/wishlist/get");
+        const data = await res.json();
+        if (data.success) {
+          setWishlist(data.wishlist || []); // [{ productId }]
+        }
+      } catch (err) {
+        console.error("Failed to load wishlist:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchWishlist();
+  }, []);
+
+  // Match each wishlist productId to product details
+  const wishlistProducts = useMemo(() => {
+    if (!Array.isArray(wishlist) || wishlist.length === 0) return [];
+    return wishlist
+      .map((item) => products.find((p) => p._id === item.productId))
+      .filter(Boolean);
+  }, [wishlist, products]);
+
+  // 🆕 Re-fetch wishlist whenever an item is removed (like heart icon behavior)
+  useEffect(() => {
+    const refreshWishlist = async () => {
+      try {
+        const res = await fetch("/api/wishlist/get");
+        const data = await res.json();
+        if (data.success) setWishlist(data.wishlist || []);
+      } catch (err) {
+        console.error("Failed to refresh wishlist:", err);
+      }
+    };
+    refreshWishlist();
+  }, [removeFromWishlist]);
+  // 🆕 END re-fetch logic
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex h-screen items-center justify-center text-gray-500">
+          Loading wishlist...
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
@@ -65,7 +84,11 @@ const WishlistPage = () => {
           {wishlistProducts.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-6 rounded-3xl bg-white py-16 text-center shadow-md">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-pink-100 text-pink-500">
-                <Heart className="h-8 w-8" fill="currentColor" strokeWidth={1.6} />
+                <Heart
+                  className="h-8 w-8"
+                  fill="currentColor"
+                  strokeWidth={1.6}
+                />
               </div>
               <div className="space-y-2">
                 <h2 className="text-2xl font-semibold text-blackhex">
@@ -84,69 +107,14 @@ const WishlistPage = () => {
               </Link>
             </div>
           ) : (
-            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {wishlistProducts.map((product) => {
-                const id = resolveProductId(product);
-                const price = resolvePrice(product);
-                const image = resolveImage(product);
-
-                return (
-                  <article
-                    key={id}
-                    className="group flex flex-col overflow-hidden rounded-3xl bg-white shadow-md transition hover:-translate-y-1 hover:shadow-xl"
-                  >
-                    <div className="relative aspect-[4/5] w-full overflow-hidden bg-gray-50">
-                      {image ? (
-                        <Image
-                          src={image}
-                          alt={product?.name || product?.title || "Wishlist item"}
-                          fill
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gray-100 text-sm text-gray-400">
-                          Image coming soon
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-1 flex-col gap-4 p-6">
-                      <div className="flex flex-col gap-2">
-                        <h3 className="text-lg font-semibold text-blackhex">
-                          {product?.name || product?.title || "Untitled Poster"}
-                        </h3>
-                        <p className="text-sm text-gray-500 line-clamp-2">
-                          {product?.description ||
-                            "Open the product details to explore formats, dimensions, and more."}
-                        </p>
-                      </div>
-
-                      <p className="text-base font-semibold text-primary">
-                        {(currency || "$")}
-                        {price.toFixed(2)}
-                      </p>
-
-                      <div className="mt-auto flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/product/${id}`)}
-                          className="flex-1 rounded-full border border-primary px-4 py-2 text-sm font-medium text-primary transition-transform duration-200 hover:scale-[1.02] hover:bg-primary/5 active:scale-95"
-                        >
-                          View details
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeFromWishlist(id)}
-                          className="flex-1 rounded-full bg-gradient-to-r from-pink-500 to-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform duration-200 hover:scale-[1.02] active:scale-95"
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
+            <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+              {wishlistProducts.map((product) => (
+                <div key={product._id} className="relative group">
+                  <ProductCard product={product} />
+                  <ProductOverlay product={product} />
+                  {/* 🆕 Wishlist-only overlay (e.g., 3-dot menu) goes here later */}
+                </div>
+              ))}
             </div>
           )}
         </section>

@@ -2,37 +2,21 @@ import mongoose from "mongoose";
 
 const wishlistItemSchema = new mongoose.Schema(
   {
-    product: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
-      required: true,
-    },
-    addedAt: {
-      type: Date,
-      default: Date.now,
-    },
+    productId: { type: String, required: true },
+    addedAt: { type: Date, default: Date.now },
   },
   { _id: false }
 );
 
-const wishlistSchemaDefinition = {
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-    unique: true,
+const wishlistSchema = new mongoose.Schema(
+  {
+    userId: { type: String, required: true },
+    items: { type: [wishlistItemSchema], default: [] },
   },
-  items: {
-    type: [wishlistItemSchema],
-    default: [],
-  },
-};
+  { timestamps: true }
+);
 
 const Wishlist =
-  mongoose.models.Wishlist ||
-  mongoose.model(
-    "Wishlist",
-    new mongoose.Schema(wishlistSchemaDefinition, { timestamps: true })
-  );
+  mongoose.models.wishlist || mongoose.model("wishlist", wishlistSchema);
 
 export default Wishlist;
