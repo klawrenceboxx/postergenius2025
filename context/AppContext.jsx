@@ -204,18 +204,21 @@ export const AppContextProvider = (props) => {
 
     try {
       const token = await getToken();
-      const { data } = await axios.post(
-        "/api/wishlist/add",
-        { productId },
+
+      // Append product if not already in wishlist
+      const updatedWishlist = [...wishlist];
+      if (!updatedWishlist.some((item) => item.productId === productId)) {
+        updatedWishlist.push({ productId });
+      }
+
+      await axios.post(
+        "/api/wishlist/update",
+        { wishlistData: updatedWishlist },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      if (data.success) {
-        setWishlist(data.wishlist?.items || []);
-        toast.success(data.message || "Wishlist updated successfully");
-      } else {
-        toast.error(data.message || "Failed to update wishlist");
-      }
+      setWishlist(updatedWishlist);
+      toast.success("Wishlist updated successfully");
     } catch (error) {
       toast.error(error.message || "Failed to update wishlist");
     }
@@ -229,18 +232,20 @@ export const AppContextProvider = (props) => {
 
     try {
       const token = await getToken();
-      const { data } = await axios.post(
-        "/api/wishlist/remove",
-        { productId },
+
+      // Remove product from local wishlist array
+      const updatedWishlist = wishlist.filter(
+        (item) => item.productId !== productId
+      );
+
+      await axios.post(
+        "/api/wishlist/update",
+        { wishlistData: updatedWishlist },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      if (data.success) {
-        setWishlist(data.wishlist?.items || []);
-        toast.success(data.message || "Wishlist updated successfully");
-      } else {
-        toast.error(data.message || "Failed to update wishlist");
-      }
+      setWishlist(updatedWishlist);
+      toast.success("Wishlist updated successfully");
     } catch (error) {
       toast.error(error.message || "Failed to update wishlist");
     }
@@ -283,6 +288,10 @@ export const AppContextProvider = (props) => {
     return Math.floor(totalAmount * 100) / 100;
   };
 
+  const getWishlistCount = () => {
+    return Array.isArray(wishlist) ? wishlist.length : 0;
+  };
+
   useEffect(() => {
     fetchProductData();
   }, []);
@@ -319,6 +328,7 @@ export const AppContextProvider = (props) => {
     fetchWishlist,
     addToWishlist,
     removeFromWishlist,
+    getWishlistCount,
   };
 
   return (

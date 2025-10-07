@@ -36,6 +36,14 @@ const config = {
         },
       },
     },
+    screens: {
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      // 👇 Moved 2xl up so your laptop (~1536px) stays at 4 columns
+      "2xl": "1700px",
+    },
   },
   plugins: [],
 };

@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import Image from "next/image";
 import { Heart } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
+import { usePathname } from "next/navigation";
 
 const ProductCard = ({ product }) => {
   const { currency, router, wishlist, addToWishlist, removeFromWishlist } =
@@ -96,6 +97,8 @@ const ProductCard = ({ product }) => {
     }, 220);
   };
 
+  const pathname = usePathname();
+
   return (
     <div
       onClick={handleCardClick}
@@ -118,21 +121,25 @@ const ProductCard = ({ product }) => {
           </div>
         )}
 
-        <button
-          type="button"
-          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-          aria-pressed={isWishlisted}
-          onClick={toggleWishlist}
-          className="absolute top-3 right-3 flex cursor-pointer items-center justify-center rounded-full bg-white/90 p-2 text-gray-600 shadow-md transition-transform duration-200 hover:scale-110 hover:text-secondary active:scale-95"
-        >
-          <Heart
-            className={`h-5 w-5 transition-colors duration-200 ${
-              isWishlisted ? "text-pink-500" : "text-gray-600"
-            } ${wishlistAnimation}`}
-            fill={isWishlisted ? "currentColor" : "none"}
-            strokeWidth={1.8}
-          />
-        </button>
+        {pathname !== "/wishlist" && (
+          <button
+            type="button"
+            aria-label={
+              isWishlisted ? "Remove from wishlist" : "Add to wishlist"
+            }
+            aria-pressed={isWishlisted}
+            onClick={toggleWishlist}
+            className="absolute top-3 right-3 flex cursor-pointer items-center justify-center rounded-full bg-white/90 p-2 text-gray-600 shadow-md transition-transform duration-200 hover:scale-110 hover:text-secondary active:scale-95"
+          >
+            <Heart
+              className={`h-5 w-5 transition-colors duration-200 ${
+                isWishlisted ? "text-pink-500" : "text-gray-600"
+              } ${wishlistAnimation}`}
+              fill={isWishlisted ? "currentColor" : "none"}
+              strokeWidth={1.8}
+            />
+          </button>
+        )}
       </div>
 
       {/* <div className="mt-4 flex w-full flex-col gap-2 text-left">
