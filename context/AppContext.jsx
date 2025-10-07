@@ -1,5 +1,5 @@
 "use client";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -15,11 +15,13 @@ export const AppContextProvider = (props) => {
 
   const { user } = useUser();
   const { getToken } = useAuth();
+  const { openSignIn } = useClerk();
 
   const [products, setProducts] = useState([]);
   const [userData, setUserData] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [cartItems, setCartItems] = useState({});
+  const [wishlist, setWishlist] = useState([]);
 
   // normalize _id -> productId
   const mapProduct = (p) => {
@@ -71,6 +73,28 @@ export const AppContextProvider = (props) => {
       }
     } catch (error) {
       toast.error(error.message || "Failed to load user");
+    }
+  };
+
+  const fetchWishlist = async () => {
+    if (!user) {
+      setWishlist([]);
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      const { data } = await axios.get("/api/wishlist/get", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (data.success) {
+        setWishlist(data.wishlist?.items || []);
+      } else {
+        toast.error(data.message || "Failed to load wishlist");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to load wishlist");
     }
   };
 
@@ -172,6 +196,56 @@ export const AppContextProvider = (props) => {
     }
   };
 
+  const addToWishlist = async (productId) => {
+    if (!user) {
+      openSignIn?.();
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      const { data } = await axios.post(
+        "/api/wishlist/add",
+        { productId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (data.success) {
+        setWishlist(data.wishlist?.items || []);
+        toast.success(data.message || "Wishlist updated successfully");
+      } else {
+        toast.error(data.message || "Failed to update wishlist");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to update wishlist");
+    }
+  };
+
+  const removeFromWishlist = async (productId) => {
+    if (!user) {
+      openSignIn?.();
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      const { data } = await axios.post(
+        "/api/wishlist/remove",
+        { productId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (data.success) {
+        setWishlist(data.wishlist?.items || []);
+        toast.success(data.message || "Wishlist updated successfully");
+      } else {
+        toast.error(data.message || "Failed to update wishlist");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to update wishlist");
+    }
+  };
+
   const getCartCount = () => {
     let totalCount = 0;
     for (const k in cartItems) {
@@ -216,8 +290,10 @@ export const AppContextProvider = (props) => {
   useEffect(() => {
     if (user) {
       fetchUserData();
+      fetchWishlist();
     } else {
       setIsAdmin(false);
+      setWishlist([]);
     }
   }, [user]);
 
@@ -238,6 +314,11 @@ export const AppContextProvider = (props) => {
     updateCartQuantity,
     getCartCount,
     getCartAmount,
+    wishlist,
+    setWishlist,
+    fetchWishlist,
+    addToWishlist,
+    removeFromWishlist,
   };
 
   return (
