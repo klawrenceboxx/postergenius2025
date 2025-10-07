@@ -5,8 +5,10 @@ import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
+  console.log("Wishlist Add - POST handler invoked");
   try {
     const { userId } = getAuth(request);
+    console.log("Wishlist Add - userId from auth:", userId);
     if (!userId) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
@@ -14,7 +16,9 @@ export async function POST(request) {
       );
     }
 
-    const { productId } = await request.json();
+    const body = await request.json();
+    const { productId } = body ?? {};
+    console.log("Wishlist Add - productId from body:", productId);
     if (!productId) {
       return NextResponse.json(
         { success: false, message: "Product ID is required" },
@@ -25,6 +29,7 @@ export async function POST(request) {
     await connectDB();
 
     const user = await User.findOne({ userId });
+    console.log("Wishlist Add - User.findOne result:", user);
     if (!user) {
       return NextResponse.json(
         { success: false, message: "User not found" },
@@ -33,6 +38,7 @@ export async function POST(request) {
     }
 
     let wishlist = await Wishlist.findOne({ user: user._id });
+    console.log("Wishlist Add - Wishlist.findOne result:", wishlist);
 
     if (!wishlist) {
       wishlist = await Wishlist.create({ user: user._id, items: [] });
@@ -60,6 +66,7 @@ export async function POST(request) {
       wishlist,
     });
   } catch (error) {
+    console.error("WISHLIST ADD ERROR:", error);
     return NextResponse.json(
       { success: false, message: error.message },
       { status: 500 }

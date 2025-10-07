@@ -15,23 +15,24 @@ const wishlistItemSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const wishlistSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      unique: true,
-    },
-    items: {
-      type: [wishlistItemSchema],
-      default: [],
-    },
+const wishlistSchemaDefinition = {
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+    unique: true,
   },
-  { timestamps: true }
-);
+  items: {
+    type: [wishlistItemSchema],
+    default: [],
+  },
+};
 
 const Wishlist =
-  mongoose.models.Wishlist || mongoose.model("Wishlist", wishlistSchema);
+  mongoose.models.Wishlist ||
+  mongoose.model(
+    "Wishlist",
+    new mongoose.Schema(wishlistSchemaDefinition, { timestamps: true })
+  );
 
 export default Wishlist;
