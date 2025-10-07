@@ -6,13 +6,8 @@ import { Heart } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 
 const ProductCard = ({ product }) => {
-  const {
-    currency,
-    router,
-    wishlist,
-    addToWishlist,
-    removeFromWishlist,
-  } = useAppContext();
+  const { currency, router, wishlist, addToWishlist, removeFromWishlist } =
+    useAppContext();
   const [wishlistAnimation, setWishlistAnimation] = useState("");
 
   const productId = useMemo(() => {
@@ -106,7 +101,7 @@ const ProductCard = ({ product }) => {
       onClick={handleCardClick}
       className="flex w-full max-w-[250px] cursor-pointer flex-col items-start"
     >
-      <div className="group relative flex h-80 w-full items-center justify-center overflow-hidden rounded-2xl bg-gray-50 shadow-poster transition">
+      <div className="group relative flex h-80 w-full items-center justify-center overflow-hidden bg-gray-50 shadow-poster transition">
         {previewImage ? (
           <Image
             src={previewImage}
@@ -125,9 +120,7 @@ const ProductCard = ({ product }) => {
 
         <button
           type="button"
-          aria-label={
-            isWishlisted ? "Remove from wishlist" : "Add to wishlist"
-          }
+          aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
           aria-pressed={isWishlisted}
           onClick={toggleWishlist}
           className="absolute top-3 right-3 flex cursor-pointer items-center justify-center rounded-full bg-white/90 p-2 text-gray-600 shadow-md transition-transform duration-200 hover:scale-110 hover:text-secondary active:scale-95"
@@ -142,7 +135,7 @@ const ProductCard = ({ product }) => {
         </button>
       </div>
 
-      <div className="mt-4 flex w-full flex-col gap-2 text-left">
+      {/* <div className="mt-4 flex w-full flex-col gap-2 text-left">
         <p className="truncate text-base font-semibold text-blackhex">
           {product?.name || product?.title || "Untitled Poster"}
         </p>
@@ -150,10 +143,10 @@ const ProductCard = ({ product }) => {
           {product?.description || "Discover more details on the product page."}
         </p>
         <p className="text-sm font-semibold text-primary">
-          {(currency || "$")}
+          {currency || "$"}
           {displayPrice.toFixed(2)}
         </p>
-      </div>
+      </div> */}
     </div>
   );
 };
