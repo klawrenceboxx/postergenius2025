@@ -83,6 +83,7 @@ export const assets = {
   review_icon,
   redirect_icon,
   star_dull_icon,
+  promo_icon: redirect_icon,
   header_headphone_image,
   header_playstation_image,
   header_macbook_image,

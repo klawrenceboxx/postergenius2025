@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/config/db";
 import Product from "@/models/Product";
 import Address from "@/models/Address";
+import Promo from "@/models/PromoModel";
 import { computePricing } from "@/lib/pricing";
 import {
   calculateShippingRates,
@@ -12,6 +13,7 @@ import {
   assertVariantId,
   pickCheapestRate,
 } from "@/lib/printful";
+import { applyPromo } from "@/lib/promoCode";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -27,7 +29,8 @@ export async function POST(request) {
     const userId = auth.userId;
     console.log("🔑 User ID:", userId);
 
-    const { items, address, successUrl, cancelUrl } = await request.json();
+    const { items, address, successUrl, cancelUrl, promoCode } =
+      await request.json();
     console.log("📦 Items received:", JSON.stringify(items, null, 2));
     console.log("🏠 Address received:", address);
 
@@ -129,6 +132,10 @@ export async function POST(request) {
     const hasPhysicalItems = physicalForPrintful.length > 0;
     let shippingMetadata = null;
     let recipientSnapshot = null;
+    let shippingAmount = 0;
+    let originalShippingAmount = 0;
+    let shippingCurrency = "usd";
+    let shippingLineItem = null;
 
     if (hasPhysicalItems && !address) {
       console.error("❌ Missing address for physical order checkout");
@@ -171,24 +178,27 @@ export async function POST(request) {
           throw new Error("No shipping rates returned by Printful");
         }
 
-        const shippingAmount = Number(chosenRate.rate || 0);
-        if (!Number.isFinite(shippingAmount)) {
+        const computedShipping = Number(chosenRate.rate || 0);
+        if (!Number.isFinite(computedShipping)) {
           throw new Error("Invalid shipping rate returned by Printful");
         }
 
-        const shippingCurrency = (chosenRate.currency || "USD").toLowerCase();
-        if (shippingAmount > 0) {
-          lineItems.push({
-            price_data: {
-              currency: shippingCurrency,
-              product_data: {
-                name: `Shipping – ${chosenRate.name || "Standard"}`,
-              },
-              unit_amount: Math.round(shippingAmount * 100),
-            },
-            quantity: 1,
-          });
-        }
+        originalShippingAmount = Math.max(computedShipping, 0);
+        shippingAmount = originalShippingAmount;
+        shippingCurrency = (chosenRate.currency || "USD").toLowerCase();
+        shippingLineItem =
+          shippingAmount > 0
+            ? {
+                price_data: {
+                  currency: shippingCurrency,
+                  product_data: {
+                    name: `Shipping – ${chosenRate.name || "Standard"}`,
+                  },
+                  unit_amount: Math.round(shippingAmount * 100),
+                },
+                quantity: 1,
+              }
+            : null;
 
         shippingMetadata = {
           id: chosenRate.id,
@@ -209,18 +219,136 @@ export async function POST(request) {
       }
     }
 
+    const goodsTotal = Number((subtotal + tax).toFixed(2));
+    const originalTotalBeforeDiscount = Number(
+      (goodsTotal + originalShippingAmount).toFixed(2)
+    );
+
+    let promoResult = {
+      valid: false,
+      discount: 0,
+      newTotal: originalTotalBeforeDiscount,
+      originalTotal: originalTotalBeforeDiscount,
+      promoType: null,
+      promoValue: null,
+      promoCode: null,
+      message: "",
+    };
+
+    const trimmedPromoCode = (promoCode || "").trim();
+
+    if (trimmedPromoCode) {
+      try {
+        const promo = await Promo.findOne({
+          code: trimmedPromoCode,
+          isActive: true,
+        }).lean();
+
+        if (promo) {
+          promoResult = applyPromo(
+            {
+              items: items.map((item) => ({
+                productId: item.productId,
+                quantity: Number(item.quantity ?? 0),
+              })),
+              totalPrice: goodsTotal,
+              shippingCost: originalShippingAmount,
+            },
+            promo
+          );
+        } else {
+          promoResult = {
+            ...promoResult,
+            promoCode: trimmedPromoCode,
+            message: "Invalid code",
+            valid: false,
+          };
+        }
+      } catch (error) {
+        console.error("❌ Promo lookup failed:", error);
+        promoResult = {
+          ...promoResult,
+          promoCode: trimmedPromoCode,
+          message: "Unable to apply promo",
+          valid: false,
+        };
+      }
+    }
+
+    if (promoResult.valid && promoResult.promoType === "shipping") {
+      shippingLineItem = null;
+      shippingAmount = 0;
+    }
+
+    if (shippingLineItem) {
+      lineItems.push(shippingLineItem);
+    }
+
+    const totalBeforeDiscount = Number(
+      (goodsTotal + (shippingLineItem ? shippingAmount : 0)).toFixed(2)
+    );
+    const finalTotal = promoResult.valid
+      ? Number(promoResult.newTotal ?? totalBeforeDiscount)
+      : totalBeforeDiscount;
+    const safeFinalTotal = Number.isFinite(finalTotal)
+      ? finalTotal
+      : totalBeforeDiscount;
+
+    let couponId = null;
+    if (
+      promoResult.valid &&
+      promoResult.discount > 0 &&
+      promoResult.promoType !== "shipping"
+    ) {
+      const appliedDiscount = Math.max(Number(promoResult.discount ?? 0), 0);
+
+      if (promoResult.promoType === "percent") {
+        const percentOff = Math.min(
+          Math.max(Number(promoResult.promoValue ?? 0), 0),
+          100
+        );
+
+        if (percentOff > 0) {
+          const coupon = await stripe.coupons.create({
+            percent_off: percentOff,
+            duration: "once",
+          });
+          couponId = coupon.id;
+        }
+      } else if (appliedDiscount > 0) {
+        const amountOffCents = Math.round(appliedDiscount * 100);
+        const coupon = await stripe.coupons.create({
+          amount_off: amountOffCents,
+          currency: "usd",
+          duration: "once",
+        });
+        couponId = coupon.id;
+      }
+    }
+
     const orderType = hasPhysicalItems ? "physical" : "digital";
 
     let responseData;
     if (cartTotal > 50000) {
       console.log("➡️ Creating Payment Intent (large order)...");
+      const paymentAmountCents = Math.round(Math.max(safeFinalTotal, 0) * 100);
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: Math.round(cartTotal * 100),
+        amount: paymentAmountCents,
         currency: "usd",
         metadata: {
           userId,
           address,
           items: JSON.stringify(items),
+          ...(promoResult.valid
+            ? {
+                promo: JSON.stringify({
+                  code: promoResult.promoCode || trimmedPromoCode,
+                  type: promoResult.promoType,
+                  value: promoResult.promoValue,
+                  discount: promoResult.discount,
+                }),
+              }
+            : {}),
         },
       });
       console.log("✅ Payment Intent created:", paymentIntent.id);
@@ -253,6 +381,17 @@ export async function POST(request) {
         metadata.recipient = JSON.stringify(recipientSnapshot);
       }
 
+      if (promoResult.valid) {
+        metadata.promo = JSON.stringify({
+          code: promoResult.promoCode || trimmedPromoCode,
+          type: promoResult.promoType,
+          value: promoResult.promoValue,
+          discount: promoResult.discount,
+        });
+      } else if (trimmedPromoCode) {
+        metadata.promoAttempt = trimmedPromoCode;
+      }
+
       const session = await stripe.checkout.sessions.create({
         mode: "payment",
         payment_method_types: ["card"],
@@ -260,6 +399,7 @@ export async function POST(request) {
         success_url: successUrl || process.env.STRIPE_SUCCESS_URL,
         cancel_url: cancelUrl || process.env.STRIPE_CANCEL_URL,
         metadata,
+        ...(couponId ? { discounts: [{ coupon: couponId }] } : {}),
       });
 
       console.log("✅ Checkout Session created:", session.id, session.url);

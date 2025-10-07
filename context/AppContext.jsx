@@ -23,6 +23,21 @@ export const AppContextProvider = (props) => {
   const [cartItems, setCartItems] = useState({});
   const [wishlist, setWishlist] = useState([]);
 
+  const normalizeWishlist = (source) => {
+    if (!source) return [];
+    if (Array.isArray(source)) {
+      return source.map((item) =>
+        typeof item === "string" ? { productId: item } : { ...item }
+      );
+    }
+    if (Array.isArray(source?.items)) {
+      return source.items.map((item) =>
+        typeof item === "string" ? { productId: item } : { ...item }
+      );
+    }
+    return [];
+  };
+
   // normalize _id -> productId
   const mapProduct = (p) => {
     const normalizedId =
@@ -89,7 +104,7 @@ export const AppContextProvider = (props) => {
       });
 
       if (data.success) {
-        setWishlist(data.wishlist?.items || []);
+        setWishlist(normalizeWishlist(data.wishlist));
       } else {
         toast.error(data.message || "Failed to load wishlist");
       }
@@ -206,7 +221,8 @@ export const AppContextProvider = (props) => {
       const token = await getToken();
 
       // Append product if not already in wishlist
-      const updatedWishlist = [...wishlist];
+      const currentWishlist = normalizeWishlist(wishlist);
+      const updatedWishlist = [...currentWishlist];
       if (!updatedWishlist.some((item) => item.productId === productId)) {
         updatedWishlist.push({ productId });
       }
@@ -234,7 +250,8 @@ export const AppContextProvider = (props) => {
       const token = await getToken();
 
       // Remove product from local wishlist array
-      const updatedWishlist = wishlist.filter(
+      const currentWishlist = normalizeWishlist(wishlist);
+      const updatedWishlist = currentWishlist.filter(
         (item) => item.productId !== productId
       );
 
@@ -289,7 +306,7 @@ export const AppContextProvider = (props) => {
   };
 
   const getWishlistCount = () => {
-    return Array.isArray(wishlist) ? wishlist.length : 0;
+    return normalizeWishlist(wishlist).length;
   };
 
   useEffect(() => {

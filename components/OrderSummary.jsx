@@ -1,7 +1,7 @@
 "use client";
 // 👆 This tells Next.js this file is a client component (runs in the browser, not only on the server)
 
-import React, { useEffect, useState } from "react"; // React core features
+import React, { useEffect, useMemo, useState } from "react"; // React core features
 import axios from "axios"; // HTTP requests to your backend API routes
 import toast from "react-hot-toast"; // Popup notifications (success/error messages)
 import { loadStripe } from "@stripe/stripe-js"; // Loads Stripe object from your public key
@@ -13,8 +13,78 @@ import { useAppContext } from "@/context/AppContext";
 import { useClerk } from "@clerk/nextjs";
 // 👆 Auth provider, handles login/signup with Clerk
 
+const normaliseCartItems = (cartItems = {}) => {
+  return Object.entries(cartItems)
+    .map(([key, entry]) => {
+      const isObj = typeof entry === "object" && entry !== null;
+      const productId = isObj
+        ? entry.productId
+        : key.includes("-")
+        ? key.split("-")[0]
+        : key;
+      const quantity = Number(
+        isObj ? entry.quantity ?? 0 : entry ?? 0
+      );
+
+      if (!productId || quantity <= 0) {
+        return null;
+      }
+
+      const baseItem = {
+        productId,
+        quantity,
+      };
+
+      if (isObj) {
+        if (entry.format) baseItem.format = entry.format;
+        if (entry.dimensions) baseItem.dimensions = entry.dimensions;
+        if (entry.price != null) baseItem.price = Number(entry.price);
+        if (entry.title) baseItem.title = entry.title;
+        if (entry.imageUrl) baseItem.imageUrl = entry.imageUrl;
+        if (entry.slug) baseItem.slug = entry.slug;
+      } else {
+        const [, format, dimensions] = key.split("-");
+        if (format) baseItem.format = format;
+        if (dimensions) baseItem.dimensions = dimensions;
+      }
+
+      return baseItem;
+    })
+    .filter(Boolean);
+};
+
+const buildPromoCart = (cartItems = {}, total = 0, shippingCost = 0) => ({
+  items: normaliseCartItems(cartItems).map((item) => ({
+    productId: item.productId,
+    quantity: item.quantity,
+  })),
+  totalPrice: Number(Number(total).toFixed(2)),
+  shippingCost: Number(Number(shippingCost).toFixed(2)),
+});
+
+const promoCartSignatureFromPayload = (cartPayload) => {
+  if (!cartPayload) return "";
+
+  const itemsSignature = (cartPayload.items || [])
+    .map((item) => `${item.productId || ""}:${item.quantity || 0}`)
+    .sort()
+    .join("|");
+
+  const totalPrice = Number(cartPayload.totalPrice ?? 0).toFixed(2);
+  const shippingCost = Number(cartPayload.shippingCost ?? 0).toFixed(2);
+
+  return `${totalPrice}|${shippingCost}|${itemsSignature}`;
+};
+
 // -------------------- Checkout Button --------------------
-const CheckoutButton = ({ selectedAddress, cartItems, getToken, user }) => {
+const CheckoutButton = ({
+  selectedAddress,
+  cartItems,
+  getToken,
+  user,
+  promoCode,
+  promoResult,
+}) => {
   const stripe = useStripe(); // gets the Stripe instance created by <Elements>
   const { openSignIn } = useClerk(); // Clerk helper to open the login modal
   const [loading, setLoading] = useState(false); // tracks button loading state
@@ -46,24 +116,7 @@ const CheckoutButton = ({ selectedAddress, cartItems, getToken, user }) => {
     }
 
     // 🔄 Convert cartItems (object) → array that the server understands
-    const cartItemsArray = Object.entries(cartItems)
-      // Object.entries turns { key: value } into [[key, value], ...]
-      .map(([key, entry]) => {
-        const isObj = typeof entry === "object" && entry !== null;
-        // productId: either stored inside entry OR strip composite key (id-format-size → just id)
-        const productId = isObj ? entry.productId : key.split("-")[0];
-        // quantity: use entry.quantity if object, else number directly
-        const quantity = isObj ? entry.quantity : entry;
-
-        return {
-          productId, // ✅ Mongo ObjectId of product
-          quantity, // ✅ how many items of this product
-          ...(isObj
-            ? { format: entry.format, dimensions: entry.dimensions } // optional extras
-            : {}),
-        };
-      })
-      .filter((item) => item.quantity > 0); // remove anything with 0 or invalid quantity
+    const cartItemsArray = normaliseCartItems(cartItems);
 
     console.log("Cart Items (normalized):", cartItemsArray);
 
@@ -72,6 +125,11 @@ const CheckoutButton = ({ selectedAddress, cartItems, getToken, user }) => {
       console.error("❌ Cart is empty after filtering");
       return toast.error("Your cart is empty");
     }
+
+    const appliedPromoCode = promoResult?.valid
+      ? promoResult.promoCode || promoCode || ""
+      : promoCode || "";
+    const trimmedPromoCode = appliedPromoCode.trim();
 
     // -------------------- Try to create a Stripe Checkout session --------------------
     try {
@@ -88,6 +146,7 @@ const CheckoutButton = ({ selectedAddress, cartItems, getToken, user }) => {
           address: selectedAddress._id, // which address to ship to
           successUrl: `${window.location.origin}/order-placed`, // where to go if payment succeeds
           cancelUrl: `${window.location.origin}/cart`, // where to go if payment cancelled
+          ...(trimmedPromoCode ? { promoCode: trimmedPromoCode } : {}),
         },
         { headers: { Authorization: `Bearer ${token}` } } // attach JWT for server auth
       );
@@ -149,6 +208,10 @@ const OrderSummary = () => {
   const [userAddresses, setUserAddresses] = useState([]); // all addresses saved to user
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // toggle address dropdown
   const [stripeReady, setStripeReady] = useState(null); // Stripe instance once loaded
+  const [promoCode, setPromoCode] = useState("");
+  const [promoResult, setPromoResult] = useState(null);
+  const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [promoCartSignature, setPromoCartSignature] = useState(null);
 
   // -------------------- Load Stripe on mount --------------------
   useEffect(() => {
@@ -196,12 +259,124 @@ const OrderSummary = () => {
   const tax = parseFloat((subtotal * 0.13).toFixed(2)); // 13% HST (hardcoded for Ontario)
   const total = subtotal + tax; // final total
 
+  const cartItemsArray = useMemo(() => normaliseCartItems(cartItems), [cartItems]);
+  const promoCartPayload = useMemo(
+    () => buildPromoCart(cartItems, total, 0),
+    [cartItems, total]
+  );
+
+  const rawDiscountAmount = promoResult?.valid
+    ? Number(promoResult.discount ?? 0)
+    : 0;
+  const discountAmount = Number.isFinite(rawDiscountAmount)
+    ? rawDiscountAmount
+    : 0;
+  const rawPayableTotal = promoResult?.valid
+    ? Number(promoResult.newTotal ?? total)
+    : total;
+  const payableTotal = Number.isFinite(rawPayableTotal)
+    ? rawPayableTotal
+    : total;
+
+  const isSameAppliedCode = Boolean(
+    promoResult?.valid &&
+      promoCode.trim().toLowerCase() ===
+        (promoResult.promoCode || "").toLowerCase()
+  );
+
   console.log("Cart Summary:", {
     subtotal,
     tax,
     total,
     itemCount: getCartCount(),
   });
+
+  useEffect(() => {
+    if (cartItemsArray.length === 0) {
+      setPromoResult(null);
+      setPromoCode("");
+      setPromoCartSignature(null);
+    }
+  }, [cartItemsArray.length]);
+
+  useEffect(() => {
+    if (!promoResult?.valid) return;
+
+    const currentSignature = promoCartSignatureFromPayload(promoCartPayload);
+    if (
+      promoCartSignature &&
+      promoCartSignature !== currentSignature
+    ) {
+      setPromoResult(null);
+      setPromoCartSignature(null);
+    }
+  }, [promoCartPayload, promoCartSignature, promoResult?.valid]);
+
+  const handlePromoInputChange = (event) => {
+    const value = event.target.value;
+    setPromoCode(value);
+
+    if (
+      promoResult &&
+      value.trim().toLowerCase() !==
+        (promoResult.promoCode || "").toLowerCase()
+    ) {
+      setPromoResult(null);
+      setPromoCartSignature(null);
+    }
+  };
+
+  const handleApplyPromo = async () => {
+    const trimmedCode = promoCode.trim();
+
+    if (!trimmedCode) {
+      toast.error("Please enter a promo code");
+      return;
+    }
+
+    if (cartItemsArray.length === 0) {
+      toast.error("Your cart is empty");
+      return;
+    }
+
+    try {
+      setIsApplyingPromo(true);
+      const { data } = await axios.post("/api/promo/validate", {
+        code: trimmedCode,
+        cart: promoCartPayload,
+      });
+
+      if (data?.valid) {
+        setPromoResult(data);
+        setPromoCode(data.promoCode || trimmedCode);
+        setPromoCartSignature(
+          promoCartSignatureFromPayload(promoCartPayload)
+        );
+        toast.success(data?.message || "Promo applied");
+      } else {
+        setPromoResult({ ...data, promoCode: trimmedCode });
+        setPromoCartSignature(null);
+        toast.error(data?.message || "Promo code not valid");
+      }
+    } catch (error) {
+      console.error("❌ Promo apply error:", error);
+      setPromoResult(null);
+      setPromoCartSignature(null);
+      toast.error(
+        error?.response?.data?.message ||
+          error.message ||
+          "Failed to apply promo"
+      );
+    } finally {
+      setIsApplyingPromo(false);
+    }
+  };
+
+  const handleRemovePromo = () => {
+    setPromoResult(null);
+    setPromoCode("");
+    setPromoCartSignature(null);
+  };
 
   // -------------------- Input style helper --------------------
   const inputCls =
@@ -288,19 +463,48 @@ const OrderSummary = () => {
           <label className="text-sm font-medium uppercase text-blackhex block mb-2">
             Promo Code
           </label>
-          <div className="flex flex-col items-start gap-3">
-            <input
-              type="text"
-              placeholder="Enter promo code"
-              className={inputCls}
-            />
-            <button
-              className="h-10 px-6 rounded-full font-semibold text-white 
-                         bg-primary hover:bg-tertiary active:scale-[0.99]
-                         shadow-md shadow-primary/20 transition-colors"
-            >
-              Apply
-            </button>
+          <div className="flex w-full flex-col items-start gap-2">
+            <div className="flex w-full flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                placeholder="Enter promo code"
+                className={inputCls}
+                value={promoCode}
+                onChange={handlePromoInputChange}
+                disabled={isApplyingPromo}
+              />
+              <button
+                type="button"
+                onClick={handleApplyPromo}
+                className="h-10 px-6 rounded-full font-semibold text-white bg-primary hover:bg-tertiary active:scale-[0.99] shadow-md shadow-primary/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={
+                  isApplyingPromo || cartItemsArray.length === 0 || isSameAppliedCode
+                }
+              >
+                {isApplyingPromo ? "Applying..." : "Apply"}
+              </button>
+            </div>
+            {promoResult?.valid && (
+              <button
+                type="button"
+                onClick={handleRemovePromo}
+                className="text-sm font-medium text-primary hover:underline"
+              >
+                Remove code
+              </button>
+            )}
+            {promoResult && (
+              <p
+                className={`text-sm ${
+                  promoResult.valid ? "text-green-600" : "text-red-500"
+                }`}
+              >
+                {promoResult.message ||
+                  (promoResult.valid
+                    ? "Promo applied"
+                    : "Promo code not valid")}
+              </p>
+            )}
           </div>
         </div>
 
@@ -324,11 +528,20 @@ const OrderSummary = () => {
               {tax.toFixed(2)}
             </p>
           </div>
+          {promoResult?.valid && discountAmount > 0 && (
+            <div className="flex justify-between text-red-600">
+              <p className="text-gray-600">Promo Discount</p>
+              <p className="font-medium">
+                -{currency}
+                {discountAmount.toFixed(2)}
+              </p>
+            </div>
+          )}
           <div className="flex justify-between text-lg md:text-xl font-semibold border-t border-gray-200 pt-3">
             <p className="text-blackhex">Total</p>
             <p className="text-blackhex">
               {currency}
-              {total.toFixed(2)}
+              {payableTotal.toFixed(2)}
             </p>
           </div>
         </div>
@@ -343,6 +556,8 @@ const OrderSummary = () => {
               cartItems={cartItems}
               getToken={getToken}
               user={user}
+              promoCode={promoCode}
+              promoResult={promoResult}
             />
           </Elements>
         )}
