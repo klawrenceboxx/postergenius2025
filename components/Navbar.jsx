@@ -6,11 +6,13 @@ import { useAppContext } from "@/context/AppContext";
 import Image from "next/image";
 import { useClerk, UserButton } from "@clerk/nextjs";
 import TopBanner from "@/components/TopBanner";
+import { Heart } from "lucide-react";
 
 const Navbar = () => {
-  const { isAdmin, router, user, getCartCount } = useAppContext();
+  const { isAdmin, router, user, getCartCount, wishlist } = useAppContext();
   const { openSignIn } = useClerk();
   const cartCount = getCartCount();
+  const wishlistCount = wishlist?.length ?? 0;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const closeMenu = () => setIsMenuOpen(false);
@@ -88,6 +90,27 @@ const Navbar = () => {
               className="ml-2 bg-transparent text-sm outline-none w-full"
             />
           </form>
+          {/* wishlist */}
+          <button
+            type="button"
+            onClick={() => router.push("/wishlist")}
+            className="relative flex items-center justify-center text-gray-600 transition-transform duration-200 hover:scale-110 hover:text-secondary active:scale-95"
+            aria-label="View wishlist"
+          >
+            <Heart
+              className={`h-5 w-5 ${
+                wishlistCount > 0 ? "text-pink-500" : "text-gray-600"
+              }`}
+              fill={wishlistCount > 0 ? "currentColor" : "none"}
+              strokeWidth={1.8}
+            />
+            {wishlistCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-pink-500 text-[10px] font-semibold leading-none text-white">
+                {wishlistCount > 99 ? "99+" : wishlistCount}
+              </span>
+            )}
+          </button>
+
           {/* cart */}
           <Link href="/cart" className="relative">
             <Image
@@ -154,6 +177,26 @@ const Navbar = () => {
         </ul>
 
         <div className="flex items-center lg:hidden gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/wishlist")}
+            className="relative flex items-center justify-center text-gray-600 transition-transform duration-200 hover:scale-110 hover:text-secondary active:scale-95"
+            aria-label="View wishlist"
+          >
+            <Heart
+              className={`h-6 w-6 ${
+                wishlistCount > 0 ? "text-pink-500" : "text-gray-600"
+              }`}
+              fill={wishlistCount > 0 ? "currentColor" : "none"}
+              strokeWidth={1.8}
+            />
+            {wishlistCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-pink-500 text-[10px] font-semibold leading-none text-white">
+                {wishlistCount > 99 ? "99+" : wishlistCount}
+              </span>
+            )}
+          </button>
+
           <Link href="/cart" className="relative">
             <Image
               className="w-6 h-6"
