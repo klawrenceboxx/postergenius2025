@@ -143,6 +143,34 @@ export const AppContextProvider = (props) => {
     }
   };
 
+  const addToWishlist = async (productId) => {
+    if (!productId) {
+      toast.error("Missing product information");
+      return;
+    }
+
+    if (!user) {
+      toast.error("Please sign in to save items to your wishlist");
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      await axios.post(
+        "/api/wishlist/add",
+        { productId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Added to wishlist");
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message ||
+          error.message ||
+          "Failed to add to wishlist"
+      );
+    }
+  };
+
   const updateCartQuantity = async (itemId, quantity) => {
     let cartData = structuredClone(cartItems);
     const existing = cartData[itemId];
@@ -235,6 +263,7 @@ export const AppContextProvider = (props) => {
     cartItems,
     setCartItems,
     addToCart,
+    addToWishlist,
     updateCartQuantity,
     getCartCount,
     getCartAmount,
