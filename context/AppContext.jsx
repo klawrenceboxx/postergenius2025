@@ -117,6 +117,40 @@ export const AppContextProvider = (props) => {
     };
   };
 
+  const ensureGuestId = async () => {
+    const { guestId } = await prepareCartRequest({
+      createGuestIfMissing: true,
+    });
+    return guestId;
+  };
+
+  const fetchGuestAddress = async ({ createGuestIfMissing = false } = {}) => {
+    try {
+      const { headers, guestId } = await prepareCartRequest({
+        createGuestIfMissing,
+      });
+
+      if (!guestId) {
+        return { guestId: null, address: null };
+      }
+
+      const { data } = await axios.get("/api/guest/get-address", { headers });
+
+      if (data.success) {
+        return { guestId, address: data.address || null };
+      }
+
+      console.warn(
+        "[AppContext] Failed to fetch guest address:",
+        data?.message
+      );
+      return { guestId, address: null };
+    } catch (error) {
+      console.error("[AppContext] Error fetching guest address", error);
+      return { guestId: null, address: null };
+    }
+  };
+
   const fetchProductData = async () => {
     try {
       const { data } = await axios.get("/api/product/list");
@@ -528,6 +562,8 @@ export const AppContextProvider = (props) => {
     cartItems,
     setCartItems,
     activeGuestId,
+    ensureGuestId,
+    fetchGuestAddress,
     addToCart,
     updateCartQuantity,
     getCartCount,
