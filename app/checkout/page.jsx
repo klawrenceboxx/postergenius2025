@@ -61,11 +61,13 @@ const fieldOrder = [
 ];
 
 const CheckoutPage = () => {
-  const { user, ensureGuestId, fetchGuestAddress } = useAppContext();
+  const { user, ensureGuestId, fetchGuestAddress, fetchCart, router } =
+    useAppContext();
   const [formValues, setFormValues] = useState(EMPTY_GUEST_ADDRESS);
   const [guestId, setGuestId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPrefilling, setIsPrefilling] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   useEffect(() => {
     if (user) return;
@@ -158,6 +160,101 @@ const CheckoutPage = () => {
     }
   };
 
+  const handlePlaceOrder = async () => {
+    if (user) {
+      toast.error("Please use the standard checkout when signed in.");
+      return;
+    }
+
+    try {
+      setIsPlacingOrder(true);
+
+      const activeGuestId = guestId || (await ensureGuestId());
+      if (!activeGuestId) {
+        toast.error(
+          "Unable to create guest session. Please refresh and try again."
+        );
+        return;
+      }
+
+      const headers = { "x-guest-id": activeGuestId };
+
+      if (!guestId) {
+        setGuestId(activeGuestId);
+      }
+
+      const [cartResponse, addressResponse] = await Promise.all([
+        axios.get("/api/cart/get", { headers }),
+        axios.get("/api/guest/get-address", { headers }),
+      ]);
+
+      if (!cartResponse?.data?.success) {
+        toast.error(cartResponse?.data?.message || "Failed to load cart items");
+        return;
+      }
+
+      if (!addressResponse?.data?.success) {
+        toast.error(
+          addressResponse?.data?.message || "Failed to load shipping address"
+        );
+        return;
+      }
+
+      const cartItems = cartResponse.data.cartItems || {};
+      if (Object.keys(cartItems).length === 0) {
+        toast.error("Your cart is empty. Add items before placing an order.");
+        return;
+      }
+
+      const shippingAddress = addressResponse.data.address;
+      if (!shippingAddress) {
+        toast.error("Please save your shipping address before placing an order.");
+        return;
+      }
+
+      const totalPrice = Object.values(cartItems).reduce((sum, item) => {
+        if (!item || typeof item !== "object") return sum;
+        const quantity = Number(item.quantity || 0);
+        const price = Number(item.price || 0);
+        if (!Number.isFinite(quantity) || !Number.isFinite(price)) {
+          return sum;
+        }
+        return sum + quantity * price;
+      }, 0);
+
+      const payload = {
+        guestId: activeGuestId,
+        cartItems,
+        shippingAddress,
+        totalPrice: Math.round(totalPrice * 100) / 100,
+        shippingPrice: 0,
+        taxPrice: 0,
+      };
+
+      const { data } = await axios.post("/api/order/create", payload, {
+        headers,
+      });
+
+      if (data?.success) {
+        toast.success("Order placed successfully!");
+        await fetchCart({ createGuestIfMissing: false });
+        if (router?.push) {
+          router.push("/order-success");
+        }
+      } else {
+        toast.error(data?.message || "Failed to place order");
+      }
+    } catch (error) {
+      toast.error(
+        error?.response?.data?.message ||
+          error.message ||
+          "Failed to place order"
+      );
+    } finally {
+      setIsPlacingOrder(false);
+    }
+  };
+
   return (
     <>
       <Navbar />
@@ -207,6 +304,14 @@ const CheckoutPage = () => {
               </p>
             </form>
           )}
+          <button
+            type="button"
+            onClick={handlePlaceOrder}
+            disabled={isSubmitting || isPrefilling || isPlacingOrder}
+            className="mt-6 w-full h-12 rounded-full font-semibold text-white bg-secondary hover:bg-tertiary active:scale-[0.99] shadow-md shadow-secondary/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isPlacingOrder ? "Placing order..." : "Place Order"}
+          </button>
         </div>
         <div className="w-full lg:max-w-md">
           <OrderSummary />

@@ -44,7 +44,8 @@ const orderLogSchema = new mongoose.Schema(
 
 const orderSchema = new mongoose.Schema(
   {
-    userId: { type: String, required: true, ref: "user" },
+    userId: { type: String, ref: "user" },
+    guestId: { type: String },
     // store the referenced address id as an ObjectId so populate works
     address: {
       type: mongoose.Schema.Types.ObjectId,
@@ -54,17 +55,27 @@ const orderSchema = new mongoose.Schema(
       },
     },
     items: [orderItemSchema],
-    amount: { type: Number, required: true },
-    subtotal: { type: Number, required: true },
-    tax: { type: Number, required: true },
+    cartSnapshot: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    shippingAddressSnapshot: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
+    },
+    amount: { type: Number },
+    subtotal: { type: Number },
+    tax: { type: Number },
+    totalPrice: { type: Number, default: 0 },
+    shippingPrice: { type: Number, default: 0 },
+    taxPrice: { type: Number, default: 0 },
     type: {
       type: String,
       enum: ["digital", "physical"],
-      required: true,
       default: "digital",
     },
     status: { type: String, required: true, default: "Order Placed" },
-    date: { type: Number, required: true },
+    date: { type: Number },
     stripeSessionId: { type: String, unique: true }, // Add this field
     shippingCost: { type: Number },
     shippingCurrency: { type: String },
@@ -82,6 +93,50 @@ const orderSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+  }
+);
+
+orderSchema.pre("validate", function (next) {
+  if (!this.userId && !this.guestId) {
+    return next(new Error("Order must reference a userId or guestId"));
+  }
+
+  if (this.userId && this.guestId) {
+    return next(new Error("Order cannot reference both userId and guestId"));
+  }
+
+  if (!this.date) {
+    this.date = Date.now();
+  }
+
+  if (!this.totalPrice && typeof this.amount === "number") {
+    this.totalPrice = this.amount;
+  }
+
+  if (!this.taxPrice && typeof this.tax === "number") {
+    this.taxPrice = this.tax;
+  }
+
+  next();
+});
+
+orderSchema.index(
+  { userId: 1 },
+  {
+    unique: false,
+    partialFilterExpression: {
+      userId: { $exists: true, $type: "string" },
+    },
+  }
+);
+
+orderSchema.index(
+  { guestId: 1 },
+  {
+    unique: false,
+    partialFilterExpression: {
+      guestId: { $exists: true, $type: "string" },
+    },
   }
 );
 
