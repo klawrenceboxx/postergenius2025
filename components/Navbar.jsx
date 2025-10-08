@@ -7,12 +7,24 @@ import Image from "next/image";
 import { useClerk, UserButton } from "@clerk/nextjs";
 import TopBanner from "@/components/TopBanner";
 import { Heart } from "lucide-react";
+import toast from "react-hot-toast";
 
 const Navbar = () => {
-  const { isAdmin, router, user, getCartCount, wishlist } = useAppContext();
+  const { isAdmin, router, user, getCartCount, getWishlistCount } =
+    useAppContext();
   const { openSignIn } = useClerk();
   const cartCount = getCartCount();
-  const wishlistCount = wishlist?.length ?? 0;
+  const wishlistCount = getWishlistCount?.() ?? 0;
+
+  const handleWishlistNavigation = () => {
+    if (user) {
+      router.push("/wishlist");
+      return;
+    }
+
+    toast.error("Please sign in to save your wishlist.");
+    openSignIn?.();
+  };
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const closeMenu = () => setIsMenuOpen(false);
@@ -93,7 +105,7 @@ const Navbar = () => {
           {/* wishlist */}
           <button
             type="button"
-            onClick={() => router.push("/wishlist")}
+            onClick={handleWishlistNavigation}
             className="relative flex items-center justify-center text-gray-600 transition-transform duration-200 hover:scale-110 hover:text-secondary active:scale-95"
             aria-label="View wishlist"
           >
@@ -179,7 +191,7 @@ const Navbar = () => {
         <div className="flex items-center lg:hidden gap-3">
           <button
             type="button"
-            onClick={() => router.push("/wishlist")}
+            onClick={handleWishlistNavigation}
             className="relative flex items-center justify-center text-gray-600 transition-transform duration-200 hover:scale-110 hover:text-secondary active:scale-95"
             aria-label="View wishlist"
           >

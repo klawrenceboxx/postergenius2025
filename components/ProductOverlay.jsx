@@ -5,6 +5,17 @@ import { useAppContext } from "@/context/AppContext";
 
 export default function ProductOverlay({ product }) {
   const { addToCart, removeFromWishlist } = useAppContext();
+  const resolveProductId = () => {
+    if (
+      typeof product?._id === "object" &&
+      product?._id !== null &&
+      typeof product?._id.toString === "function"
+    ) {
+      return product._id.toString();
+    }
+
+    return product?._id ?? product?.productId ?? product?.id ?? "";
+  };
   const [open, setOpen] = useState(false);
 
   return (
@@ -50,7 +61,10 @@ export default function ProductOverlay({ product }) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              removeFromWishlist(product._id);
+              const productId = resolveProductId();
+              if (productId) {
+                removeFromWishlist(productId);
+              }
               setOpen(false);
             }}
             className="w-full text-left px-4 py-2 hover:bg-gray-50 text-sm text-red-500"

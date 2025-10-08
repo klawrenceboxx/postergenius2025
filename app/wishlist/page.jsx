@@ -1,59 +1,117 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import ProductCard from "@/components/ProductCard";
 import { Heart } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import ProductOverlay from "@/components/ProductOverlay";
+import { useClerk, useUser } from "@clerk/nextjs";
+import toast from "react-hot-toast";
 
 const WishlistPage = () => {
-  const { products, router, addToCart, removeFromWishlist } = useAppContext();
-  const [wishlist, setWishlist] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { products, wishlist, fetchWishlist } = useAppContext();
+  const { openSignIn } = useClerk();
+  const { isLoaded, isSignedIn } = useUser();
 
-  // Fetch wishlist (productId array) from backend
+  const [loading, setLoading] = useState(true);
+  const [hasPromptedGuest, setHasPromptedGuest] = useState(false);
+
   useEffect(() => {
-    const fetchWishlist = async () => {
+    let isActive = true;
+
+    if (!isLoaded) {
+      return () => {
+        isActive = false;
+      };
+    }
+
+    if (!isSignedIn) {
+      if (!hasPromptedGuest) {
+        toast.error("Please sign in to save your wishlist.");
+        openSignIn?.();
+        setHasPromptedGuest(true);
+      }
+      setLoading(false);
+
+      return () => {
+        isActive = false;
+      };
+    }
+
+    const loadWishlist = async () => {
       try {
-        const res = await fetch("/api/wishlist/get");
-        const data = await res.json();
-        if (data.success) {
-          setWishlist(data.wishlist || []); // [{ productId }]
-        }
-      } catch (err) {
-        console.error("Failed to load wishlist:", err);
+        setLoading(true);
+        await fetchWishlist();
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     };
-    fetchWishlist();
-  }, []);
 
-  // Match each wishlist productId to product details
+    loadWishlist();
+    setHasPromptedGuest(false);
+
+    return () => {
+      isActive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isSignedIn]);
+
   const wishlistProducts = useMemo(() => {
-    if (!Array.isArray(wishlist) || wishlist.length === 0) return [];
-    return wishlist
-      .map((item) => products.find((p) => p._id === item.productId))
+    const normalizedWishlist = Array.isArray(wishlist) ? wishlist : [];
+
+    const matchProductById = (productId) => {
+      if (!productId) return null;
+
+      return (
+        products.find((productItem) => {
+          const resolvedId =
+            typeof productItem?._id === "object" && productItem?._id !== null
+              ? productItem._id.toString()
+              : productItem?._id ??
+                productItem?.productId ??
+                productItem?.id ??
+                productItem?.slug ??
+                "";
+
+          return resolvedId === productId;
+        }) ?? null
+      );
+    };
+
+    return normalizedWishlist
+      .map((entry) => {
+        const entryProduct = entry?.product ?? entry;
+        if (!entryProduct) {
+          return null;
+        }
+
+        if (entryProduct?.name || entryProduct?.title) {
+          return entryProduct;
+        }
+
+        let entryProductId = "";
+        if (
+          typeof entryProduct?._id === "object" &&
+          entryProduct?._id !== null &&
+          typeof entryProduct?._id.toString === "function"
+        ) {
+          entryProductId = entryProduct._id.toString();
+        } else {
+          entryProductId =
+            entryProduct?.productId ??
+            entryProduct?._id ??
+            entryProduct?.id ??
+            "";
+        }
+
+        return matchProductById(entryProductId);
+      })
       .filter(Boolean);
   }, [wishlist, products]);
-
-  // 🆕 Re-fetch wishlist whenever an item is removed (like heart icon behavior)
-  useEffect(() => {
-    const refreshWishlist = async () => {
-      try {
-        const res = await fetch("/api/wishlist/get");
-        const data = await res.json();
-        if (data.success) setWishlist(data.wishlist || []);
-      } catch (err) {
-        console.error("Failed to refresh wishlist:", err);
-      }
-    };
-    refreshWishlist();
-  }, [removeFromWishlist]);
-  // 🆕 END re-fetch logic
 
   if (loading) {
     return (
@@ -112,7 +170,6 @@ const WishlistPage = () => {
                 <div key={product._id} className="relative group">
                   <ProductCard product={product} />
                   <ProductOverlay product={product} />
-                  {/* 🆕 Wishlist-only overlay (e.g., 3-dot menu) goes here later */}
                 </div>
               ))}
             </div>

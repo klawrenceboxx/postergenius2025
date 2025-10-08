@@ -171,6 +171,20 @@ export const AppContextProvider = (props) => {
     }
   };
 
+  const promptWishlistSignIn = () => {
+    toast.error("Please sign in to save your wishlist.");
+    openSignIn?.();
+  };
+
+  const ensureWishlistAccess = () => {
+    if (user) {
+      return true;
+    }
+
+    promptWishlistSignIn();
+    return false;
+  };
+
   const fetchWishlist = async () => {
     if (!user) {
       setWishlist([]);
@@ -380,8 +394,7 @@ export const AppContextProvider = (props) => {
   };
 
   const addToWishlist = async (productId) => {
-    if (!user) {
-      openSignIn?.();
+    if (!ensureWishlistAccess()) {
       return;
     }
 
@@ -409,8 +422,7 @@ export const AppContextProvider = (props) => {
   };
 
   const removeFromWishlist = async (productId) => {
-    if (!user) {
-      openSignIn?.();
+    if (!ensureWishlistAccess()) {
       return;
     }
 
