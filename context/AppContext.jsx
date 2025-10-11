@@ -2,7 +2,7 @@
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { augmentProductWithPricing } from "@/lib/pricing";
 import {
@@ -28,6 +28,7 @@ export const AppContextProvider = (props) => {
   const [cartItems, setCartItems] = useState({});
   const [wishlist, setWishlist] = useState([]);
   const [activeGuestId, setActiveGuestId] = useState(null);
+  const previousUserRef = useRef(null);
 
   const guestStorageKey =
     guestInternal?.GUEST_ID_STORAGE_KEY || "posterGenius.guest";
@@ -528,22 +529,66 @@ export const AppContextProvider = (props) => {
   }, []);
 
   useEffect(() => {
-    if (user) {
-      fetchUserData();
-      fetchWishlist();
-      fetchCart({ createGuestIfMissing: false });
-      setActiveGuestId(null);
-    } else {
-      setIsAdmin(false);
-      setWishlist([]);
-      const existingGuestId = peekStoredGuestId();
-      setActiveGuestId(existingGuestId);
-      if (existingGuestId) {
-        fetchCart({ createGuestIfMissing: false });
-      } else {
-        setCartItems({});
+    const syncUserState = async () => {
+      const previousUser = previousUserRef.current;
+      const hasJustLoggedIn = !previousUser && user;
+      const guestIdToMerge = activeGuestId || peekStoredGuestId();
+      let mergedGuestCart = false;
+
+      if (hasJustLoggedIn && guestIdToMerge) {
+        try {
+          const token = await getToken();
+          if (token) {
+            await axios.post(
+              "/api/cart/merge",
+              { guestId: guestIdToMerge },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "x-guest-id": guestIdToMerge,
+                },
+              }
+            );
+            await fetchCart({ createGuestIfMissing: false });
+            if (typeof window !== "undefined") {
+              window.localStorage.removeItem(guestStorageKey);
+            }
+            mergedGuestCart = true;
+          } else {
+            console.warn("[AppContext] Unable to merge cart without auth token");
+          }
+        } catch (error) {
+          console.error("[AppContext] Failed to merge guest cart on login", error);
+        }
       }
-    }
+
+      if (user) {
+        fetchUserData();
+        fetchWishlist();
+        if (!mergedGuestCart) {
+          fetchCart({ createGuestIfMissing: false });
+        }
+        setActiveGuestId((prev) => (prev === null ? prev : null));
+      } else {
+        setIsAdmin(false);
+        setWishlist([]);
+        const existingGuestId = peekStoredGuestId();
+        setActiveGuestId((prev) =>
+          prev === existingGuestId ? prev : existingGuestId
+        );
+        if (existingGuestId) {
+          fetchCart({ createGuestIfMissing: false });
+        } else {
+          setCartItems({});
+        }
+      }
+
+      previousUserRef.current = user;
+    };
+
+    syncUserState().catch((error) => {
+      console.error("[AppContext] Unexpected error syncing user state", error);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -585,5 +630,5 @@ export const AppContextProvider = (props) => {
  * Manual verification:
  * 1. Log out, add products to the cart, and confirm `/api/cart/add` receives a guestId.
  * 2. Refresh the page and ensure `/api/cart/get` restores the same guest cart.
- * 3. Log in and verify the authenticated cart remains separate from the guest cart.
+ * 3. Log in and verify the guest cart merges into the authenticated cart and the guest cart is cleared.
  */
