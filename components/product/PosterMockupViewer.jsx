@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 /** Calibrate each physical room mockup once using percentages (scales at all widths). */
 const mockups = [
@@ -61,6 +61,36 @@ export default function PosterMockupViewer({
   format,
   orientation, // NEW
 }) {
+  const [viewport, setViewport] = useState(() => {
+    if (typeof window === "undefined") return "desktop";
+    const width = window.innerWidth;
+    if (width < 640) return "mobile";
+    if (width < 1024) return "tablet";
+    return "desktop";
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const evaluateViewport = () => {
+      const width = window.innerWidth;
+      if (width < 640) {
+        setViewport("mobile");
+      } else if (width < 1024) {
+        setViewport("tablet");
+      } else {
+        setViewport("desktop");
+      }
+    };
+
+    evaluateViewport();
+    window.addEventListener("resize", evaluateViewport);
+    return () => window.removeEventListener("resize", evaluateViewport);
+  }, []);
+
+  const sceneScale =
+    viewport === "mobile" ? 1.5 : viewport === "tablet" ? 1.25 : 1;
+
   if (format === "digital") {
     // Simple centered poster with a badge placeholder (replace later with your own asset).
     return (
@@ -130,30 +160,35 @@ export default function PosterMockupViewer({
       </div>
 
       {/* Scene */}
-      <div
-        className="relative w-full bg-gray-100 rounded-lg overflow-hidden"
-        style={{ aspectRatio: "16 / 9" }}
-      >
-        <img
-          src={m.src}
-          alt="Room mockup"
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ objectPosition: m.objectPosition }}
-        />
-        <img
-          src={posterUrl}
-          alt="Poster"
-          className="absolute transition-all duration-300 ease-in-out"
+      <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden aspect-[3/4] sm:aspect-[4/5] md:aspect-[16/9]">
+        <div
+          className="absolute inset-0 transition-transform duration-300 ease-in-out"
           style={{
-            top: `${m.posterTopPct}%`,
-            left: `${m.posterLeftPct}%`,
-            transform: "translate(-50%, -50%)",
-            width: `${m.posterWidthPct * scale * portraitFactor}%`,
-            height: "auto",
-            boxShadow: "-3px 3px 2px rgba(0,0,0,0.3)",
-            zIndex: 2,
+            transformOrigin: `${m.posterLeftPct}% ${m.posterTopPct}%`,
+            transform: `scale(${sceneScale})`,
           }}
-        />
+        >
+          <img
+            src={m.src}
+            alt="Room mockup"
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ objectPosition: m.objectPosition }}
+          />
+          <img
+            src={posterUrl}
+            alt="Poster"
+            className="absolute transition-all duration-300 ease-in-out"
+            style={{
+              top: `${m.posterTopPct}%`,
+              left: `${m.posterLeftPct}%`,
+              transform: "translate(-50%, -50%)",
+              width: `${m.posterWidthPct * scale * portraitFactor}%`,
+              height: "auto",
+              boxShadow: "-3px 3px 2px rgba(0,0,0,0.3)",
+              zIndex: 2,
+            }}
+          />
+        </div>
       </div>
     </div>
   );
