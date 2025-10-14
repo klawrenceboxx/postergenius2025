@@ -131,7 +131,7 @@ export default function PosterMockupViewer({
 
       {/* Scene */}
       <div
-        className="relative w-full bg-gray-100 rounded-lg overflow-hidden"
+        className="relative w-full bg-gray-100 rounded-lg overflow-hidden "
         style={{ aspectRatio: "16 / 9" }}
       >
         <img
