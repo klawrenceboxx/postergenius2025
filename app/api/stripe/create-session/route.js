@@ -95,7 +95,7 @@ export async function POST(request) {
 
       lineItems.push({
         price_data: {
-          currency: "usd",
+          currency: "cad",
           product_data: { name: nameSegments.filter(Boolean).join(" – ") },
           unit_amount: Math.round(unitPrice * 100),
         },
@@ -109,10 +109,7 @@ export async function POST(request) {
         try {
           const sizeForVariant =
             dimensions || pricing.defaultPhysicalDimensions;
-          const variantId = assertVariantIdForProduct(
-            product,
-            sizeForVariant
-          );
+          const variantId = assertVariantIdForProduct(product, sizeForVariant);
           physicalForPrintful.push({
             variant_id: variantId,
             quantity,
