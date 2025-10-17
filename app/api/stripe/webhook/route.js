@@ -10,9 +10,10 @@ import {
   formatRecipientFromAddress,
   mapPrintfulStatus,
   extractTrackingFromPrintful,
-  assertVariantId,
+  assertVariantIdForProduct,
   normalizeDimensions,
 } from "@/lib/printful";
+import { ensureProductCdnUrl } from "@/lib/cdn";
 import { appendOrderLog, buildLogEntry } from "@/lib/order-logs";
 import { getDownloadUrl } from "@/lib/s3";
 
@@ -114,6 +115,14 @@ export async function POST(req) {
           continue;
         }
 
+        const cdnUrl = ensureProductCdnUrl(product);
+        if (!cdnUrl) {
+          console.warn(
+            "⚠️ Missing cdnUrl for product during Stripe webhook processing.",
+            { productId: product._id }
+          );
+        }
+
         const pricing = computePricing(product);
         const format = String(entry?.format || "physical").toLowerCase();
         let unitPrice =
@@ -131,9 +140,9 @@ export async function POST(req) {
           const normalizedDimensions =
             normalizeDimensions(dimensions) ||
             normalizeDimensions(pricing.defaultPhysicalDimensions);
-          variantId = assertVariantId(
-            normalizedDimensions || pricing.defaultPhysicalDimensions
-          );
+          const sizeForVariant =
+            dimensions || pricing.defaultPhysicalDimensions;
+          variantId = assertVariantIdForProduct(product, sizeForVariant);
           const priceRecord =
             pricing.physicalPricing?.[dimensions] ||
             pricing.physicalPricing?.[normalizedDimensions];

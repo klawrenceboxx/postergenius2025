@@ -6,9 +6,10 @@ import Product from "@/models/Product";
 import { computePricing } from "@/lib/pricing";
 import {
   formatRecipientFromAddress,
-  assertVariantId,
+  assertVariantIdForProduct,
   normalizeDimensions,
 } from "@/lib/printful";
+import { ensureProductCdnUrl } from "@/lib/cdn";
 
 export const runtime = "nodejs";
 
@@ -55,6 +56,14 @@ async function buildPhysicalItems(items = []) {
       );
     }
 
+    const cdnUrl = ensureProductCdnUrl(product);
+    if (!cdnUrl) {
+      console.warn(
+        "⚠️ Missing cdnUrl for product when building Printful order.",
+        { productId: product._id }
+      );
+    }
+
     const pricing = computePricing(product);
     const chosenDimensions =
       item?.dimensions || pricing.defaultPhysicalDimensions;
@@ -62,7 +71,9 @@ async function buildPhysicalItems(items = []) {
       normalizeDimensions(chosenDimensions) ||
       normalizeDimensions(pricing.defaultPhysicalDimensions);
 
-    const variantId = assertVariantId(normalizedDimensions);
+    const sizeForVariant =
+      chosenDimensions || pricing.defaultPhysicalDimensions;
+    const variantId = assertVariantIdForProduct(product, sizeForVariant);
 
     const priceRecord =
       pricing.physicalPricing?.[chosenDimensions] ||

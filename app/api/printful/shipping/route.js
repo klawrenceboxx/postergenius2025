@@ -7,10 +7,11 @@ import { computePricing } from "@/lib/pricing";
 import {
   calculateShippingRates,
   formatRecipientFromAddress,
-  assertVariantId,
+  assertVariantIdForProduct,
   normalizeDimensions,
   pickCheapestRate,
 } from "@/lib/printful";
+import { ensureProductCdnUrl } from "@/lib/cdn";
 
 export const runtime = "nodejs";
 
@@ -90,6 +91,14 @@ async function buildPhysicalItems(items = []) {
       throw new Error(`Unable to locate product ${productId} for shipping calculation.`);
     }
 
+    const cdnUrl = ensureProductCdnUrl(product);
+    if (!cdnUrl) {
+      console.warn(
+        "⚠️ Missing cdnUrl for product. Printful shipping may fail to render artwork.",
+        { productId: product._id }
+      );
+    }
+
     const pricing = computePricing(product);
     const chosenDimensions =
       item?.dimensions || pricing.defaultPhysicalDimensions;
@@ -97,7 +106,9 @@ async function buildPhysicalItems(items = []) {
       normalizeDimensions(chosenDimensions) ||
       normalizeDimensions(pricing.defaultPhysicalDimensions);
 
-    const variantId = assertVariantId(normalizedDimensions);
+    const sizeForVariant =
+      chosenDimensions || pricing.defaultPhysicalDimensions;
+    const variantId = assertVariantIdForProduct(product, sizeForVariant);
 
     const priceRecord = pricing.physicalPricing?.[chosenDimensions] ||
       pricing.physicalPricing?.[normalizedDimensions];

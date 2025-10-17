@@ -188,7 +188,12 @@ export default function InfosV2({
   }, [product]);
 
   const isPhysical = format === "physical";
-  const physicalDisabled = isPhysical && !product?.printfulEnabled; // flip per product when Printful is ready
+  const printfulActive = Boolean(
+    product?.isPrintfulEnabled ??
+      product?.printfulEnabled ??
+      product?.PrintfulEnabled
+  );
+  const physicalDisabled = isPhysical && !printfulActive; // flip per product when Printful is ready
 
   const physicalPricing =
     product?.physicalPricing || pricing?.physicalPricing || {};
