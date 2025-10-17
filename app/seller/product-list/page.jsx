@@ -7,6 +7,7 @@ import Footer from "@/components/seller/Footer";
 import Loading from "@/components/Loading";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const ProductList = () => {
   const { router, getToken, user } = useAppContext();
@@ -116,11 +117,12 @@ const ProductList = () => {
                       <td className="md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3 truncate">
                         <div className="bg-gray-500/10 rounded p-2">
                           <Image
-                            src={primaryImage}
+                            {...getOptimizedImageProps(primaryImage, { variant: "thumbnail" })}
                             alt="product Image"
                             className="w-16"
                             width={1280}
                             height={720}
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           />
                         </div>
                         <span className="truncate w-full">{product.name}</span>
@@ -165,8 +167,8 @@ const ProductList = () => {
                           >
                             <span className="hidden md:block">Visit</span>
                             <Image
+                              {...getOptimizedImageProps(assets.redirect_icon)}
                               className="h-3.5"
-                              src={assets.redirect_icon}
                               alt="redirect_icon"
                             />
                           </button>

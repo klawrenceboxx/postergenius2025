@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { assets } from "@/assets/assets";
 import Image from "next/image";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const HeaderSlider = () => {
   const sliderData = [
@@ -72,8 +73,8 @@ const HeaderSlider = () => {
                 <button className="group flex items-center gap-2 px-6 py-2.5 font-medium">
                   {slide.buttonText2}
                   <Image
+                    {...getOptimizedImageProps(assets.arrow_icon)}
                     className="group-hover:translate-x-1 transition"
-                    src={assets.arrow_icon}
                     alt="arrow_icon"
                   />
                 </button>
@@ -81,8 +82,8 @@ const HeaderSlider = () => {
             </div>
             <div className="flex items-center flex-1 justify-center">
               <Image
+                {...getOptimizedImageProps(slide.imgSrc)}
                 className="md:w-72 w-48"
-                src={slide.imgSrc}
                 alt={`Slide ${index + 1}`}
               />
             </div>

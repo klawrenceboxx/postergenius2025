@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Heart } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const ProductCard = ({ product }) => {
   const { currency, router, wishlist, addToWishlist, removeFromWishlist } =
@@ -107,12 +108,12 @@ const ProductCard = ({ product }) => {
       <div className="group relative flex h-80 w-full items-center justify-center overflow-hidden bg-gray-50 shadow-poster transition">
         {previewImage ? (
           <Image
-            src={previewImage}
+            {...getOptimizedImageProps(previewImage, { variant: "thumbnail" })}
             alt={product?.name || product?.title || "Poster"}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             width={800}
             height={800}
-            sizes="(max-width: 768px) 50vw, 25vw"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             priority={false}
           />
         ) : (

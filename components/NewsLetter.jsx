@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import bgImage from "@/public/subscribe now.jpg"; // adjust path based on your setup
 import EmailConsentText from "@/components/EmailConsentText";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const NewsLetter = () => {
   return (
@@ -9,11 +10,10 @@ const NewsLetter = () => {
       {/* Background image */}
       <div className="absolute inset-0 -z-10 rounded-lg overflow-hidden">
         <Image
-          src={bgImage}
+          {...getOptimizedImageProps(bgImage)}
           alt="Subscribe background"
           fill
           className="object-cover"
-          priority
         />
         <div className="absolute inset-0 bg-black/20" />{" "}
         {/* dark overlay for contrast */}

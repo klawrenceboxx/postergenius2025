@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const AddAddress = () => {
   const { getToken, router } = useAppContext();
@@ -129,10 +130,9 @@ const AddAddress = () => {
         </form>
 
         <Image
+          {...getOptimizedImageProps(assets.my_location_image)}
           className="md:ml-16 mt-16 md:mt-0"
-          src={assets.my_location_image}
           alt="Location illustration"
-          priority
         />
       </div>
       <Footer />

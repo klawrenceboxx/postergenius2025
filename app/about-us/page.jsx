@@ -38,11 +38,7 @@ const AboutPage = () => {
         </div>
 
         {/* Optional section with imagery */}
-        {/* <div className="mt-16 w-full grid md:grid-cols-3 gap-8">
-                    <img src="/about1.jpg" alt="Studio" className="rounded-lg w-full h-auto object-cover" />
-                    <img src="/about2.jpg" alt="Print Process" className="rounded-lg w-full h-auto object-cover" />
-                    <img src="/about3.jpg" alt="Team" className="rounded-lg w-full h-auto object-cover" />
-                </div> */}
+        {/* Example Next.js <Image> grid can be added here if needed. */}
 
         <div className="mt-20 text-center w-full text-gray-600 text-sm">
           <p>
