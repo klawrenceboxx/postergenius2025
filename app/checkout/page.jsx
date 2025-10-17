@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import OrderSummary from "@/components/OrderSummary";
+import EmailConsentText from "@/components/EmailConsentText";
 import { useAppContext } from "@/context/AppContext";
 
 const EMPTY_GUEST_ADDRESS = {
@@ -289,6 +290,7 @@ const CheckoutPage = () => {
                     disabled={isSubmitting || isPrefilling || isFormDisabled}
                     required
                   />
+                  {name === "email" && <EmailConsentText />}
                 </div>
               ))}
               <button

@@ -2,6 +2,7 @@
 
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import EmailConsentText from "@/components/EmailConsentText";
 
 import { useState } from "react";
 
@@ -104,6 +105,10 @@ const ContactPage = () => {
               placeholder="Your Email"
               className="border border-gray-300 px-4 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
               required
+            />
+            <EmailConsentText
+              className="md:col-span-2"
+              linkClassName="hover:text-gray-700"
             />
             <textarea
               name="message"

@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import bgImage from "@/public/subscribe now.jpg"; // adjust path based on your setup
+import EmailConsentText from "@/components/EmailConsentText";
 
 const NewsLetter = () => {
   return (
@@ -37,6 +38,10 @@ const NewsLetter = () => {
             Subscribe
           </button>
         </div>
+        <EmailConsentText
+          className="mt-3 text-gray-200"
+          linkClassName="text-gray-200 hover:text-white"
+        />
       </div>
     </section>
   );
