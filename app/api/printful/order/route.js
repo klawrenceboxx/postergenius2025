@@ -102,8 +102,8 @@ export async function POST(request) {
       );
     }
 
-    if (!process.env.PRINTFUL_TOKEN) {
-      console.error("[Printful] Missing PRINTFUL_TOKEN environment variable");
+    if (!process.env.PRINTFUL_API_KEY) {
+      console.error("[Printful] Missing PRINTFUL_API_KEY environment variable");
       return NextResponse.json(
         { success: false, message: "Printful configuration missing" },
         { status: 500 }
@@ -162,9 +162,11 @@ export async function POST(request) {
       payload.external_id = externalId;
     }
 
+    console.log("[Printful] Creating order with payload:", payload);
+
     const headers = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.PRINTFUL_TOKEN}`,
+      Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
     };
 
     if (process.env.PRINTFUL_STORE_ID) {
