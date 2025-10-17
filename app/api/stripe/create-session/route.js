@@ -6,11 +6,12 @@ import Product from "@/models/Product";
 import Address from "@/models/Address";
 import Promo from "@/models/PromoModel";
 import { computePricing } from "@/lib/pricing";
+import { ensureProductCdnUrl } from "@/lib/cdn";
 import {
   calculateShippingRates,
   formatRecipientFromAddress,
   normalizeDimensions,
-  assertVariantId,
+  assertVariantIdForProduct,
   pickCheapestRate,
 } from "@/lib/printful";
 import { applyPromo } from "@/lib/promoCode";
@@ -51,6 +52,14 @@ export async function POST(request) {
       if (!product) {
         console.warn("⚠️ Product not found for ID:", item.productId);
         continue;
+      }
+
+      const cdnUrl = ensureProductCdnUrl(product);
+      if (!cdnUrl) {
+        console.warn(
+          "⚠️ Missing cdnUrl for product. Printful may not receive artwork.",
+          { productId: product._id }
+        );
       }
 
       const pricing = computePricing(product);
@@ -98,8 +107,11 @@ export async function POST(request) {
           normalizeDimensions(dimensions) ||
           normalizeDimensions(pricing.defaultPhysicalDimensions);
         try {
-          const variantId = assertVariantId(
-            normalizedDimensions || pricing.defaultPhysicalDimensions
+          const sizeForVariant =
+            dimensions || pricing.defaultPhysicalDimensions;
+          const variantId = assertVariantIdForProduct(
+            product,
+            sizeForVariant
           );
           physicalForPrintful.push({
             variant_id: variantId,

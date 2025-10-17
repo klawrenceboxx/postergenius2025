@@ -54,7 +54,11 @@ async function getProduct(slugOrId) {
     category: enriched.category || null,
     reviews: enriched.reviews || [],
     orientation: enriched.orientation || "portrait",
-    printfulEnabled: !!(enriched.printfulEnabled ?? enriched.PrintfulEnabled),
+    printfulEnabled: !!(
+      enriched.isPrintfulEnabled ??
+      enriched.printfulEnabled ??
+      enriched.PrintfulEnabled
+    ),
     detailsHtml:
       enriched.detailsHtml || "Premium materials and high-resolution print.",
     shippingHtml:

@@ -35,6 +35,12 @@ const EditProductPage = () => {
   const [digitalPrice, setDigitalPrice] = useState("6.5");
   const [orientation, setOrientation] = useState("portrait");
   const [printfulEnabled, setPrintfulEnabled] = useState(false);
+  const [printfulVariantIds, setPrintfulVariantIds] = useState({
+    small_12x18: "",
+    medium_18x24: "",
+    large_24x36: "",
+  });
+  const [printfulError, setPrintfulError] = useState("");
 
   const [digitalFile, setDigitalFile] = useState(null);
   const [removeDigitalFile, setRemoveDigitalFile] = useState(false);
@@ -85,9 +91,23 @@ const EditProductPage = () => {
           product.digitalPrice != null ? String(product.digitalPrice) : "6.5"
         );
         setExistingImages(product.image || []);
-        setPrintfulEnabled(
-          Boolean(product.printfulEnabled ?? product.PrintfulEnabled)
+        const remotePrintfulEnabled = Boolean(
+          product.isPrintfulEnabled ??
+            product.printfulEnabled ??
+            product.PrintfulEnabled
         );
+        setPrintfulEnabled(remotePrintfulEnabled);
+        setPrintfulVariantIds({
+          small_12x18: product.printfulVariantIds?.small_12x18
+            ? String(product.printfulVariantIds.small_12x18)
+            : "",
+          medium_18x24: product.printfulVariantIds?.medium_18x24
+            ? String(product.printfulVariantIds.medium_18x24)
+            : "",
+          large_24x36: product.printfulVariantIds?.large_24x36
+            ? String(product.printfulVariantIds.large_24x36)
+            : "",
+        });
         setOrientation(product.orientation || "portrait");
 
         const hasFile = Boolean(
@@ -140,6 +160,30 @@ const EditProductPage = () => {
 
     setSaving(true);
     try {
+      const trimmedVariants = {
+        small_12x18: printfulVariantIds.small_12x18.trim(),
+        medium_18x24: printfulVariantIds.medium_18x24.trim(),
+        large_24x36: printfulVariantIds.large_24x36.trim(),
+      };
+
+      if (printfulEnabled) {
+        const invalidEntry = Object.entries(trimmedVariants).find(([_, value]) => {
+          if (!value) return true;
+          const numeric = Number(value);
+          return !Number.isFinite(numeric) || numeric <= 0;
+        });
+
+        if (invalidEntry) {
+          setPrintfulError(
+            "All Printful variant IDs must be provided as positive numbers when Printful integration is enabled."
+          );
+          setSaving(false);
+          return;
+        }
+      }
+
+      setPrintfulError("");
+
       const token = await getToken();
       const formData = new FormData();
       formData.append("name", name);
@@ -153,7 +197,16 @@ const EditProductPage = () => {
       formData.append("digitalPrice", digitalPrice);
       formData.append("existingImages", JSON.stringify(existingImages));
       formData.append("printfulEnabled", printfulEnabled ? "true" : "false");
+      formData.append("isPrintfulEnabled", printfulEnabled ? "true" : "false");
       formData.append("orientation", orientation);
+      formData.append(
+        "printfulVariantIds",
+        JSON.stringify({
+          small_12x18: trimmedVariants.small_12x18 || null,
+          medium_18x24: trimmedVariants.medium_18x24 || null,
+          large_24x36: trimmedVariants.large_24x36 || null,
+        })
+      );
 
       files.forEach((file) => {
         if (file) {
@@ -475,12 +528,88 @@ const EditProductPage = () => {
             type="checkbox"
             className="h-4 w-4"
             checked={printfulEnabled}
-            onChange={(e) => setPrintfulEnabled(e.target.checked)}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setPrintfulEnabled(checked);
+              if (!checked) {
+                setPrintfulError("");
+              }
+            }}
           />
           <label htmlFor="printful-enabled" className="text-base font-medium">
             Enable Printful fulfillment
           </label>
         </div>
+
+        {printfulEnabled && (
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600">
+              Enter the Printful variant ID that corresponds to each poster size.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium" htmlFor="variant-12x18">
+                  12×18 Variant ID
+                </label>
+                <input
+                  id="variant-12x18"
+                  type="number"
+                  inputMode="numeric"
+                  className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+                  value={printfulVariantIds.small_12x18}
+                  onChange={(event) =>
+                    setPrintfulVariantIds((prev) => ({
+                      ...prev,
+                      small_12x18: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium" htmlFor="variant-18x24">
+                  18×24 Variant ID
+                </label>
+                <input
+                  id="variant-18x24"
+                  type="number"
+                  inputMode="numeric"
+                  className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+                  value={printfulVariantIds.medium_18x24}
+                  onChange={(event) =>
+                    setPrintfulVariantIds((prev) => ({
+                      ...prev,
+                      medium_18x24: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium" htmlFor="variant-24x36">
+                  24×36 Variant ID
+                </label>
+                <input
+                  id="variant-24x36"
+                  type="number"
+                  inputMode="numeric"
+                  className="outline-none md:py-2.5 py-2 px-3 rounded border border-gray-500/40"
+                  value={printfulVariantIds.large_24x36}
+                  onChange={(event) =>
+                    setPrintfulVariantIds((prev) => ({
+                      ...prev,
+                      large_24x36: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+            </div>
+            {printfulError && (
+              <p className="text-sm text-red-600">{printfulError}</p>
+            )}
+          </div>
+        )}
 
         <div className="flex items-center gap-3 pt-2">
           <button

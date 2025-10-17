@@ -83,9 +83,42 @@ export async function PUT(request, { params }) {
     const digitalDiscount = formData.get("digitalDiscount");
     const digitalPrice = formData.get("digitalPrice");
     const orientation = formData.get("orientation");
-    const printfulEnabled =
+    const rawPrintfulEnabled =
       formData.get("printfulEnabled") === "true" ||
       formData.get("printfulEnabled") === "on";
+    const rawIsPrintfulEnabled =
+      formData.get("isPrintfulEnabled") === "true" ||
+      formData.get("isPrintfulEnabled") === "on";
+    const printfulEnabled = rawPrintfulEnabled || rawIsPrintfulEnabled;
+    const variantIdsRaw = formData.get("printfulVariantIds");
+    const coerceVariantId = (value) => {
+      if (value === undefined || value === null || value === "") return null;
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric) || numeric <= 0) {
+        return null;
+      }
+      return numeric;
+    };
+    let printfulVariantIds = {
+      small_12x18: null,
+      medium_18x24: null,
+      large_24x36: null,
+    };
+
+    if (variantIdsRaw) {
+      try {
+        const parsed = JSON.parse(variantIdsRaw);
+        if (parsed && typeof parsed === "object") {
+          printfulVariantIds = {
+            small_12x18: coerceVariantId(parsed.small_12x18),
+            medium_18x24: coerceVariantId(parsed.medium_18x24),
+            large_24x36: coerceVariantId(parsed.large_24x36),
+          };
+        }
+      } catch (error) {
+        console.warn("Failed to parse printfulVariantIds", error);
+      }
+    }
     const digitalFile = formData.get("digitalFile");
     const removeDigitalFile =
       formData.get("removeDigitalFile") === "true" ||
@@ -118,6 +151,29 @@ export async function PUT(request, { params }) {
     const product = await Product.findById(params.id);
     if (!product) {
       return NextResponse.json({ success: false, message: "Product not found" });
+    }
+
+    const fallbackVariants = product.printfulVariantIds || {};
+    printfulVariantIds = {
+      small_12x18:
+        printfulVariantIds.small_12x18 ?? coerceVariantId(fallbackVariants.small_12x18),
+      medium_18x24:
+        printfulVariantIds.medium_18x24 ?? coerceVariantId(fallbackVariants.medium_18x24),
+      large_24x36:
+        printfulVariantIds.large_24x36 ?? coerceVariantId(fallbackVariants.large_24x36),
+    };
+
+    if (printfulEnabled) {
+      const missingVariant = Object.entries(printfulVariantIds).find(
+        ([, value]) => value === null
+      );
+      if (missingVariant) {
+        return NextResponse.json({
+          success: false,
+          message:
+            "Printful variant IDs for 12×18, 18×24, and 24×36 are required when Printful integration is enabled.",
+        });
+      }
     }
 
     if (!name || !description || !category) {
@@ -207,6 +263,8 @@ export async function PUT(request, { params }) {
     product.price = mPrice;
     product.offerPrice = null;
     product.printfulEnabled = printfulEnabled;
+    product.isPrintfulEnabled = printfulEnabled;
+    product.printfulVariantIds = printfulVariantIds;
     product.digitalPrice = Math.round(normalizedDigitalPrice * 100) / 100;
     product.orientation = normalizedOrientation;
 
