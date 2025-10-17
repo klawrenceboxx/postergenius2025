@@ -13,6 +13,7 @@ const nextConfig = {
                 pathname: '**',
             },
         ],
+        domains: ['res.cloudinary.com', 'd1mhf9senw3mzj.cloudfront.net'],
     },
 };
 

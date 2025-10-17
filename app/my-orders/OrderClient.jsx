@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 import Image from "next/image";
 import { orderDummyData } from "@/assets/assets";
 import Loading from "@/components/Loading";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const OrderConfirmationWithOrders = () => {
   const { setCartItems, getToken, user, currency } = useAppContext();
@@ -178,11 +179,12 @@ const OrderConfirmationWithOrders = () => {
                             {productImage ? (
                               <Image
                                 key={i}
-                                src={productImage}
+                                {...getOptimizedImageProps(productImage, { variant: "thumbnail" })}
                                 alt={productName}
                                 className="max-w-16 max-h-16 object-cover"
                                 width={64}
                                 height={64}
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                               />
                             ) : (
                               <div className="flex h-16 w-16 items-center justify-center rounded border border-dashed border-gray-300 text-center text-[10px] text-gray-500">

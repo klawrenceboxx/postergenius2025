@@ -1,6 +1,7 @@
 import React from "react";
 import { assets } from "@/assets/assets";
 import Image from "next/image";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 import Link from "next/link";
 
 const Footer = () => {
@@ -25,11 +26,15 @@ const Footer = () => {
   ];
 
   return (
-    <footer aria-label="Site footer" className="bg-white text-gray-500">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-14 border-b border-gray-500/30 md:flex-row md:flex-wrap md:justify-between md:px-16">
-        <div className="max-w-md space-y-6">
-          <Image className="w-28 md:w-32" src={assets.logo} alt="PosterGenius logo" />
-          <p className="text-sm leading-6">
+    <footer>
+      <div className="flex flex-col md:flex-row items-start justify-center px-6 md:px-16  gap-10 py-14 border-b border-gray-500/30 text-gray-500">
+        <div className="w-4/5">
+          <Image
+            {...getOptimizedImageProps(assets.logo)}
+            className="w-28 md:w-32"
+            alt="logo"
+          />
+          <p className="mt-6 text-sm">
             At PosterGenius, we bring walls to life. Whether you&apos;re looking for
             bold, cinematic art or minimalist designs, our curated poster
             collections help you express what matters most. Designed for

@@ -1,6 +1,7 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
+import Image from "next/image";
 import React from "react";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 /** Calibrate each physical room mockup once using percentages (scales at all widths). */
 const mockups = [
@@ -68,10 +69,13 @@ export default function PosterMockupViewer({
         className="relative w-full bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center p-4"
         style={{ aspectRatio: "16 / 9" }}
       >
-        <img
-          src={posterUrl}
+        <Image
+          {...getOptimizedImageProps(posterUrl, { variant: "detail" })}
           alt="Poster (Digital)"
+          width={1200}
+          height={1800}
           className="max-h-[90%] max-w-[80%] object-contain shadow"
+          sizes="(max-width: 1024px) 80vw, 60vw"
         />
         <div className="absolute top-3 right-3 bg-blue-600 text-white text-[10px] px-2 py-1 rounded-full shadow">
           DIGITAL
@@ -105,15 +109,19 @@ export default function PosterMockupViewer({
             aria-label={`Show mockup ${idx + 1}`}
           >
             <div className="relative w-16 h-16 overflow-hidden rounded">
-              <img
-                src={mk.src}
+              <Image
+                {...getOptimizedImageProps(mk.src)}
                 alt=""
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="64px"
                 style={{ objectPosition: mk.objectPosition }}
               />
-              <img
-                src={posterUrl}
+              <Image
+                {...getOptimizedImageProps(posterUrl, { variant: "thumbnail" })}
                 alt=""
+                width={600}
+                height={900}
                 className="absolute"
                 style={{
                   top: `${mk.posterTopPct}%`,
@@ -123,6 +131,7 @@ export default function PosterMockupViewer({
                   height: "auto",
                   boxShadow: "-1px 1px 2px rgba(0,0,0,0.3)",
                 }}
+                sizes="64px"
               />
             </div>
           </button>
@@ -134,15 +143,19 @@ export default function PosterMockupViewer({
         className="relative w-full bg-gray-100 rounded-lg overflow-hidden "
         style={{ aspectRatio: "16 / 9" }}
       >
-        <img
-          src={m.src}
+        <Image
+          {...getOptimizedImageProps(m.src)}
           alt="Room mockup"
-          className="absolute inset-0 w-full h-full object-cover"
+          fill
+          className="object-cover"
+          sizes="(max-width: 1024px) 100vw, 60vw"
           style={{ objectPosition: m.objectPosition }}
         />
-        <img
-          src={posterUrl}
+        <Image
+          {...getOptimizedImageProps(posterUrl, { variant: "detail" })}
           alt="Poster"
+          width={900}
+          height={1350}
           className="absolute transition-all duration-300 ease-in-out"
           style={{
             top: `${m.posterTopPct}%`,
@@ -153,6 +166,7 @@ export default function PosterMockupViewer({
             boxShadow: "-3px 3px 2px rgba(0,0,0,0.3)",
             zIndex: 2,
           }}
+          sizes="(max-width: 1024px) 60vw, 40vw"
         />
       </div>
     </div>

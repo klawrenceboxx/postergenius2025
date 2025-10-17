@@ -11,6 +11,7 @@ import Loading from "@/components/Loading";
 import { useAppContext } from "@/context/AppContext";
 import { CATEGORIES } from "@/src/constants/categories";
 import { PRINTFUL_POSTER_VARIANTS } from "@/config/printfulVariants";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const createDefaultPrintfulVariantState = () => ({
   small_12x18: PRINTFUL_POSTER_VARIANTS["12x18"]
@@ -265,11 +266,12 @@ const EditProductPage = () => {
               {existingImages.map((image, index) => (
                 <div key={image} className="relative">
                   <Image
-                    src={image}
+                    {...getOptimizedImageProps(image, { variant: "thumbnail" })}
                     alt="Product image"
                     className="max-w-24 rounded"
                     width={100}
                     height={100}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   />
                   <button
                     type="button"
@@ -303,12 +305,12 @@ const EditProductPage = () => {
                   hidden
                 />
                 <Image
-                  className="max-w-24 cursor-pointer"
-                  src={
+                  {...getOptimizedImageProps(
                     files[index]
                       ? URL.createObjectURL(files[index])
                       : assets.upload_area
-                  }
+                  )}
+                  className="max-w-24 cursor-pointer"
                   alt="Upload placeholder"
                   width={100}
                   height={100}

@@ -7,6 +7,7 @@ import Footer from "@/components/seller/Footer";
 import Loading from "@/components/Loading";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const POLL_INTERVAL = 15000;
 
@@ -124,8 +125,8 @@ const Orders = () => {
             <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
               <div className="flex gap-4">
                 <Image
+                  {...getOptimizedImageProps(assets.box_icon)}
                   className="h-14 w-14 object-contain"
-                  src={assets.box_icon}
                   alt="Order icon"
                 />
                 <div className="space-y-1 text-sm">
