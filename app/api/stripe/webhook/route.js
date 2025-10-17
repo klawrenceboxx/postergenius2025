@@ -124,6 +124,14 @@ export async function POST(req) {
         }
 
         const pricing = computePricing(product);
+        const files = cdnUrl
+          ? [
+              {
+                type: "default",
+                url: cdnUrl,
+              },
+            ]
+          : undefined;
         const format = String(entry?.format || "physical").toLowerCase();
         let unitPrice =
           format === "digital"
@@ -154,6 +162,7 @@ export async function POST(req) {
             quantity,
             retail_price: unitPrice.toFixed(2),
             name: product.name,
+            files,
           });
         }
 

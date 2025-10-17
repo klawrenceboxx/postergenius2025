@@ -82,10 +82,20 @@ async function buildPhysicalItems(items = []) {
       priceRecord?.finalPrice ?? pricing.defaultPhysicalFinalPrice
     );
 
+    const files = cdnUrl
+      ? [
+          {
+            type: "default",
+            url: cdnUrl,
+          },
+        ]
+      : undefined;
+
     physicalItems.push({
       variant_id: variantId,
       quantity,
       retail_price: unitPrice ? unitPrice.toFixed(2) : undefined,
+      files,
     });
   }
 
@@ -149,13 +159,18 @@ export async function POST(request) {
     const payload = {
       shipping,
       recipient,
-      items: physicalItems.map(({ variant_id, quantity, retail_price }) => {
-        const entry = { variant_id, quantity };
-        if (retail_price) {
-          entry.retail_price = retail_price;
+      items: physicalItems.map(
+        ({ variant_id, quantity, retail_price, files }) => {
+          const entry = { variant_id, quantity };
+          if (retail_price) {
+            entry.retail_price = retail_price;
+          }
+          if (Array.isArray(files) && files.length > 0) {
+            entry.files = files;
+          }
+          return entry;
         }
-        return entry;
-      }),
+      ),
     };
 
     if (externalId) {
