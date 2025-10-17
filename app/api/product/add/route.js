@@ -5,6 +5,7 @@ import connectDB from "@/config/db";
 import Product from "@/models/Product";
 import { NextResponse } from "next/server";
 import { uploadFileToS3 } from "@/lib/s3";
+import { toCdnUrl } from "@/lib/cdn";
 import { validateDigitalFile } from "@/lib/digitalFiles";
 
 // Configure Cloudinary
@@ -118,21 +119,45 @@ export async function POST(request) {
 
     const image = result.map((result) => result.secure_url);
 
-    let digitalFileMeta = { key: null, url: null };
-    let digitalFileName = null;
-
-    if (digitalFile && typeof digitalFile.arrayBuffer === "function") {
-      const { ok, error } = validateDigitalFile(digitalFile);
-      if (!ok) {
-        return NextResponse.json({
-          success: false,
-          message: error,
-        });
-      }
-      digitalFileMeta = await uploadFileToS3(digitalFile, {
-        keyPrefix: `products/${userId}`,
+    if (!digitalFile || typeof digitalFile.arrayBuffer !== "function") {
+      return NextResponse.json({
+        success: false,
+        message: "A printable file upload is required for each product.",
       });
-      digitalFileName = digitalFile.name || null;
+    }
+
+    const { ok, error } = validateDigitalFile(digitalFile);
+    if (!ok) {
+      return NextResponse.json({
+        success: false,
+        message: error,
+      });
+    }
+
+    const digitalFileMeta = await uploadFileToS3(digitalFile, {
+      keyPrefix: `products/${userId}`,
+    });
+    const digitalFileName = digitalFile.name || null;
+
+    const fallbackS3Url =
+      digitalFileMeta.url ||
+      (digitalFileMeta.key
+        ? `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${digitalFileMeta.key}`
+        : null);
+
+    if (!fallbackS3Url) {
+      return NextResponse.json({
+        success: false,
+        message: "Failed to determine the S3 location for the uploaded file.",
+      });
+    }
+
+    const derivedCdnUrl = toCdnUrl(fallbackS3Url);
+    if (!derivedCdnUrl) {
+      return NextResponse.json({
+        success: false,
+        message: "Failed to derive the CloudFront URL for the uploaded file.",
+      });
     }
 
     // Save product
@@ -152,11 +177,10 @@ export async function POST(request) {
       printfulEnabled,
       digitalFileKey: digitalFileMeta.key,
       digitalFileUrl:
-        digitalFileMeta.url ||
-        (digitalFileMeta.key
-          ? `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${digitalFileMeta.key}`
-          : null),
+        fallbackS3Url,
       digitalFileName,
+      s3Url: fallbackS3Url,
+      cdnUrl: derivedCdnUrl,
       orientation: normalizedOrientation,
       date: Date.now(),
     });

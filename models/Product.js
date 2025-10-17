@@ -21,6 +21,8 @@ const productSchema = new mongoose.Schema({
   digitalFileKey: { type: String, default: null },
   digitalFileUrl: { type: String, default: null },
   digitalFileName: { type: String, default: null },
+  s3Url: { type: String, required: true },
+  cdnUrl: { type: String, required: false, default: null },
   orientation: {
     type: String,
     enum: ["portrait", "landscape"],
