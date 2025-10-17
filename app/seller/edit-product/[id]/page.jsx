@@ -10,6 +10,19 @@ import { assets } from "@/assets/assets";
 import Loading from "@/components/Loading";
 import { useAppContext } from "@/context/AppContext";
 import { CATEGORIES } from "@/src/constants/categories";
+import { PRINTFUL_POSTER_VARIANTS } from "@/config/printfulVariants";
+
+const createDefaultPrintfulVariantState = () => ({
+  small_12x18: PRINTFUL_POSTER_VARIANTS["12x18"]
+    ? String(PRINTFUL_POSTER_VARIANTS["12x18"])
+    : "",
+  medium_18x24: PRINTFUL_POSTER_VARIANTS["18x24"]
+    ? String(PRINTFUL_POSTER_VARIANTS["18x24"])
+    : "",
+  large_24x36: PRINTFUL_POSTER_VARIANTS["24x36"]
+    ? String(PRINTFUL_POSTER_VARIANTS["24x36"])
+    : "",
+});
 
 const EditProductPage = () => {
   const params = useParams();
@@ -35,11 +48,9 @@ const EditProductPage = () => {
   const [digitalPrice, setDigitalPrice] = useState("6.5");
   const [orientation, setOrientation] = useState("portrait");
   const [printfulEnabled, setPrintfulEnabled] = useState(false);
-  const [printfulVariantIds, setPrintfulVariantIds] = useState({
-    small_12x18: "",
-    medium_18x24: "",
-    large_24x36: "",
-  });
+  const [printfulVariantIds, setPrintfulVariantIds] = useState(
+    createDefaultPrintfulVariantState
+  );
   const [printfulError, setPrintfulError] = useState("");
 
   const [digitalFile, setDigitalFile] = useState(null);
@@ -97,16 +108,17 @@ const EditProductPage = () => {
             product.PrintfulEnabled
         );
         setPrintfulEnabled(remotePrintfulEnabled);
+        const defaultVariants = createDefaultPrintfulVariantState();
         setPrintfulVariantIds({
           small_12x18: product.printfulVariantIds?.small_12x18
             ? String(product.printfulVariantIds.small_12x18)
-            : "",
+            : defaultVariants.small_12x18,
           medium_18x24: product.printfulVariantIds?.medium_18x24
             ? String(product.printfulVariantIds.medium_18x24)
-            : "",
+            : defaultVariants.medium_18x24,
           large_24x36: product.printfulVariantIds?.large_24x36
             ? String(product.printfulVariantIds.large_24x36)
-            : "",
+            : defaultVariants.large_24x36,
         });
         setOrientation(product.orientation || "portrait");
 
