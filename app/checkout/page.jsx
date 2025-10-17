@@ -212,37 +212,29 @@ const CheckoutPage = () => {
         return;
       }
 
-      const totalPrice = Object.values(cartItems).reduce((sum, item) => {
-        if (!item || typeof item !== "object") return sum;
-        const quantity = Number(item.quantity || 0);
-        const price = Number(item.price || 0);
-        if (!Number.isFinite(quantity) || !Number.isFinite(price)) {
-          return sum;
-        }
-        return sum + quantity * price;
-      }, 0);
-
-      const payload = {
-        guestId: activeGuestId,
-        cartItems,
-        shippingAddress,
-        totalPrice: Math.round(totalPrice * 100) / 100,
-        shippingPrice: 0,
-        taxPrice: 0,
-      };
-
-      const { data } = await axios.post("/api/order/create", payload, {
-        headers,
-      });
+      const { data } = await axios.post(
+        "/api/printful/create-order",
+        {
+          guestId: activeGuestId,
+          shippingAddress,
+          shipping: "STANDARD",
+        },
+        { headers }
+      );
 
       if (data?.success) {
-        toast.success("Order placed successfully!");
+        const orderId = data?.order?.id || data?.order?.external_id;
+        toast.success(
+          orderId
+            ? `Printful draft order ${orderId} created successfully!`
+            : "Printful draft order created successfully!"
+        );
         await fetchCart({ createGuestIfMissing: false });
         if (router?.push) {
           router.push("/order-success");
         }
       } else {
-        toast.error(data?.message || "Failed to place order");
+        toast.error(data?.message || "Failed to create Printful order");
       }
     } catch (error) {
       toast.error(

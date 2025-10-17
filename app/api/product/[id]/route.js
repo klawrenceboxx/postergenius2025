@@ -6,6 +6,7 @@ import connectDB from "@/config/db";
 import Product from "@/models/Product";
 import { uploadFileToS3, deleteFileFromS3 } from "@/lib/s3";
 import { validateDigitalFile } from "@/lib/digitalFiles";
+import { toCdnUrl } from "@/lib/cdn";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -232,10 +233,28 @@ export async function PUT(request, { params }) {
       const upload = await uploadFileToS3(digitalFile, {
         keyPrefix: `products/${ownerId}`,
       });
-      product.digitalFileKey = upload.key;
-      product.digitalFileUrl =
+      const fallbackS3Url =
         upload.url || buildS3PublicUrl(upload.key) || null;
+
+      if (!fallbackS3Url) {
+        return NextResponse.json({
+          success: false,
+          message: "Failed to determine the S3 location for the uploaded file.",
+        });
+      }
+
+      const derivedCdnUrl = toCdnUrl(fallbackS3Url);
+      if (!derivedCdnUrl) {
+        return NextResponse.json({
+          success: false,
+          message: "Failed to derive the CloudFront URL for the uploaded file.",
+        });
+      }
+      product.digitalFileKey = upload.key;
+      product.digitalFileUrl = fallbackS3Url;
       product.digitalFileName = digitalFile.name || null;
+      product.s3Url = fallbackS3Url;
+      product.cdnUrl = derivedCdnUrl;
       if (previousDigitalFileKey && previousDigitalFileKey !== upload.key) {
         digitalFileKeyToDelete = previousDigitalFileKey;
       }
@@ -246,6 +265,17 @@ export async function PUT(request, { params }) {
       product.digitalFileKey = null;
       product.digitalFileUrl = null;
       product.digitalFileName = null;
+      product.s3Url = "";
+      product.cdnUrl = null;
+    }
+
+    if (!product.s3Url) {
+      const fallbackExistingUrl =
+        product.digitalFileUrl || buildS3PublicUrl(product.digitalFileKey);
+      if (fallbackExistingUrl) {
+        product.s3Url = fallbackExistingUrl;
+        product.cdnUrl = toCdnUrl(fallbackExistingUrl);
+      }
     }
 
     await product.save();
