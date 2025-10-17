@@ -4,6 +4,7 @@ import { AppContextProvider } from "@/context/AppContext";
 import { Toaster } from "react-hot-toast";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Poppins } from "next/font/google";
+import SlideInOptIn from "@/components/SlideInOptIn";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -78,6 +79,7 @@ export default function RootLayout({ children }) {
             <div className="mx-auto w-full max-w-content px-6 md:px-8 lg:px-0">
               {children}
             </div>
+            <SlideInOptIn />
           </AppContextProvider>
         </body>
       </html>
