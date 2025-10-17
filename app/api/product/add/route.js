@@ -6,6 +6,7 @@ import Product from "@/models/Product";
 import { NextResponse } from "next/server";
 import { uploadFileToS3 } from "@/lib/s3";
 import { validateDigitalFile } from "@/lib/digitalFiles";
+import { PRINTFUL_POSTER_VARIANTS } from "@/config/printfulVariants";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -57,6 +58,12 @@ export async function POST(request) {
       large_24x36: null,
     };
 
+    const defaultPosterVariants = {
+      small_12x18: coerceVariantId(PRINTFUL_POSTER_VARIANTS["12x18"]),
+      medium_18x24: coerceVariantId(PRINTFUL_POSTER_VARIANTS["18x24"]),
+      large_24x36: coerceVariantId(PRINTFUL_POSTER_VARIANTS["24x36"]),
+    };
+
     if (variantIdsRaw) {
       try {
         const parsed = JSON.parse(variantIdsRaw);
@@ -71,6 +78,15 @@ export async function POST(request) {
         console.warn("Failed to parse printfulVariantIds", error);
       }
     }
+
+    printfulVariantIds = {
+      small_12x18:
+        printfulVariantIds.small_12x18 ?? defaultPosterVariants.small_12x18,
+      medium_18x24:
+        printfulVariantIds.medium_18x24 ?? defaultPosterVariants.medium_18x24,
+      large_24x36:
+        printfulVariantIds.large_24x36 ?? defaultPosterVariants.large_24x36,
+    };
 
     if (printfulEnabled) {
       const missingVariant = Object.entries(printfulVariantIds).find(

@@ -6,6 +6,7 @@ import connectDB from "@/config/db";
 import Product from "@/models/Product";
 import { uploadFileToS3, deleteFileFromS3 } from "@/lib/s3";
 import { validateDigitalFile } from "@/lib/digitalFiles";
+import { PRINTFUL_POSTER_VARIANTS } from "@/config/printfulVariants";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -105,6 +106,12 @@ export async function PUT(request, { params }) {
       large_24x36: null,
     };
 
+    const defaultPosterVariants = {
+      small_12x18: coerceVariantId(PRINTFUL_POSTER_VARIANTS["12x18"]),
+      medium_18x24: coerceVariantId(PRINTFUL_POSTER_VARIANTS["18x24"]),
+      large_24x36: coerceVariantId(PRINTFUL_POSTER_VARIANTS["24x36"]),
+    };
+
     if (variantIdsRaw) {
       try {
         const parsed = JSON.parse(variantIdsRaw);
@@ -161,6 +168,15 @@ export async function PUT(request, { params }) {
         printfulVariantIds.medium_18x24 ?? coerceVariantId(fallbackVariants.medium_18x24),
       large_24x36:
         printfulVariantIds.large_24x36 ?? coerceVariantId(fallbackVariants.large_24x36),
+    };
+
+    printfulVariantIds = {
+      small_12x18:
+        printfulVariantIds.small_12x18 ?? defaultPosterVariants.small_12x18,
+      medium_18x24:
+        printfulVariantIds.medium_18x24 ?? defaultPosterVariants.medium_18x24,
+      large_24x36:
+        printfulVariantIds.large_24x36 ?? defaultPosterVariants.large_24x36,
     };
 
     if (printfulEnabled) {

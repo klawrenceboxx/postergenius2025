@@ -6,6 +6,19 @@ import { useAppContext } from "@/context/AppContext";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { CATEGORIES } from "@/src/constants/categories";
+import { PRINTFUL_POSTER_VARIANTS } from "@/config/printfulVariants";
+
+const createDefaultPrintfulVariantState = () => ({
+  small_12x18: PRINTFUL_POSTER_VARIANTS["12x18"]
+    ? String(PRINTFUL_POSTER_VARIANTS["12x18"])
+    : "",
+  medium_18x24: PRINTFUL_POSTER_VARIANTS["18x24"]
+    ? String(PRINTFUL_POSTER_VARIANTS["18x24"])
+    : "",
+  large_24x36: PRINTFUL_POSTER_VARIANTS["24x36"]
+    ? String(PRINTFUL_POSTER_VARIANTS["24x36"])
+    : "",
+});
 
 const AddProduct = () => {
   const { getToken } = useAppContext();
@@ -26,11 +39,9 @@ const AddProduct = () => {
   const [digitalPrice, setDigitalPrice] = useState("6.5");
   const [orientation, setOrientation] = useState("portrait"); // 🆕 orientation
   const [printfulEnabled, setPrintfulEnabled] = useState(false);
-  const [printfulVariantIds, setPrintfulVariantIds] = useState({
-    small_12x18: "",
-    medium_18x24: "",
-    large_24x36: "",
-  });
+  const [printfulVariantIds, setPrintfulVariantIds] = useState(
+    createDefaultPrintfulVariantState
+  );
   const [printfulError, setPrintfulError] = useState("");
 
   const handleSubmit = async (e) => {
@@ -115,11 +126,7 @@ const AddProduct = () => {
         setDigitalPrice("6.5");
         setOrientation("portrait"); // reset 🆕
         setPrintfulEnabled(false);
-        setPrintfulVariantIds({
-          small_12x18: "",
-          medium_18x24: "",
-          large_24x36: "",
-        });
+        setPrintfulVariantIds(createDefaultPrintfulVariantState());
         setPrintfulError("");
       } else {
         toast.error(data.message);
