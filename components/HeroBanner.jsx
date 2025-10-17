@@ -2,15 +2,15 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { assets } from "@/assets/assets";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 const HeroBanner = () => {
   return (
     <div className="flex relative w-full  min-h-[480px] md:min-h-[560px]  items-center rounded-lg overflow-hidden mt-6">
       <Image
-        src={assets.peacock_hero}
+        {...getOptimizedImageProps(assets.peacock_hero)}
         alt="Peacock hero"
         fill
         className="object-cover"
-        priority
       />
       <div className="relative z-10 max-w-xl pl-6 md:pl-10">
         <h1 className="text-4xl md:text-5xl font-extrabold text-white drop-shadow-md leading-tight">

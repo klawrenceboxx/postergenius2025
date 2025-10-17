@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 // Replace these with your real paths (the 3 photos you sent: dining peacocks, yellow peacock, lion canvas)
 const images = [
@@ -25,12 +26,12 @@ export default function CommunityMasonry() {
           {images.map((src, i) => (
             <figure key={i} className="mb-4 break-inside-avoid">
               <Image
-                src={src}
+                {...getOptimizedImageProps(src, { variant: "detail" })}
                 alt={`Community spotlight ${i + 1}`}
                 width={800}
                 height={1000}
                 className="w-full h-auto rounded-xl object-cover shadow-sm"
-                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               />
             </figure>
           ))}

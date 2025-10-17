@@ -7,6 +7,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { CATEGORIES } from "@/src/constants/categories";
 import { PRINTFUL_POSTER_VARIANTS } from "@/config/printfulVariants";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const createDefaultPrintfulVariantState = () => ({
   small_12x18: PRINTFUL_POSTER_VARIANTS["12x18"]
@@ -157,12 +158,12 @@ const AddProduct = () => {
                 />
                 <Image
                   key={index}
-                  className="max-w-24 cursor-pointer"
-                  src={
+                  {...getOptimizedImageProps(
                     files[index]
                       ? URL.createObjectURL(files[index])
                       : assets.upload_area
-                  }
+                  )}
+                  className="max-w-24 cursor-pointer"
                   alt=""
                   width={100}
                   height={100}

@@ -6,6 +6,7 @@ import OrderSummary from "@/components/OrderSummary";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import { useAppContext } from "@/context/AppContext";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const Cart = () => {
   const { products, router, cartItems, updateCartQuantity, getCartCount } =
@@ -78,11 +79,12 @@ const Cart = () => {
                         <div>
                           <div className="rounded-lg overflow-hidden bg-gray-100 p-2 shadow-sm">
                             <Image
-                              src={imageUrl}
+                              {...getOptimizedImageProps(imageUrl, { variant: "thumbnail" })}
                               alt={title}
                               className="w-16 h-auto object-cover"
                               width={1280}
                               height={720}
+                              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             />
                           </div>
                           <button
@@ -124,7 +126,7 @@ const Cart = () => {
                             className="p-1 rounded-full hover:bg-secondary/20 transition"
                           >
                             <Image
-                              src={assets.decrease_arrow}
+                              {...getOptimizedImageProps(assets.decrease_arrow)}
                               alt="decrease_arrow"
                               className="w-4 h-4"
                             />
@@ -144,7 +146,7 @@ const Cart = () => {
                             className="p-1 rounded-full hover:bg-secondary/20 transition"
                           >
                             <Image
-                              src={assets.increase_arrow}
+                              {...getOptimizedImageProps(assets.increase_arrow)}
                               alt="increase_arrow"
                               className="w-4 h-4"
                             />
@@ -169,8 +171,8 @@ const Cart = () => {
             className="group flex items-center mt-6 gap-2 text-primary hover:text-tertiary transition-colors"
           >
             <Image
+              {...getOptimizedImageProps(assets.arrow_right_icon_colored)}
               className="group-hover:-translate-x-1 transition-transform"
-              src={assets.arrow_right_icon_colored}
               alt="arrow_right_icon_colored"
             />
             Continue Shopping

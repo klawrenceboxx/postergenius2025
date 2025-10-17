@@ -1,9 +1,11 @@
+import Image from "next/image";
 import Script from "next/script";
 import "./globals.css";
 import { AppContextProvider } from "@/context/AppContext";
 import { Toaster } from "react-hot-toast";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Poppins } from "next/font/google";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -59,12 +61,15 @@ export default function RootLayout({ children }) {
             `}
           </Script>
           <noscript>
-            <img
-              height="1"
-              width="1"
+            <Image
+              {...getOptimizedImageProps(
+                "https://www.facebook.com/tr?id=1120594359291706&ev=PageView&noscript=1"
+              )}
+              height={1}
+              width={1}
               style={{ display: "none" }}
-              src="https://www.facebook.com/tr?id=1120594359291706&ev=PageView&noscript=1"
               alt="Facebook pixel tracking"
+              unoptimized
             />
           </noscript>
         </head>

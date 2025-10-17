@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { assets } from "../../assets/assets";
 import Image from "next/image";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 import { usePathname } from "next/navigation";
 
 const SideBar = () => {
@@ -33,7 +34,7 @@ const SideBar = () => {
               }`}
             >
               <Image
-                src={item.icon}
+                {...getOptimizedImageProps(item.icon)}
                 alt={`${item.name.toLowerCase()}_icon`}
                 className="w-7 h-7"
               />

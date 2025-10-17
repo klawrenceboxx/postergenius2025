@@ -8,6 +8,7 @@ import { useClerk, UserButton } from "@clerk/nextjs";
 import TopBanner from "@/components/TopBanner";
 import { Heart } from "lucide-react";
 import toast from "react-hot-toast";
+import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const Navbar = () => {
   const { isAdmin, router, user, getCartCount, getWishlistCount } =
@@ -52,9 +53,9 @@ const Navbar = () => {
       <TopBanner />
       <nav className="sticky top-0 z-50 bg-white flex items-center justify-between px-6 md:px-16 lg:px-16 py-3 border-b border-gray-300 text-gray-600 relative">
         <Image
+          {...getOptimizedImageProps(assets.logo)}
           className="cursor-pointer w-24 md:w-28"
           onClick={() => router.push("/")}
-          src={assets.logo}
           alt="logo"
         />
         <div className="hidden lg:flex text-m items-center gap-4 lg:gap-12 font-[500] font-blackhex ">
@@ -88,7 +89,7 @@ const Navbar = () => {
              transition-all duration-300"
           >
             <Image
-              src={assets.search_icon}
+              {...getOptimizedImageProps(assets.search_icon)}
               alt="search"
               width={18}
               height={18}
@@ -126,8 +127,8 @@ const Navbar = () => {
           {/* cart */}
           <Link href="/cart" className="relative">
             <Image
+              {...getOptimizedImageProps(assets.cart_icon)}
               className="w-5 h-5"
-              src={assets.cart_icon}
               alt="cart icon"
               width={24}
               height={24}
@@ -177,8 +178,8 @@ const Navbar = () => {
               className="flex items-center gap-2 hover:text-gray-900 transition"
             >
               <Image
+                {...getOptimizedImageProps(assets.user_icon)}
                 className="w-5 h-5"
-                src={assets.user_icon}
                 alt="search icon"
                 width={24}
                 height={24}
@@ -211,8 +212,8 @@ const Navbar = () => {
 
           <Link href="/cart" className="relative">
             <Image
+              {...getOptimizedImageProps(assets.cart_icon)}
               className="w-6 h-6"
-              src={assets.cart_icon}
               alt="cart icon"
               width={24}
               height={24}
@@ -270,7 +271,10 @@ const Navbar = () => {
               onClick={openSignIn}
               className="flex items-center gap-2 hover:text-gray-900 transition"
             >
-              <Image src={assets.user_icon} alt="user icon" />
+              <Image
+                {...getOptimizedImageProps(assets.user_icon)}
+                alt="user icon"
+              />
               Account
             </button>
           )}
@@ -281,7 +285,12 @@ const Navbar = () => {
             aria-label="Toggle navigation menu"
             aria-expanded={isMenuOpen}
           >
-            <Image src={assets.menu_icon} alt="menu icon" width={18} height={18} />
+            <Image
+              {...getOptimizedImageProps(assets.menu_icon)}
+              alt="menu icon"
+              width={18}
+              height={18}
+            />
           </button>
         </div>
         <div
@@ -303,7 +312,7 @@ const Navbar = () => {
               className="flex items-center gap-2 border rounded-full px-4 py-2 focus-within:border-secondary focus-within:ring-2 focus-within:ring-secondary/30 transition-all duration-300"
             >
               <Image
-                src={assets.search_icon}
+                {...getOptimizedImageProps(assets.search_icon)}
                 alt="search"
                 width={18}
                 height={18}
