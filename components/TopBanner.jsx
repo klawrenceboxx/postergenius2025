@@ -68,7 +68,7 @@ const TopBanner = () => {
   // bg-red-600
 
   return (
-    <div className="sticky top-0 z-50 w-full bg-primary text-white">
+    <div className="w-full bg-primary text-white">
       <div className="mx-auto flex max-w-7xl items-center justify-center px-4 py-2 text-sm font-semibold sm:text-base">
         <span className="mr-2">
           🔥 Up to 35% off all posters! Use code: POSTER35
