@@ -12,6 +12,27 @@ import { useAppContext } from "@/context/AppContext";
 import { CATEGORIES } from "@/src/constants/categories";
 import { PRINTFUL_POSTER_VARIANTS } from "@/config/printfulVariants";
 
+export const metadata = {
+  title: "Edit Product | PosterGenius",
+  description:
+    "Update PosterGenius product details, pricing, imagery, and Printful settings directly from the seller portal.",
+  alternates: { canonical: "https://postergenius.ca/seller/edit-product" },
+  openGraph: {
+    title: "Edit Product | PosterGenius",
+    description:
+      "Update PosterGenius product details, pricing, imagery, and Printful settings directly from the seller portal.",
+    url: "https://postergenius.ca/seller/edit-product",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Edit Product | PosterGenius",
+    description:
+      "Update PosterGenius product details, pricing, imagery, and Printful settings directly from the seller portal.",
+  },
+};
+
 const createDefaultPrintfulVariantState = () => ({
   small_12x18: PRINTFUL_POSTER_VARIANTS["12x18"]
     ? String(PRINTFUL_POSTER_VARIANTS["12x18"])
@@ -258,6 +279,9 @@ const EditProductPage = () => {
   return (
     <div className="flex-1 min-h-screen flex flex-col justify-between">
       <form onSubmit={handleSubmit} className="md:p-10 p-4 space-y-5 max-w-2xl">
+        <h1 className="text-3xl font-semibold text-blackhex mb-6">
+          Edit Product | PosterGenius
+        </h1>
         <div>
           <p className="text-base font-medium">Current Images</p>
           {existingImages.length > 0 ? (

@@ -5,6 +5,27 @@ import Footer from "@/components/Footer";
 
 import { useState } from "react";
 
+export const metadata = {
+  title: "Contact Us | PosterGenius",
+  description:
+    "Reach the PosterGenius team for help with poster orders, shipping questions, or partnership inquiries.",
+  alternates: { canonical: "https://postergenius.ca/contact-us" },
+  openGraph: {
+    title: "Contact Us | PosterGenius",
+    description:
+      "Reach the PosterGenius team for help with poster orders, shipping questions, or partnership inquiries.",
+    url: "https://postergenius.ca/contact-us",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Contact Us | PosterGenius",
+    description:
+      "Reach the PosterGenius team for help with poster orders, shipping questions, or partnership inquiries.",
+  },
+};
+
 const ContactPage = () => {
   const [formData, setFormData] = useState({
     name: "",
@@ -58,7 +79,7 @@ const ContactPage = () => {
       <Navbar />
       <div className="flex flex-col px-6 md:px-16 lg:px-32 pt-12 pb-24 text-gray-700">
         <div className="flex flex-col items-end">
-          <p className="text-2xl font-medium">Contact Us</p>
+          <h1 className="text-2xl font-medium">Contact Us | PosterGenius</h1>
           <div className="w-16 h-0.5 bg-primary rounded-full"></div>
         </div>
 

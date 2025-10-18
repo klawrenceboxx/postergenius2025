@@ -10,6 +10,27 @@ import ProductOverlay from "@/components/ProductOverlay";
 import { useClerk, useUser } from "@clerk/nextjs";
 import toast from "react-hot-toast";
 
+export const metadata = {
+  title: "Wishlist | PosterGenius",
+  description:
+    "Save your favorite PosterGenius art prints to a wishlist so you can revisit and purchase them anytime.",
+  alternates: { canonical: "https://postergenius.ca/wishlist" },
+  openGraph: {
+    title: "Wishlist | PosterGenius",
+    description:
+      "Save your favorite PosterGenius art prints to a wishlist so you can revisit and purchase them anytime.",
+    url: "https://postergenius.ca/wishlist",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Wishlist | PosterGenius",
+    description:
+      "Save your favorite PosterGenius art prints to a wishlist so you can revisit and purchase them anytime.",
+  },
+};
+
 const WishlistPage = () => {
   const { products, wishlist, fetchWishlist } = useAppContext();
   const { openSignIn } = useClerk();
@@ -131,7 +152,7 @@ const WishlistPage = () => {
         <section className="mx-auto flex w-full max-w-6xl flex-col gap-12">
           <header className="flex flex-col gap-2 border-b border-gray-200 pb-6">
             <h1 className="text-3xl font-semibold text-blackhex md:text-4xl">
-              Your <span className="text-primary">Wishlist</span>
+              Wishlist <span className="text-primary">| PosterGenius</span>
             </h1>
             <p className="text-sm text-gray-500 md:text-base">
               Save posters you love and revisit them anytime. Move your

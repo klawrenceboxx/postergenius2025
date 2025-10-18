@@ -62,9 +62,9 @@ const HeaderSlider = () => {
             {/* bg-[url(/img/mountains.jpg)] */}
             <div className="md:pl-8 mt-10 md:mt-0">
               <p className="md:text-base text-orange-600 pb-1">{slide.offer}</p>
-              <h1 className="max-w-lg md:text-[40px] md:leading-[48px] text-2xl font-semibold">
+              <h2 className="max-w-lg md:text-[40px] md:leading-[48px] text-2xl font-semibold">
                 {slide.title}
-              </h1>
+              </h2>
               <div className="flex items-center mt-4 md:mt-6 ">
                 <button className="md:px-10 px-7 md:py-2.5 py-2 bg-orange-600 rounded-full text-white font-medium">
                   {slide.buttonText1}

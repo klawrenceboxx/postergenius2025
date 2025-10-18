@@ -7,6 +7,27 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { augmentProductWithPricing } from "@/lib/pricing";
 
+export const metadata = {
+  title: "Product Details | PosterGenius",
+  description:
+    "Explore PosterGenius product details, pricing options, and high-resolution artwork before adding to cart.",
+  alternates: { canonical: "https://postergenius.ca/product" },
+  openGraph: {
+    title: "Product Details | PosterGenius",
+    description:
+      "Explore PosterGenius product details, pricing options, and high-resolution artwork before adding to cart.",
+    url: "https://postergenius.ca/product",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Product Details | PosterGenius",
+    description:
+      "Explore PosterGenius product details, pricing options, and high-resolution artwork before adding to cart.",
+  },
+};
+
 async function getProduct(slugOrId) {
   await connectDB();
 
@@ -87,6 +108,7 @@ export default async function Page({ params }) {
       <>
         <Navbar />
         <div className="px-6 md:px-16 lg:px-32 pt-14">
+          <h1 className="sr-only">Product Details | PosterGenius</h1>
           <div className="px-4 py-6">Product not found.</div>
         </div>
         <Footer />
@@ -98,6 +120,7 @@ export default async function Page({ params }) {
     <>
       <Navbar />
       <div className="px-6 md:px-16 lg:px-16 pt-6 space-y-10">
+        <h1 className="sr-only">Product Details | PosterGenius</h1>
         {/* ProductPage/Infos must call addToCart with:
            {
              productId: product.productId,

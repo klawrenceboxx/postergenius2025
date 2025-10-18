@@ -8,6 +8,27 @@ import toast from "react-hot-toast";
 import { CATEGORIES } from "@/src/constants/categories";
 import { PRINTFUL_POSTER_VARIANTS } from "@/config/printfulVariants";
 
+export const metadata = {
+  title: "Seller Dashboard | PosterGenius",
+  description:
+    "Add new PosterGenius products, manage pricing, and sync Printful variants from the seller dashboard.",
+  alternates: { canonical: "https://postergenius.ca/seller" },
+  openGraph: {
+    title: "Seller Dashboard | PosterGenius",
+    description:
+      "Add new PosterGenius products, manage pricing, and sync Printful variants from the seller dashboard.",
+    url: "https://postergenius.ca/seller",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Seller Dashboard | PosterGenius",
+    description:
+      "Add new PosterGenius products, manage pricing, and sync Printful variants from the seller dashboard.",
+  },
+};
+
 const createDefaultPrintfulVariantState = () => ({
   small_12x18: PRINTFUL_POSTER_VARIANTS["12x18"]
     ? String(PRINTFUL_POSTER_VARIANTS["12x18"])
@@ -139,6 +160,9 @@ const AddProduct = () => {
   return (
     <div className="flex-1 min-h-screen flex flex-col justify-between">
       <form onSubmit={handleSubmit} className="md:p-10 p-4 space-y-5 max-w-lg">
+        <h1 className="text-3xl font-semibold text-blackhex mb-6">
+          Seller Dashboard | PosterGenius
+        </h1>
         {/* Images */}
         <div>
           <p className="text-base font-medium">Product Image</p>

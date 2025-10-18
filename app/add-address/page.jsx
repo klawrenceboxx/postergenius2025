@@ -8,6 +8,27 @@ import { useAppContext } from "@/context/AppContext";
 import axios from "axios";
 import toast from "react-hot-toast";
 
+export const metadata = {
+  title: "Add Shipping Address | PosterGenius",
+  description:
+    "Securely add a new shipping address to your PosterGenius account so your next poster ships to the right place.",
+  alternates: { canonical: "https://postergenius.ca/add-address" },
+  openGraph: {
+    title: "Add Shipping Address | PosterGenius",
+    description:
+      "Securely add a new shipping address to your PosterGenius account so your next poster ships to the right place.",
+    url: "https://postergenius.ca/add-address",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Add Shipping Address | PosterGenius",
+    description:
+      "Securely add a new shipping address to your PosterGenius account so your next poster ships to the right place.",
+  },
+};
+
 const AddAddress = () => {
   const { getToken, router } = useAppContext();
 
@@ -53,8 +74,7 @@ const AddAddress = () => {
       <div className="px-6 md:px-16 lg:px-32 py-16 flex flex-col md:flex-row justify-between">
         <form onSubmit={onSubmitHandler} className="w-full max-w-xl">
           <h1 className="text-2xl md:text-3xl text-blackhex">
-            Add Shipping{" "}
-            <span className="font-semibold text-primary">Address</span>
+            Add Shipping <span className="font-semibold text-primary">Address | PosterGenius</span>
           </h1>
 
           <div className="space-y-3 mt-10">

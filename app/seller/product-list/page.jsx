@@ -8,6 +8,27 @@ import Loading from "@/components/Loading";
 import axios from "axios";
 import toast from "react-hot-toast";
 
+export const metadata = {
+  title: "Seller Product List | PosterGenius",
+  description:
+    "View and manage all PosterGenius catalog entries, pricing, and availability from the seller product list.",
+  alternates: { canonical: "https://postergenius.ca/seller/product-list" },
+  openGraph: {
+    title: "Seller Product List | PosterGenius",
+    description:
+      "View and manage all PosterGenius catalog entries, pricing, and availability from the seller product list.",
+    url: "https://postergenius.ca/seller/product-list",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Seller Product List | PosterGenius",
+    description:
+      "View and manage all PosterGenius catalog entries, pricing, and availability from the seller product list.",
+  },
+};
+
 const ProductList = () => {
   const { router, getToken, user } = useAppContext();
 
@@ -75,7 +96,9 @@ const ProductList = () => {
         <Loading />
       ) : (
         <div className="w-full md:p-10 p-4">
-          <h2 className="pb-4 text-lg font-medium">All Product</h2>
+          <h1 className="pb-4 text-lg font-medium">
+            Seller Product List | PosterGenius
+          </h1>
           <div className="flex flex-col items-center max-w-4xl w-full overflow-hidden rounded-md bg-white border border-gray-500/20">
             <table className=" table-fixed w-full overflow-hidden">
               <thead className="text-gray-900 text-sm text-left">

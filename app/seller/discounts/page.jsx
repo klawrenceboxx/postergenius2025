@@ -3,6 +3,27 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 
+export const metadata = {
+  title: "Seller Discounts | PosterGenius",
+  description:
+    "Create promo codes and manage discount conditions for PosterGenius customers from the seller tools.",
+  alternates: { canonical: "https://postergenius.ca/seller/discounts" },
+  openGraph: {
+    title: "Seller Discounts | PosterGenius",
+    description:
+      "Create promo codes and manage discount conditions for PosterGenius customers from the seller tools.",
+    url: "https://postergenius.ca/seller/discounts",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Seller Discounts | PosterGenius",
+    description:
+      "Create promo codes and manage discount conditions for PosterGenius customers from the seller tools.",
+  },
+};
+
 const defaultFormState = {
   code: "",
   type: "flat",
@@ -97,7 +118,9 @@ export default function DiscountsPage() {
 
   return (
     <div className="p-8 max-w-3xl mx-auto w-full">
-      <h1 className="text-3xl font-semibold mb-6">Create Promo Code</h1>
+      <h1 className="text-3xl font-semibold mb-6">
+        Seller Discounts | PosterGenius
+      </h1>
       <form
         onSubmit={handleSubmit}
         className="space-y-6 bg-white shadow-sm rounded-lg p-6 border border-gray-100"

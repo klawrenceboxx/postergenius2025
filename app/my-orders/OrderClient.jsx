@@ -137,6 +137,9 @@ const OrderConfirmationWithOrders = () => {
     <>
       <Navbar />
       <div className="px-6 md:px-16 lg:px-32 py-6 min-h-screen">
+        <h1 className="text-3xl font-semibold text-blackhex mb-6">
+          My Orders | PosterGenius
+        </h1>
         {confirming ? (
           <p className="text-lg text-gray-500 text-center py-12">
             Confirming your order...

@@ -8,6 +8,27 @@ import Loading from "@/components/Loading";
 import axios from "axios";
 import toast from "react-hot-toast";
 
+export const metadata = {
+  title: "Seller Orders | PosterGenius",
+  description:
+    "Monitor PosterGenius order fulfillment, shipping updates, and Printful status from the seller orders dashboard.",
+  alternates: { canonical: "https://postergenius.ca/seller/orders" },
+  openGraph: {
+    title: "Seller Orders | PosterGenius",
+    description:
+      "Monitor PosterGenius order fulfillment, shipping updates, and Printful status from the seller orders dashboard.",
+    url: "https://postergenius.ca/seller/orders",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Seller Orders | PosterGenius",
+    description:
+      "Monitor PosterGenius order fulfillment, shipping updates, and Printful status from the seller orders dashboard.",
+  },
+};
+
 const POLL_INTERVAL = 15000;
 
 const STATUS_COLORS = {
@@ -215,7 +236,9 @@ const Orders = () => {
       ) : (
         <div className="md:p-10 p-4 space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-gray-900">Orders</h2>
+            <h1 className="text-lg font-semibold text-gray-900">
+              Seller Orders | PosterGenius
+            </h1>
             <p className="text-xs text-gray-500">
               Auto-refreshing every {POLL_INTERVAL / 1000} seconds
             </p>
