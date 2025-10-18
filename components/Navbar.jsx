@@ -49,9 +49,10 @@ const Navbar = () => {
   };
 
   return (
-    <div>
+    <header className="sticky top-0 z-50 w-full">
       <TopBanner />
-      <nav className="sticky top-0 z-50 bg-white flex items-center justify-between px-6 md:px-16 lg:px-16 py-3 border-b border-gray-300 text-gray-600 relative">
+      <nav className="bg-white flex items-center justify-between px-6 md:px-16 lg:px-16 py-3 border-b border-gray-300 text-gray-600 relative shadow-sm">
+        {" "}
         <Image
           {...getOptimizedImageProps(assets.logo)}
           className="cursor-pointer w-24 md:w-28"
@@ -79,7 +80,6 @@ const Navbar = () => {
             </button>
           )}
         </div>
-
         <ul className="hidden lg:flex items-center gap-4 ">
           {/* Desktop: always open search */}
           <form
@@ -123,7 +123,6 @@ const Navbar = () => {
               </span>
             )}
           </button>
-
           {/* cart */}
           <Link href="/cart" className="relative">
             <Image
@@ -188,7 +187,6 @@ const Navbar = () => {
             </button>
           )}
         </ul>
-
         <div className="flex items-center lg:hidden gap-3">
           <button
             type="button"
@@ -295,7 +293,9 @@ const Navbar = () => {
         </div>
         <div
           className={`fixed inset-0 z-40 bg-black/40 transition-opacity duration-300 ease-in-out lg:hidden ${
-            isMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+            isMenuOpen
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none"
           }`}
           onClick={closeMenu}
         />
@@ -353,7 +353,7 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
-    </div>
+    </header>
   );
 };
 
