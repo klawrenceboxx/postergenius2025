@@ -2,24 +2,13 @@ import { NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import connectDB from "@/config/db";
 import Address from "@/models/Address";
-import Product from "@/models/Product";
-import { computePricing } from "@/lib/pricing";
 import {
   formatRecipientFromAddress,
-  assertVariantIdForProduct,
-  normalizeDimensions,
+  buildPhysicalItems,
+  createPrintfulOrder,
 } from "@/lib/printful";
-import { ensureProductCdnUrl } from "@/lib/cdn";
 
 // export const runtime = "nodejs";
-
-function sanitizeQuantity(value) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric) || numeric <= 0) {
-    return 0;
-  }
-  return Math.floor(numeric);
-}
 
 async function resolveAddress(addressId, inlineAddress) {
   if (inlineAddress) {
@@ -30,77 +19,6 @@ async function resolveAddress(addressId, inlineAddress) {
   }
   const doc = await Address.findById(addressId).lean();
   return doc || null;
-}
-
-async function buildPhysicalItems(items = []) {
-  const physicalItems = [];
-
-  for (const item of items) {
-    const quantity = sanitizeQuantity(item?.quantity ?? 0);
-    if (!quantity) continue;
-
-    const format = String(item?.format || "physical").toLowerCase();
-    if (format === "digital") continue;
-
-    const productId = item?.productId || item?.product;
-    if (!productId) {
-      throw new Error(
-        "Each item must include a productId when creating orders."
-      );
-    }
-
-    const product = await Product.findById(productId).lean();
-    if (!product) {
-      throw new Error(
-        `Unable to locate product ${productId} for Printful order.`
-      );
-    }
-
-    const cdnUrl = ensureProductCdnUrl(product);
-    if (!cdnUrl) {
-      console.warn(
-        "⚠️ Missing cdnUrl for product when building Printful order.",
-        { productId: product._id }
-      );
-    }
-
-    const pricing = computePricing(product);
-    const chosenDimensions =
-      item?.dimensions || pricing.defaultPhysicalDimensions;
-    const normalizedDimensions =
-      normalizeDimensions(chosenDimensions) ||
-      normalizeDimensions(pricing.defaultPhysicalDimensions);
-
-    const sizeForVariant =
-      chosenDimensions || pricing.defaultPhysicalDimensions;
-    const variantId = assertVariantIdForProduct(product, sizeForVariant);
-
-    const priceRecord =
-      pricing.physicalPricing?.[chosenDimensions] ||
-      pricing.physicalPricing?.[normalizedDimensions];
-    const unitPrice = Number(
-      priceRecord?.finalPrice ?? pricing.defaultPhysicalFinalPrice
-    );
-
-    const files = cdnUrl
-      ? [
-          {
-            type: "default",
-            url: cdnUrl,
-          },
-        ]
-      : undefined;
-
-    physicalItems.push({
-      variant_id: variantId,
-      quantity,
-      retail_price: unitPrice ? unitPrice.toFixed(2) : undefined,
-      files,
-      name: product.name,
-    });
-  }
-
-  return physicalItems;
 }
 
 export async function POST(request) {
@@ -160,62 +78,15 @@ export async function POST(request) {
     const payload = {
       shipping,
       recipient,
-      items: physicalItems.map(
-        ({ variant_id, quantity, retail_price, files, name }) => {
-          const entry = { variant_id, quantity, name };
-          if (retail_price) entry.retail_price = retail_price;
-          if (Array.isArray(files) && files.length > 0) entry.files = files;
-          return entry;
-        }
-      ),
+      items: physicalItems,
     };
 
     if (externalId) {
       payload.external_id = externalId;
     }
 
-    console.log(
-      "[Printful] Creating order with payload herreeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee:",
-      payload
-    );
-
-    const headers = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.PRINTFUL_API_KEY}`,
-    };
-
-    if (process.env.PRINTFUL_STORE_ID) {
-      headers["X-PF-Store-Id"] = process.env.PRINTFUL_STORE_ID;
-    }
-
-    const response = await fetch("https://api.printful.com/orders", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json().catch(() => ({}));
-
-    if (response.ok && data?.result) {
-      return NextResponse.json({ success: true, printfulOrder: data.result });
-    }
-
-    const message =
-      data?.error?.message ||
-      data?.error ||
-      data?.result ||
-      data?.message ||
-      "Failed to create Printful order";
-
-    console.error("[Printful] Order creation failed:", {
-      status: response.status,
-      statusText: response.statusText,
-      body: data,
-    });
-    return NextResponse.json(
-      { success: false, message },
-      { status: response.status || 500 }
-    );
+    const result = await createPrintfulOrder(payload);
+    return NextResponse.json({ success: true, printfulOrder: result });
   } catch (error) {
     console.error("[Printful] Order creation error:", error);
     const status = error.status || 500;
