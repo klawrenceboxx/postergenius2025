@@ -3,6 +3,11 @@ import Cart from "@/models/Cart";
 import Order from "@/models/Order";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import {
+  buildPhysicalItems,
+  formatRecipientFromAddress,
+  createPrintfulOrder,
+} from "@/lib/printful";
 
 function isNonEmptyObject(value) {
   return (
@@ -119,46 +124,24 @@ export async function POST(request) {
       await Cart.findOneAndUpdate(cartIdentifier, { items: {} }, { new: true });
     }
 
-    if (normalizedItems.length > 0) {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-
-      if (!baseUrl) {
-        console.warn(
-          "[Printful] Unable to dispatch order – NEXT_PUBLIC_BASE_URL is not set"
-        );
-      } else {
-        const printfulPayload = {
-          items: normalizedItems,
+    const physicalItems = await buildPhysicalItems(normalizedItems);
+    if (physicalItems.length) {
+      const recipient = formatRecipientFromAddress(shippingAddress, {
+        fallbackCountry: "CA",
+      });
+      try {
+        const printfulOrder = await createPrintfulOrder({
           shipping: "STANDARD",
-          externalId: order._id.toString(),
-        };
-
-        if (shippingAddress && typeof shippingAddress === "object") {
-          if (shippingAddress._id || shippingAddress.id) {
-            printfulPayload.addressId =
-              shippingAddress._id?.toString?.() || shippingAddress.id;
-          }
-          printfulPayload.address = shippingAddress;
-        }
-
-        try {
-          const response = await fetch(`${baseUrl}/api/printful/order`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(printfulPayload),
-          });
-
-          if (!response.ok) {
-            const text = await response.text();
-            console.error("[Printful] Failed to queue order:", {
-              status: response.status,
-              statusText: response.statusText,
-              body: text,
-            });
-          }
-        } catch (printfulError) {
-          console.error("[Printful] Error dispatching order:", printfulError);
-        }
+          recipient,
+          items: physicalItems,
+          external_id: order._id.toString(),
+        });
+        console.log("[Printful] Created order:", {
+          localOrderId: order._id.toString(),
+          printfulOrderId: printfulOrder?.id,
+        });
+      } catch (err) {
+        console.error("[Printful] Failed to create order:", err);
       }
     }
 
