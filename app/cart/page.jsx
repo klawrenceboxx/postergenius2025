@@ -8,6 +8,27 @@ import Navbar from "@/components/Navbar";
 import { useAppContext } from "@/context/AppContext";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
 
+export const metadata = {
+  title: "Your Cart | PosterGenius",
+  description:
+    "Review the posters and art prints in your PosterGenius cart before you head to checkout.",
+  alternates: { canonical: "https://postergenius.ca/cart" },
+  openGraph: {
+    title: "Your Cart | PosterGenius",
+    description:
+      "Review the posters and art prints in your PosterGenius cart before you head to checkout.",
+    url: "https://postergenius.ca/cart",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Your Cart | PosterGenius",
+    description:
+      "Review the posters and art prints in your PosterGenius cart before you head to checkout.",
+  },
+};
+
 const Cart = () => {
   const { products, router, cartItems, updateCartQuantity, getCartCount } =
     useAppContext();
@@ -19,9 +40,9 @@ const Cart = () => {
         <div className="flex-1">
           {/* Header */}
           <div className="flex items-center justify-between mb-8 border-b border-gray-300 pb-6">
-            <p className="text-2xl md:text-3xl text-blackhex">
-              Your <span className="font-semibold text-primary">Cart</span>
-            </p>
+            <h1 className="text-2xl md:text-3xl text-blackhex">
+              Your <span className="font-semibold text-primary">Cart | PosterGenius</span>
+            </h1>
             <p className="text-lg md:text-xl text-gray-500">
               {getCartCount()} Items
             </p>

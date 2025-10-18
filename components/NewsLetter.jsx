@@ -20,9 +20,9 @@ const NewsLetter = () => {
 
       {/* Content aligned left */}
       <div className="flex flex-col items-start text-left space-y-4 max-w-xl px-6 md:px-12 py-16">
-        <h1 className="md:text-4xl  lg:text-5xl text-2xl font-[700] text-white">
+        <h2 className="md:text-4xl  lg:text-5xl text-2xl font-[700] text-white">
           Subscribe Now & Get 20% Off
-        </h1>
+        </h2>
         <p className="md:text-base text-sm text-gray-200/90 max-w-md">
           Join our newsletter for the latest discounts and Displate goodies.
         </p>

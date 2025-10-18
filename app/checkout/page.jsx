@@ -8,6 +8,27 @@ import Footer from "@/components/Footer";
 import OrderSummary from "@/components/OrderSummary";
 import { useAppContext } from "@/context/AppContext";
 
+export const metadata = {
+  title: "Checkout | PosterGenius",
+  description:
+    "Complete your PosterGenius order with secure guest checkout, saved addresses, and a detailed order summary.",
+  alternates: { canonical: "https://postergenius.ca/checkout" },
+  openGraph: {
+    title: "Checkout | PosterGenius",
+    description:
+      "Complete your PosterGenius order with secure guest checkout, saved addresses, and a detailed order summary.",
+    url: "https://postergenius.ca/checkout",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Checkout | PosterGenius",
+    description:
+      "Complete your PosterGenius order with secure guest checkout, saved addresses, and a detailed order summary.",
+  },
+};
+
 const EMPTY_GUEST_ADDRESS = {
   fullName: "",
   email: "",
@@ -261,7 +282,7 @@ const CheckoutPage = () => {
       <div className="px-6 md:px-16 lg:px-32 py-12 flex flex-col-reverse lg:flex-row gap-12">
         <div className="flex-1">
           <h1 className="text-3xl font-semibold text-blackhex mb-6">
-            Guest <span className="text-primary">Checkout Details</span>
+            Checkout <span className="text-primary">| PosterGenius</span>
           </h1>
           {user ? (
             <div className="bg-secondary/10 border border-secondary/30 rounded-lg p-6 text-blackhex">

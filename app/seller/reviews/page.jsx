@@ -6,6 +6,27 @@ import { useEffect, useMemo, useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import toast from "react-hot-toast";
 
+export const metadata = {
+  title: "Seller Reviews | PosterGenius",
+  description:
+    "Create and manage customer testimonials for PosterGenius products from the seller review console.",
+  alternates: { canonical: "https://postergenius.ca/seller/reviews" },
+  openGraph: {
+    title: "Seller Reviews | PosterGenius",
+    description:
+      "Create and manage customer testimonials for PosterGenius products from the seller review console.",
+    url: "https://postergenius.ca/seller/reviews",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Seller Reviews | PosterGenius",
+    description:
+      "Create and manage customer testimonials for PosterGenius products from the seller review console.",
+  },
+};
+
 function ProductDropdown({ value, onChange, disabled }) {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -206,7 +227,7 @@ export default function SellerReviewsPage() {
 
   return (
     <div className="mx-auto max-w-xl p-6">
-      <h1 className="text-2xl font-semibold">Add a customer review</h1>
+      <h1 className="text-2xl font-semibold">Seller Reviews | PosterGenius</h1>
       <p className="mt-1 text-sm text-gray-500">
         Reviews added here appear exactly like customer feedback on product
         pages.

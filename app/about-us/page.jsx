@@ -3,13 +3,34 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
+export const metadata = {
+  title: "About Us | PosterGenius",
+  description:
+    "Learn how PosterGenius blends storytelling and design to deliver art prints and posters for passionate fans.",
+  alternates: { canonical: "https://postergenius.ca/about-us" },
+  openGraph: {
+    title: "About Us | PosterGenius",
+    description:
+      "Learn how PosterGenius blends storytelling and design to deliver art prints and posters for passionate fans.",
+    url: "https://postergenius.ca/about-us",
+    siteName: "PosterGenius",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About Us | PosterGenius",
+    description:
+      "Learn how PosterGenius blends storytelling and design to deliver art prints and posters for passionate fans.",
+  },
+};
+
 const AboutPage = () => {
   return (
     <>
       <Navbar />
       <div className="flex flex-col items-start px-6 md:px-16 lg:px-32">
         <div className="flex flex-col items-end pt-12">
-          <p className="text-2xl font-medium">About Us</p>
+          <h1 className="text-2xl font-medium">About Us | PosterGenius</h1>
           <div className="w-16 h-0.5 bg-primary rounded-full"></div>
         </div>
 

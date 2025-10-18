@@ -187,7 +187,7 @@ const ShopClient = ({ products }) => {
         <section className="flex-1 space-y-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h1 className="text-3xl font-semibold text-gray-900">Shop</h1>
+              <h2 className="text-3xl font-semibold text-gray-900">Shop</h2>
               <p className="mt-1 text-sm text-gray-500">
                 Showing {filteredProducts.length} of {normalizedProducts.length}{" "}
                 products

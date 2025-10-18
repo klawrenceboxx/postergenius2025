@@ -246,9 +246,9 @@ export default function InfosV2({
   return (
     <aside className="lg:sticky lg:top-8 h-fit">
       {/* Title */}
-      <h1 className="text-3xl font-semibold mb-2">
+      <h2 className="text-3xl font-semibold mb-2">
         {product?.title || product?.name || "Product"}
-      </h1>
+      </h2>
 
       {/* Price */}
       <Price
