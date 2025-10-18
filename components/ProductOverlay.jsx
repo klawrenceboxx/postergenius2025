@@ -37,7 +37,7 @@ export default function ProductOverlay({ product }) {
               e.stopPropagation();
               await addToCart({
                 productId: product._id?.toString(),
-                title: product.title,
+                title: product.name,
                 imageUrl: product.imageUrl || product.image?.[0] || "",
                 price:
                   product?.pricing?.defaultPhysicalFinalPrice ??

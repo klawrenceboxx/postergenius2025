@@ -11,7 +11,7 @@ import {
 } from "@/lib/printful";
 import { ensureProductCdnUrl } from "@/lib/cdn";
 
-export const runtime = "nodejs";
+// export const runtime = "nodejs";
 
 function sanitizeQuantity(value) {
   const numeric = Number(value);
@@ -96,6 +96,7 @@ async function buildPhysicalItems(items = []) {
       quantity,
       retail_price: unitPrice ? unitPrice.toFixed(2) : undefined,
       files,
+      name: product.name,
     });
   }
 
@@ -160,14 +161,10 @@ export async function POST(request) {
       shipping,
       recipient,
       items: physicalItems.map(
-        ({ variant_id, quantity, retail_price, files }) => {
-          const entry = { variant_id, quantity };
-          if (retail_price) {
-            entry.retail_price = retail_price;
-          }
-          if (Array.isArray(files) && files.length > 0) {
-            entry.files = files;
-          }
+        ({ variant_id, quantity, retail_price, files, name }) => {
+          const entry = { variant_id, quantity, name };
+          if (retail_price) entry.retail_price = retail_price;
+          if (Array.isArray(files) && files.length > 0) entry.files = files;
           return entry;
         }
       ),
@@ -177,7 +174,10 @@ export async function POST(request) {
       payload.external_id = externalId;
     }
 
-    console.log("[Printful] Creating order with payload:", payload);
+    console.log(
+      "[Printful] Creating order with payload herreeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee:",
+      payload
+    );
 
     const headers = {
       "Content-Type": "application/json",

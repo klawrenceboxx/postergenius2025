@@ -223,7 +223,7 @@ export default function InfosV2({
     if (physicalDisabled) return;
     await addToCart({
       productId: product._id.toString(), // ✅ use productId, not _id
-      title: product.title,
+      title: product.name,
       imageUrl: product.imageUrl || product.image?.[0] || "",
       price: effectivePrice,
       quantity: 1,
@@ -247,7 +247,7 @@ export default function InfosV2({
     <aside className="lg:sticky lg:top-8 h-fit">
       {/* Title */}
       <h1 className="text-3xl font-semibold mb-2">
-        {product?.title || product?.name || "Product"}
+        {product?.name || "Product"}
       </h1>
 
       {/* Price */}

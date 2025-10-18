@@ -45,11 +45,10 @@ async function getProduct(slugOrId) {
     price: pricing?.defaultPhysicalBasePrice ?? enriched.price ?? 0,
     finalPrice: pricing?.defaultPhysicalFinalPrice ?? enriched.finalPrice ?? 0,
     salePrice:
-      pricing?.physicalDiscount > 0
-        ? pricing.defaultPhysicalFinalPrice
-        : null,
+      pricing?.physicalDiscount > 0 ? pricing.defaultPhysicalFinalPrice : null,
     digitalPrice: enriched.digitalPrice ?? pricing?.digitalBasePrice ?? 6.5,
-    digitalDisplayPrice: pricing?.digitalFinalPrice ?? enriched.digitalDisplayPrice,
+    digitalDisplayPrice:
+      pricing?.digitalFinalPrice ?? enriched.digitalDisplayPrice,
     slug: enriched.slug || slugOrId,
     category: enriched.category || null,
     reviews: enriched.reviews || [],
@@ -61,8 +60,7 @@ async function getProduct(slugOrId) {
     ),
     detailsHtml:
       enriched.detailsHtml || "Premium materials and high-resolution print.",
-    shippingHtml:
-      enriched.shippingHtml || "Ships in 3–5 business days.",
+    shippingHtml: enriched.shippingHtml || "Ships in 3–5 business days.",
     returnsHtml: enriched.returnsHtml || "30-day return policy.",
     physicalPricing: pricing?.physicalPricing || {},
     physicalOptions: sizes,
@@ -101,7 +99,7 @@ export default async function Page({ params }) {
         {/* ProductPage/Infos must call addToCart with:
            {
              productId: product.productId,
-             title: product.title,
+             title: product.name,
              imageUrl: product.imageUrl,
              price: (format === "digital" ? product.digitalPrice : selectedSize.price),
              quantity: 1,
