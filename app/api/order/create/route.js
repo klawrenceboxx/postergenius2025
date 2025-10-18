@@ -136,9 +136,9 @@ export async function POST(request) {
           items: physicalItems,
           external_id: order._id.toString(),
         });
-        console.log("[Printful] Created order:", {
-          localOrderId: order._id.toString(),
-          printfulOrderId: printfulOrder?.id,
+        console.log("[Printful] Order created", {
+          local: order._id.toString(),
+          printful: printfulOrder?.id,
         });
       } catch (err) {
         console.error("[Printful] Failed to create order:", err);
