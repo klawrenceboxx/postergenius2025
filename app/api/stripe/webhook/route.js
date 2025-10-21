@@ -2,20 +2,12 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import connectDB from "@/config/db";
 import Order from "@/models/Order";
-import Address from "@/models/Address";
 import Product from "@/models/Product";
 import { computePricing } from "@/lib/pricing";
-import {
-  createPrintfulOrder,
-  formatRecipientFromAddress,
-  mapPrintfulStatus,
-  extractTrackingFromPrintful,
-  assertVariantIdForProduct,
-  normalizeDimensions,
-} from "@/lib/printful";
-import { ensureProductCdnUrl } from "@/lib/cdn";
+import { normalizeDimensions } from "@/lib/printful";
 import { appendOrderLog, buildLogEntry } from "@/lib/order-logs";
 import { getDownloadUrl } from "@/lib/s3";
+import { submitStaticPrintfulOrder } from "@/lib/printful-static-order";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
@@ -62,8 +54,6 @@ export async function POST(req) {
 
       const itemsMetadata = safeJsonParse(metadata.items, []);
       const shippingMeta = safeJsonParse(metadata.shipping, null);
-      const recipientSnapshot = safeJsonParse(metadata.recipient, null);
-
       await connectDB();
       console.log("✅ DB connected in webhook");
 
@@ -92,12 +82,7 @@ export async function POST(req) {
           ? addressRaw
           : addressRaw?._id || null;
 
-      const addressDoc = addressId
-        ? await Address.findById(addressId).lean()
-        : null;
-
       const orderItems = [];
-      const printfulItems = [];
       const digitalDownloads = [];
       let hasPhysical = false;
       let hasDigital = false;
@@ -115,23 +100,7 @@ export async function POST(req) {
           continue;
         }
 
-        const cdnUrl = ensureProductCdnUrl(product);
-        if (!cdnUrl) {
-          console.warn(
-            "⚠️ Missing cdnUrl for product during Stripe webhook processing.",
-            { productId: product._id }
-          );
-        }
-
         const pricing = computePricing(product);
-        const files = cdnUrl
-          ? [
-              {
-                type: "default",
-                url: cdnUrl,
-              },
-            ]
-          : undefined;
         const format = String(entry?.format || "physical").toLowerCase();
         let unitPrice =
           format === "digital"
@@ -139,7 +108,6 @@ export async function POST(req) {
             : pricing.defaultPhysicalFinalPrice;
         let dimensions =
           entry?.dimensions || pricing.defaultPhysicalDimensions || null;
-        let variantId = null;
 
         if (format === "digital") {
           hasDigital = true;
@@ -148,22 +116,12 @@ export async function POST(req) {
           const normalizedDimensions =
             normalizeDimensions(dimensions) ||
             normalizeDimensions(pricing.defaultPhysicalDimensions);
-          const sizeForVariant =
-            dimensions || pricing.defaultPhysicalDimensions;
-          variantId = assertVariantIdForProduct(product, sizeForVariant);
           const priceRecord =
             pricing.physicalPricing?.[dimensions] ||
             pricing.physicalPricing?.[normalizedDimensions];
           unitPrice = Number(
             priceRecord?.finalPrice ?? pricing.defaultPhysicalFinalPrice
           );
-          printfulItems.push({
-            variant_id: variantId,
-            quantity,
-            retail_price: unitPrice.toFixed(2),
-            name: product.name,
-            files,
-          });
         }
 
         unitPrice = Math.max(0, Number(unitPrice) || 0);
@@ -176,7 +134,6 @@ export async function POST(req) {
           dimensions: format !== "digital" ? dimensions : undefined,
           unitPrice,
           lineTotal,
-          printfulVariantId: variantId || undefined,
         });
 
         if (format === "digital") {
@@ -286,101 +243,28 @@ export async function POST(req) {
         );
       }
 
-      if (orderType === "physical" && printfulItems.length > 0) {
-        let recipientForPrintful = null;
-
-        if (addressDoc) {
-          try {
-            recipientForPrintful = formatRecipientFromAddress(addressDoc);
-          } catch (error) {
-            console.error(
-              "❌ Failed to format saved address for Printful",
-              error.message
-            );
-          }
-        }
-
-        if (!recipientForPrintful && recipientSnapshot) {
-          try {
-            recipientForPrintful = formatRecipientFromAddress(recipientSnapshot);
-          } catch (error) {
-            console.error(
-              "❌ Failed to format snapshot address for Printful",
-              error.message
-            );
-          }
-        }
-
-        if (!recipientForPrintful) {
-          console.error("❌ Missing shipping recipient for Printful order", {
+      if (orderType === "physical") {
+        try {
+          const response = await submitStaticPrintfulOrder();
+          const printfulId = response?.result?.id || response?.id || null;
+          await appendOrderLog(
+            newOrder._id,
+            "printful_order_triggered",
+            printfulId
+              ? `Static Printful order submitted with id ${printfulId}.`
+              : "Static Printful order submitted after Stripe payment."
+          );
+          console.log("✅ Static Printful order submitted", {
             orderId: newOrder._id,
+            printfulId,
           });
-          await Order.findByIdAndUpdate(newOrder._id, {
-            $set: {
-              status: "Fulfillment Failed",
-              fulfillmentError: "Missing shipping recipient for Printful order",
-            },
-          });
+        } catch (error) {
+          console.error("❌ Static Printful order submission failed:", error);
           await appendOrderLog(
             newOrder._id,
             "printful_order_failed",
-            "Missing shipping recipient prevented Printful fulfillment."
+            `Static Printful order failed: ${error.message}`
           );
-        } else {
-          try {
-            const payload = {
-              external_id: newOrder._id.toString(),
-              recipient: recipientForPrintful,
-              items: printfulItems,
-            };
-
-            if (shippingMeta?.id) {
-              payload.shipping = shippingMeta.id;
-            }
-
-            const printfulOrder = await createPrintfulOrder(payload, {
-              confirm: true,
-            });
-
-            const printfulId =
-              printfulOrder?.id ||
-              printfulOrder?.result?.id ||
-              printfulOrder?.order?.id ||
-              null;
-            const printfulStatus =
-              printfulOrder?.status ||
-              printfulOrder?.result?.status ||
-              printfulOrder?.order?.status ||
-              null;
-            const tracking = extractTrackingFromPrintful(printfulOrder);
-
-            await Order.findByIdAndUpdate(newOrder._id, {
-              $set: {
-                printfulOrderId: printfulId || undefined,
-                printfulStatus: printfulStatus || undefined,
-                status: mapPrintfulStatus(printfulStatus),
-                trackingUrl: tracking.trackingUrl || undefined,
-              },
-            });
-            await appendOrderLog(
-              newOrder._id,
-              "printful_order_created",
-              `Printful order ${printfulId || "(pending id)"} created with status ${printfulStatus || "unknown"}.`
-            );
-          } catch (error) {
-            console.error("❌ Printful order creation failed:", error);
-            await Order.findByIdAndUpdate(newOrder._id, {
-              $set: {
-                status: "Fulfillment Failed",
-                fulfillmentError: error.message,
-              },
-            });
-            await appendOrderLog(
-              newOrder._id,
-              "printful_order_failed",
-              `Printful order creation failed: ${error.message}`
-            );
-          }
         }
       }
     }
