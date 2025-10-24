@@ -60,6 +60,20 @@ export async function POST(req) {
       const metadata = session.metadata || {};
       console.log("✅ checkout.session.completed, metadata:", metadata);
 
+      try {
+        const printfulTriggerUrl = new URL("/api/printful/test-order", req.url);
+        await fetch(printfulTriggerUrl, { method: "POST" });
+        console.log(
+          "🚀 Triggered Printful test-order route for session",
+          session.id
+        );
+      } catch (error) {
+        console.error(
+          "⚠️ Failed to trigger Printful test-order route:",
+          error?.message || error
+        );
+      }
+
       const itemsMetadata = safeJsonParse(metadata.items, []);
       const shippingMeta = safeJsonParse(metadata.shipping, null);
       const recipientSnapshot = safeJsonParse(metadata.recipient, null);
@@ -88,9 +102,7 @@ export async function POST(req) {
       })();
 
       const addressId =
-        typeof addressRaw === "string"
-          ? addressRaw
-          : addressRaw?._id || null;
+        typeof addressRaw === "string" ? addressRaw : addressRaw?._id || null;
 
       const addressDoc = addressId
         ? await Address.findById(addressId).lean()
@@ -212,7 +224,9 @@ export async function POST(req) {
       }
 
       if (orderItems.length === 0) {
-        throw new Error("No purchasable items found in Stripe session metadata");
+        throw new Error(
+          "No purchasable items found in Stripe session metadata"
+        );
       }
 
       const orderType =
@@ -259,7 +273,9 @@ export async function POST(req) {
         shippingCurrency: shippingMeta?.currency || undefined,
         shippingService: shippingMeta?.name || undefined,
         shippingRateId: shippingMeta?.id || undefined,
-        digitalDownloads: digitalDownloads.length ? digitalDownloads : undefined,
+        digitalDownloads: digitalDownloads.length
+          ? digitalDownloads
+          : undefined,
         orderLogs: [creationLog],
       };
 
@@ -302,7 +318,8 @@ export async function POST(req) {
 
         if (!recipientForPrintful && recipientSnapshot) {
           try {
-            recipientForPrintful = formatRecipientFromAddress(recipientSnapshot);
+            recipientForPrintful =
+              formatRecipientFromAddress(recipientSnapshot);
           } catch (error) {
             console.error(
               "❌ Failed to format snapshot address for Printful",
@@ -329,7 +346,7 @@ export async function POST(req) {
         } else {
           try {
             const payload = {
-              external_id: newOrder._id.toString(),
+              external_id: session.id,
               recipient: recipientForPrintful,
               items: printfulItems,
             };
@@ -338,35 +355,37 @@ export async function POST(req) {
               payload.shipping = shippingMeta.id;
             }
 
-            const printfulOrder = await createPrintfulOrder(payload, {
-              confirm: true,
-            });
+            // const printfulOrder = await createPrintfulOrder(payload, {
+            //   confirm: true,
+            // });
 
-            const printfulId =
-              printfulOrder?.id ||
-              printfulOrder?.result?.id ||
-              printfulOrder?.order?.id ||
-              null;
-            const printfulStatus =
-              printfulOrder?.status ||
-              printfulOrder?.result?.status ||
-              printfulOrder?.order?.status ||
-              null;
-            const tracking = extractTrackingFromPrintful(printfulOrder);
+            // const printfulId =
+            //   printfulOrder?.id ||
+            //   printfulOrder?.result?.id ||
+            //   printfulOrder?.order?.id ||
+            //   null;
+            // const printfulStatus =
+            //   printfulOrder?.status ||
+            //   printfulOrder?.result?.status ||
+            //   printfulOrder?.order?.status ||
+            //   null;
+            // const tracking = extractTrackingFromPrintful(printfulOrder);
 
-            await Order.findByIdAndUpdate(newOrder._id, {
-              $set: {
-                printfulOrderId: printfulId || undefined,
-                printfulStatus: printfulStatus || undefined,
-                status: mapPrintfulStatus(printfulStatus),
-                trackingUrl: tracking.trackingUrl || undefined,
-              },
-            });
-            await appendOrderLog(
-              newOrder._id,
-              "printful_order_created",
-              `Printful order ${printfulId || "(pending id)"} created with status ${printfulStatus || "unknown"}.`
-            );
+            // await Order.findByIdAndUpdate(newOrder._id, {
+            //   $set: {
+            //     printfulOrderId: printfulId || undefined,
+            //     printfulStatus: printfulStatus || undefined,
+            //     status: mapPrintfulStatus(printfulStatus),
+            //     trackingUrl: tracking.trackingUrl || undefined,
+            //   },
+            // });
+            // await appendOrderLog(
+            //   newOrder._id,
+            //   "printful_order_created",
+            //   `Printful order ${
+            //     printfulId || "(pending id)"
+            //   } created with status ${printfulStatus || "unknown"}.`
+            // );
           } catch (error) {
             console.error("❌ Printful order creation failed:", error);
             await Order.findByIdAndUpdate(newOrder._id, {

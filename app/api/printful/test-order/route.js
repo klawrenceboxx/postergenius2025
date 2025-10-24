@@ -10,7 +10,7 @@ export async function POST() {
 
   // === Static test order data ===
   const orderData = {
-    external_id: "static-test-003",
+    external_id: "static-test-005",
     shipping: "STANDARD",
     recipient: {
       name: "Test User",
@@ -50,6 +50,7 @@ export async function POST() {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error("❌ Printful 400 Response:", data); // 👈 add here
       return NextResponse.json(data, { status: response.status });
     }
 
