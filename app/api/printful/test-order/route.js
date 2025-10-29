@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import connectDB from "@/config/db";
+import Order from "@/models/Order";
 
-export async function POST() {
+export async function POST(request) {
   if (!process.env.PRINTFUL_API_KEY) {
     return NextResponse.json(
       { error: "PRINTFUL_API_KEY is not configured." },
@@ -8,9 +10,48 @@ export async function POST() {
     );
   }
 
+  await connectDB();
+
+  let requestedOrderId = null;
+  if (request?.bodyUsed !== true) {
+    try {
+      const payload = await request.json();
+      if (payload && typeof payload.orderId === "string") {
+        requestedOrderId = payload.orderId.trim();
+      }
+    } catch (error) {
+      // Swallow JSON parsing errors – callers may legitimately send an empty body.
+    }
+  }
+
+  let orderDoc = null;
+
+  if (requestedOrderId) {
+    orderDoc = await Order.findById(requestedOrderId).select("_id").lean();
+    if (!orderDoc) {
+      return NextResponse.json(
+        { error: `Order ${requestedOrderId} was not found.` },
+        { status: 404 }
+      );
+    }
+  } else {
+    orderDoc = await Order.findOne({}, { _id: 1 }, { sort: { createdAt: -1 } }).lean();
+    if (!orderDoc) {
+      return NextResponse.json(
+        {
+          error:
+            "No orders are available to use as an external ID. Create an order and try again.",
+        },
+        { status: 404 }
+      );
+    }
+  }
+
+  const externalId = orderDoc._id.toString();
+
   // === Static test order data ===
   const orderData = {
-    external_id: "static-test-005",
+    external_id: externalId,
     shipping: "STANDARD",
     recipient: {
       name: "Test User",
