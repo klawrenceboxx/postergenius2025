@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/config/db";
 import Order from "@/models/Order";
+import Address from "@/models/Address";
+import { formatRecipientFromAddress } from "@/lib/printful";
 
 export async function POST(request) {
   if (!process.env.PRINTFUL_API_KEY) {
@@ -26,8 +28,16 @@ export async function POST(request) {
 
   let orderDoc = null;
 
+  const orderSelection = {
+    _id: 1,
+    shippingAddressSnapshot: 1,
+    address: 1,
+  };
+
   if (requestedOrderId) {
-    orderDoc = await Order.findById(requestedOrderId).select("_id").lean();
+    orderDoc = await Order.findById(requestedOrderId)
+      .select(orderSelection)
+      .lean();
     if (!orderDoc) {
       return NextResponse.json(
         { error: `Order ${requestedOrderId} was not found.` },
@@ -35,7 +45,7 @@ export async function POST(request) {
       );
     }
   } else {
-    orderDoc = await Order.findOne({}, { _id: 1 }, { sort: { createdAt: -1 } }).lean();
+    orderDoc = await Order.findOne({}, orderSelection, { sort: { createdAt: -1 } }).lean();
     if (!orderDoc) {
       return NextResponse.json(
         {
@@ -49,19 +59,45 @@ export async function POST(request) {
 
   const externalId = orderDoc._id.toString();
 
+  let shippingAddress = orderDoc.shippingAddressSnapshot;
+
+  if (!shippingAddress && orderDoc.address) {
+    const addressDoc = await Address.findById(orderDoc.address).lean();
+    if (addressDoc) {
+      shippingAddress = addressDoc;
+    }
+  }
+
+  if (!shippingAddress) {
+    return NextResponse.json(
+      {
+        error:
+          "The selected order does not include a shipping address. Please update the order and try again.",
+      },
+      { status: 400 }
+    );
+  }
+
+  let recipient;
+  try {
+    recipient = formatRecipientFromAddress(shippingAddress);
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Unable to format shipping address for Printful.",
+      },
+      { status: 400 }
+    );
+  }
+
   // === Static test order data ===
   const orderData = {
     external_id: externalId,
     shipping: "STANDARD",
-    recipient: {
-      name: "Test User",
-      address1: "123 Example Street",
-      city: "Toronto",
-      state_code: "ON",
-      country_code: "CA",
-      zip: "M5V1E3",
-      email: "test@example.com",
-    },
+    recipient,
     items: [
       {
         variant_id: 3876, // ✅ Numeric ID for 12x18 Enhanced Matte Paper Poster
