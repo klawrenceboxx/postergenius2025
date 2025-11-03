@@ -32,6 +32,7 @@ export async function POST(request) {
     _id: 1,
     shippingAddressSnapshot: 1,
     address: 1,
+    items: 1,
   };
 
   if (requestedOrderId) {
@@ -93,14 +94,32 @@ export async function POST(request) {
     );
   }
 
-  // === Static test order data ===
+  // === Build test order data ===
+  const selectedItem = orderDoc.items?.find(
+    (item) => typeof item?.printfulVariantId !== "undefined"
+  );
+
+  if (
+    !selectedItem ||
+    selectedItem.printfulVariantId === null ||
+    selectedItem.printfulVariantId === ""
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          "The selected order does not include an item with a Printful variant ID.",
+      },
+      { status: 400 }
+    );
+  }
+
   const orderData = {
     external_id: externalId,
     shipping: "STANDARD",
     recipient,
     items: [
       {
-        variant_id: 3876, // ✅ Numeric ID for 12x18 Enhanced Matte Paper Poster
+        variant_id: selectedItem.printfulVariantId,
         quantity: 1,
         name: "Cool Lionee Poster (12×18)",
         files: [
