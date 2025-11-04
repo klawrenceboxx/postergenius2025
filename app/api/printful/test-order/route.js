@@ -2,7 +2,43 @@ import { NextResponse } from "next/server";
 import connectDB from "@/config/db";
 import Order from "@/models/Order";
 import Address from "@/models/Address";
+import Product from "@/models/Product";
 import { formatRecipientFromAddress } from "@/lib/printful";
+
+function sanitizeQuantity(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return 1;
+  }
+  return Math.floor(numeric);
+}
+
+function buildItemName(productDoc, item) {
+  const baseName =
+    typeof productDoc?.name === "string" && productDoc.name.trim()
+      ? productDoc.name.trim()
+      : "Printful Item";
+
+  const dimensionLabel =
+    typeof item?.dimensions === "string" && item.dimensions.trim()
+      ? item.dimensions.trim()
+      : null;
+
+  return dimensionLabel ? `${baseName} (${dimensionLabel})` : baseName;
+}
+
+function toProductKey(product) {
+  if (!product) return null;
+  try {
+    return product.toString();
+  } catch (error) {
+    try {
+      return String(product);
+    } catch (stringError) {
+      return null;
+    }
+  }
+}
 
 export async function POST(request) {
   if (!process.env.PRINTFUL_API_KEY) {
@@ -95,15 +131,15 @@ export async function POST(request) {
   }
 
   // === Build test order data ===
-  const selectedItem = orderDoc.items?.find(
-    (item) => typeof item?.printfulVariantId !== "undefined"
-  );
+  const itemsWithVariants = (orderDoc.items || []).filter((item) => {
+    if (!item) return false;
+    const variantId = item.printfulVariantId;
+    if (typeof variantId === "number") return true;
+    if (typeof variantId === "string") return variantId.trim() !== "";
+    return typeof variantId !== "undefined" && variantId !== null;
+  });
 
-  if (
-    !selectedItem ||
-    selectedItem.printfulVariantId === null ||
-    selectedItem.printfulVariantId === ""
-  ) {
+  if (itemsWithVariants.length === 0) {
     return NextResponse.json(
       {
         error:
@@ -113,23 +149,50 @@ export async function POST(request) {
     );
   }
 
+  const productIds = [
+    ...new Set(
+      itemsWithVariants.map((item) => toProductKey(item?.product)).filter(Boolean)
+    ),
+  ];
+
+  let productMap = new Map();
+
+  if (productIds.length > 0) {
+    const products = await Product.find({ _id: { $in: productIds } })
+      .select({
+        name: 1,
+      })
+      .lean();
+
+    productMap = new Map(
+      products.map((product) => [product._id.toString(), product])
+    );
+  }
+
+  const resolvedItems = itemsWithVariants.map((item) => {
+    const productId = toProductKey(item?.product);
+    const productDoc = productId ? productMap.get(productId) : null;
+    const quantity = sanitizeQuantity(item?.quantity);
+    const name = buildItemName(productDoc, item);
+
+    return {
+      variant_id: item.printfulVariantId,
+      quantity,
+      name,
+      files: [
+        {
+          type: "default",
+          url: "https://d1mhf9senw3mzj.cloudfront.net/products/user_3340Zm2wcQlksBOgDX3hMuoI1y6/1758806593225-13dd171d-6e35-4bf2-9da9-f2eb051ad352.jpg",
+        },
+      ],
+    };
+  });
+
   const orderData = {
     external_id: externalId,
     shipping: "STANDARD",
     recipient,
-    items: [
-      {
-        variant_id: selectedItem.printfulVariantId,
-        quantity: 1,
-        name: "Cool Lionee Poster (12×18)",
-        files: [
-          {
-            type: "default",
-            url: "https://d1mhf9senw3mzj.cloudfront.net/products/user_3340Zm2wcQlksBOgDX3hMuoI1y6/1758806593225-13dd171d-6e35-4bf2-9da9-f2eb051ad352.jpg",
-          },
-        ],
-      },
-    ],
+    items: resolvedItems,
   };
 
   try {
