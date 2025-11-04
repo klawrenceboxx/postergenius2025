@@ -3,6 +3,7 @@ import connectDB from "@/config/db";
 import Order from "@/models/Order";
 import Address from "@/models/Address";
 import Product from "@/models/Product";
+import { ensureProductCdnUrl } from "@/lib/cdn";
 import { formatRecipientFromAddress } from "@/lib/printful";
 
 function sanitizeQuantity(value) {
@@ -161,6 +162,11 @@ export async function POST(request) {
     const products = await Product.find({ _id: { $in: productIds } })
       .select({
         name: 1,
+        cdnUrl: 1,
+        s3Url: 1,
+        primaryImageKey: 1,
+        image: 1,
+        digitalFileUrl: 1,
       })
       .lean();
 
@@ -175,17 +181,24 @@ export async function POST(request) {
     const quantity = sanitizeQuantity(item?.quantity);
     const name = buildItemName(productDoc, item);
 
-    return {
+    const cdnUrl = productDoc ? ensureProductCdnUrl(productDoc) : null;
+
+    const itemPayload = {
       variant_id: item.printfulVariantId,
       quantity,
       name,
-      files: [
+    };
+
+    if (cdnUrl) {
+      itemPayload.files = [
         {
           type: "default",
-          url: "https://d1mhf9senw3mzj.cloudfront.net/products/user_3340Zm2wcQlksBOgDX3hMuoI1y6/1758806593225-13dd171d-6e35-4bf2-9da9-f2eb051ad352.jpg",
+          url: cdnUrl,
         },
-      ],
-    };
+      ];
+    }
+
+    return itemPayload;
   });
 
   const orderData = {
