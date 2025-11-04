@@ -61,6 +61,23 @@ export default function RootLayout({ children }) {
               fbq('track', 'PageView');
             `}
           </Script>
+
+          <Script id="omnisend" strategy="afterInteractive">
+            {`
+              window.omnisend = window.omnisend || [];
+              omnisend.push(["brandID", "68e5950e13ca46de858cccae"]);
+              omnisend.push(["track", "$pageViewed"]);
+              !function(){
+                var e=document.createElement("script");
+                e.type="text/javascript";
+                e.async=!0;
+                e.src="https://omnisnippet1.com/inshop/launcher-v2.js";
+                var t=document.getElementsByTagName("script")[0];
+                t.parentNode.insertBefore(e,t);
+              }();
+  `}
+          </Script>
+
           <noscript>
             <Image
               {...getOptimizedImageProps(
