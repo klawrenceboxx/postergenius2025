@@ -10,9 +10,8 @@ export default function ProductPage({ product }) {
     product?.variations?.[0]?.sizes?.[0]?.size ||
     "12x18";
 
-  const [selectedDimensions, setSelectedDimensions] = useState(
-    initialDimensions
-  );
+  const [selectedDimensions, setSelectedDimensions] =
+    useState(initialDimensions);
   const [activeMockupIndex, setActiveMockupIndex] = useState(0);
   const [format, setFormat] = useState("physical"); // "physical" | "digital"
 
@@ -30,8 +29,8 @@ export default function ProductPage({ product }) {
       </nav>
 
       {/* Two-column layout */}
-      <div className="flex flex-col lg:flex-row w-full gap-8">
-        <div className="flex-1 min-w-0">
+      <div className="flex flex-col lg:flex-row w-full gap-8 border-red-500 border-2">
+        <div className="flex-1 min-w-0 ">
           <PosterMockupViewer
             posterUrl={product.imageUrl}
             selectedDimensions={selectedDimensions}
@@ -41,7 +40,7 @@ export default function ProductPage({ product }) {
             orientation={product.orientation}
           />
         </div>
-        <div className="w-full md:w-[360px] flex-shrink-0">
+        <div className="w-full px-4 md:w-[360px] flex-shrink-0">
           <Infos
             product={product}
             selectedDimensions={selectedDimensions}

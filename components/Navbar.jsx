@@ -51,7 +51,7 @@ const Navbar = () => {
   return (
     <header className="sticky top-0 z-50 w-full">
       <TopBanner />
-      <nav className="bg-white flex items-center justify-between px-6 md:px-16 lg:px-16 py-3 border-b border-gray-300 text-gray-600 relative shadow-sm">
+      <nav className="bg-white flex items-center justify-between px-6 md:px-8 lg:px-8 py-3 border-b border-gray-300 text-gray-600 relative shadow-sm">
         {" "}
         <Image
           {...getOptimizedImageProps(assets.logo)}

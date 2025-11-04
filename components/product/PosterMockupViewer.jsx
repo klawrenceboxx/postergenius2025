@@ -38,7 +38,7 @@ function scaleFor(dim) {
     case "18x24":
       return 1.3;
     case "24x36":
-      return 1.6;
+      return 1.5;
     default:
       return 1.0;
   }
@@ -51,6 +51,20 @@ function isPortrait(dim) {
     .split("x")
     .map((n) => Number(n));
   return Number.isFinite(w) && Number.isFinite(h) ? w < h : false;
+}
+
+// Pixel guardrails per selected size (tweak to taste)
+function boundsFor(dim) {
+  switch (dim) {
+    case "12x18":
+      return { min: 140, max: 360 }; // M
+    case "18x24":
+      return { min: 180, max: 480 }; // L
+    case "24x36":
+      return { min: 220, max: 640 }; // XL
+    default:
+      return { min: 160, max: 420 };
+  }
 }
 
 /** format: "physical" | "digital" */
@@ -95,8 +109,14 @@ export default function PosterMockupViewer({
 
   const portraitFactor = isPortraitFinal ? 0.62 : 1;
 
+  // --- poster width that respects M/L/XL (%) but never too small/large
+  const pct = m.posterWidthPct * scale * portraitFactor; // your percentage logic
+  const { min, max } = boundsFor(selectedDimensions);
+  const posterWidth = `clamp(${min}px, ${pct}%, ${max}px)`;
+
   return (
-    <div className="relative flex flex-col-reverse lg:flex-row gap-4">
+    /////////////////////////////
+    <div className="relative flex flex-col-reverse lg:flex-row gap-4 border-red-500 border-2">
       {/* Thumbs */}
       <div className="absolute bottom-2 left-2 lg:top-4 lg:bottom-auto flex lg:flex-col gap-2 z-20 bg-white/20 p-2 rounded-md shadow">
         {mockups.map((mk, idx) => (
@@ -139,10 +159,8 @@ export default function PosterMockupViewer({
       </div>
 
       {/* Scene */}
-      <div
-        className="relative w-full bg-gray-100 rounded-lg overflow-hidden "
-        style={{ aspectRatio: "16 / 9" }}
-      >
+      {/* <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden min-h-[420px] sm:min-h-[480px] md:min-h-[560px]"> */}
+      <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden min-h-[560px]">
         <Image
           {...getOptimizedImageProps(m.src)}
           alt="Room mockup"
@@ -161,7 +179,8 @@ export default function PosterMockupViewer({
             top: `${m.posterTopPct}%`,
             left: `${m.posterLeftPct}%`,
             transform: "translate(-50%, -50%)",
-            width: `${m.posterWidthPct * scale * portraitFactor}%`,
+
+            width: posterWidth, // ← dynamic % with min/max guardrails
             height: "auto",
             boxShadow: "-3px 3px 2px rgba(0,0,0,0.3)",
             zIndex: 2,
