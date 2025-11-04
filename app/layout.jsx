@@ -61,21 +61,30 @@ export default function RootLayout({ children }) {
               fbq('track', 'PageView');
             `}
           </Script>
-
-          <Script id="omnisend" strategy="afterInteractive">
+          {/* 1) Ensure a queue exists BEFORE anything else touches it */}
+          <Script id="omnisend-queue" strategy="beforeInteractive">
             {`
-              window.omnisend = window.omnisend || [];
-              omnisend.push(["brandID", "68e5950e13ca46de858cccae"]);
-              omnisend.push(["track", "$pageViewed"]);
-              !function(){
-                var e=document.createElement("script");
-                e.type="text/javascript";
-                e.async=!0;
-                e.src="https://omnisnippet1.com/inshop/launcher-v2.js";
-                var t=document.getElementsByTagName("script")[0];
-                t.parentNode.insertBefore(e,t);
-              }();
-  `}
+  // If an extension set window.omnisend to something non-array, reset it.
+  if (!Array.isArray(window.omnisend)) window.omnisend = [];
+`}
+          </Script>
+
+          {/* 2) Load the launcher */}
+          <Script
+            id="omnisend-loader"
+            src="https://omnisnippet1.com/inshop/launcher-v2.js"
+            strategy="afterInteractive"
+          />
+
+          {/* 3) Push init calls safely */}
+          <Script id="omnisend-init" strategy="afterInteractive">
+            {`
+  (function(q){
+    if (!Array.isArray(q)) q = window.omnisend = [];
+    q.push(["brandID", "68e5950e13ca46de858cccae"]);
+    q.push(["track", "$pageViewed"]);
+  })(window.omnisend);
+`}
           </Script>
 
           <noscript>
