@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReviewForm from "./ReviewForm";
 
 const StarDisplay = ({ rating }) => {
@@ -27,6 +27,7 @@ export default function ReviewModal({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [limit, setLimit] = useState(20);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
     setAverage(initialAverage);
@@ -75,6 +76,11 @@ export default function ReviewModal({
   }, [onClose]);
 
   useEffect(() => {
+    if (hasFetchedRef.current) {
+      return;
+    }
+
+    hasFetchedRef.current = true;
     setReviews([]);
     setError("");
     setLoading(true);
