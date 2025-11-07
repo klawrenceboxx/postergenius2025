@@ -63,10 +63,18 @@ export default function ReviewSummary({ productId }) {
     );
   }, [loading, error, stats.average, stats.total]);
 
-  const handleOpen = () => {
-    fetchStats();
+  const handleOpen = useCallback(() => {
     setIsOpen(true);
-  };
+  }, []);
+
+  const handleStatsChange = useCallback((next) => {
+    if (next) {
+      setStats({
+        total: next.total ?? 0,
+        average: next.average ?? 0,
+      });
+    }
+  }, []);
 
   return (
     <div>
@@ -84,14 +92,7 @@ export default function ReviewSummary({ productId }) {
           productId={productId}
           initialAverage={stats.average}
           initialTotal={stats.total}
-          onStatsChange={(next) => {
-            if (next) {
-              setStats({
-                total: next.total ?? 0,
-                average: next.average ?? 0,
-              });
-            }
-          }}
+          onStatsChange={handleStatsChange}
         />
       )}
     </div>
