@@ -2,7 +2,14 @@
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import toast from "react-hot-toast";
 import { augmentProductWithPricing } from "@/lib/pricing";
 import {
@@ -621,6 +628,12 @@ export const AppContextProvider = (props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  const triggerCartRefresh = useCallback(() => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event(CART_REFRESH_EVENT));
+    }
+  }, []);
+
   const value = {
     user,
     getToken,
@@ -635,12 +648,7 @@ export const AppContextProvider = (props) => {
     fetchCart,
     cartItems,
     setCartItems,
-    triggerCartRefresh: () => {
-      if (typeof window === "undefined") {
-        return;
-      }
-      window.dispatchEvent(new Event(CART_REFRESH_EVENT));
-    },
+    triggerCartRefresh,
     activeGuestId,
     ensureGuestId,
     fetchGuestAddress,

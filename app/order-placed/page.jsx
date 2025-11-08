@@ -17,7 +17,8 @@ const OrderPlaced = () => {
     }, 5000);
 
     return () => clearTimeout(timeout);
-  }, [router, setCartItems, triggerCartRefresh]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="h-screen flex flex-col justify-center items-center gap-5">
