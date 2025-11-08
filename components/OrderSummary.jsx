@@ -191,7 +191,7 @@ const CheckoutButton = ({
 };
 
 // -------------------- Order Summary (right panel) --------------------
-const OrderSummary = () => {
+const OrderSummary = ({ shippingQuote: shippingOverride }) => {
   // 👇 Pull shared app state from your AppContext provider
   const {
     currency, // currency symbol e.g. "$"
@@ -201,6 +201,9 @@ const OrderSummary = () => {
     getToken, // function to fetch Clerk JWT
     user, // logged-in user object (or null if guest)
     cartItems, // current cart contents
+    shippingQuote: shippingQuoteFromContext,
+    updateShippingQuote,
+    resetShippingQuote,
   } = useAppContext();
 
   // Local state for this component only
@@ -212,6 +215,7 @@ const OrderSummary = () => {
   const [promoResult, setPromoResult] = useState(null);
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
   const [promoCartSignature, setPromoCartSignature] = useState(null);
+  const [shippingError, setShippingError] = useState(null);
 
   // -------------------- Load Stripe on mount --------------------
   useEffect(() => {
@@ -257,12 +261,30 @@ const OrderSummary = () => {
   // -------------------- Totals --------------------
   const subtotal = getCartAmount(); // total price before tax
   const tax = parseFloat((subtotal * 0.13).toFixed(2)); // 13% HST (hardcoded for Ontario)
-  const total = subtotal + tax; // final total
-
   const cartItemsArray = useMemo(() => normaliseCartItems(cartItems), [cartItems]);
+  const hasPhysicalItems = useMemo(
+    () =>
+      cartItemsArray.some(
+        (item) => String(item?.format || "physical").toLowerCase() !== "digital"
+      ),
+    [cartItemsArray]
+  );
+
+  const shippingQuote = shippingOverride ?? shippingQuoteFromContext;
+  const shippingCurrency = shippingQuote?.currency || "usd";
+  const normalizedShippingAmount = Number(shippingQuote?.amount ?? 0);
+  const originalShippingAmount = Number.isFinite(normalizedShippingAmount)
+    ? normalizedShippingAmount
+    : 0;
+  const effectiveShippingAmount =
+    promoResult?.valid && promoResult.promoType === "shipping"
+      ? 0
+      : originalShippingAmount;
+  const totalBeforeDiscount = subtotal + tax + effectiveShippingAmount;
+
   const promoCartPayload = useMemo(
-    () => buildPromoCart(cartItems, total, 0),
-    [cartItems, total]
+    () => buildPromoCart(cartItems, subtotal + tax, originalShippingAmount),
+    [cartItems, subtotal, tax, originalShippingAmount]
   );
 
   const rawDiscountAmount = promoResult?.valid
@@ -272,11 +294,11 @@ const OrderSummary = () => {
     ? rawDiscountAmount
     : 0;
   const rawPayableTotal = promoResult?.valid
-    ? Number(promoResult.newTotal ?? total)
-    : total;
+    ? Number(promoResult.newTotal ?? totalBeforeDiscount)
+    : totalBeforeDiscount;
   const payableTotal = Number.isFinite(rawPayableTotal)
     ? rawPayableTotal
-    : total;
+    : totalBeforeDiscount;
 
   const isSameAppliedCode = Boolean(
     promoResult?.valid &&
@@ -287,7 +309,8 @@ const OrderSummary = () => {
   console.log("Cart Summary:", {
     subtotal,
     tax,
-    total,
+    shipping: effectiveShippingAmount,
+    total: totalBeforeDiscount,
     itemCount: getCartCount(),
   });
 
@@ -298,6 +321,87 @@ const OrderSummary = () => {
       setPromoCartSignature(null);
     }
   }, [cartItemsArray.length]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const fetchShippingQuote = async () => {
+      if (!user || !selectedAddress?._id) {
+        resetShippingQuote();
+        setShippingError(null);
+        return;
+      }
+
+      if (!cartItemsArray.length || !hasPhysicalItems) {
+        updateShippingQuote({ amount: 0, currency: shippingCurrency });
+        setShippingError(null);
+        return;
+      }
+
+      try {
+        const token = await getToken();
+        const { data } = await axios.post(
+          "/api/printful/shipping",
+          {
+            addressId: selectedAddress._id,
+            items: cartItemsArray.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              format: item.format,
+              dimensions: item.dimensions,
+            })),
+            cheapestOnly: true,
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (ignore) return;
+
+        if (data?.success) {
+          const [rate] = Array.isArray(data.rates) ? data.rates : [];
+          if (rate) {
+            updateShippingQuote({
+              amount: rate.rate ?? rate.amount ?? 0,
+              currency: rate.currency || shippingCurrency,
+              name: rate.name,
+              id: rate.id,
+            });
+            setShippingError(null);
+          } else {
+            updateShippingQuote({ amount: 0, currency: shippingCurrency });
+            setShippingError(null);
+          }
+        } else {
+          const message = data?.message || "Unable to calculate shipping";
+          setShippingError(message);
+          toast.error(message);
+          updateShippingQuote({ amount: 0, currency: shippingCurrency });
+        }
+      } catch (error) {
+        if (ignore) return;
+        const message =
+          error?.response?.data?.message || error.message || "Unable to calculate shipping";
+        setShippingError(message);
+        toast.error(message);
+        updateShippingQuote({ amount: 0, currency: shippingCurrency });
+      }
+    };
+
+    fetchShippingQuote();
+
+    return () => {
+      ignore = true;
+    };
+  }, [
+    user,
+    selectedAddress?._id,
+    cartItemsArray,
+    hasPhysicalItems,
+    getToken,
+    updateShippingQuote,
+    resetShippingQuote,
+    shippingCurrency,
+  ]);
 
   useEffect(() => {
     if (!promoResult?.valid) return;
@@ -519,7 +623,11 @@ const OrderSummary = () => {
           </div>
           <div className="flex justify-between">
             <p className="text-gray-600">Shipping Fee</p>
-            <p className="font-medium text-blackhex">Free</p>
+            <p className="font-medium text-blackhex">
+              {effectiveShippingAmount > 0
+                ? `${currency}${effectiveShippingAmount.toFixed(2)}`
+                : "Free"}
+            </p>
           </div>
           <div className="flex justify-between">
             <p className="text-gray-600">Tax (13%)</p>
@@ -544,6 +652,9 @@ const OrderSummary = () => {
               {payableTotal.toFixed(2)}
             </p>
           </div>
+          {shippingError && (
+            <p className="text-sm text-red-500">{shippingError}</p>
+          )}
         </div>
       </div>
 
