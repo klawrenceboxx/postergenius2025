@@ -15,6 +15,37 @@ export default function ReviewSummary({ productId }) {
   const [error, setError] = useState("");
   const [stats, setStats] = useState({ total: 0, average: 0 });
 
+  const StarRating = useCallback(({ value }) => {
+    const safeValue = Number.isFinite(value) ? value : 0;
+    const stars = Array.from({ length: 5 }).map((_, index) => {
+      const fillAmount = Math.max(0, Math.min(1, safeValue - index));
+
+      return (
+        <span key={index} className="relative inline-flex text-sm">
+          <span aria-hidden="true" className="text-gray-300">
+            ★
+          </span>
+          <span
+            aria-hidden="true"
+            className="absolute left-0 top-0 overflow-hidden text-amber-400"
+            style={{ width: `${fillAmount * 100}%` }}
+          >
+            ★
+          </span>
+        </span>
+      );
+    });
+
+    return (
+      <span
+        className="flex items-center gap-0.5"
+        aria-label={`${safeValue.toFixed(1)} out of 5 stars`}
+      >
+        {stars}
+      </span>
+    );
+  }, []);
+
   const fetchStats = useCallback(async () => {
     try {
       setLoading(true);
@@ -55,13 +86,16 @@ export default function ReviewSummary({ productId }) {
 
     return (
       <>
-        <span className="text-lg font-semibold">{stats.average.toFixed(1)} ★</span>
+        <span className="flex items-center gap-2">
+          <span className="text-lg font-semibold">{stats.average.toFixed(1)}</span>
+          <StarRating value={stats.average} />
+        </span>
         <span className="text-sm text-gray-600">
           · {formatCount(stats.total)} review{stats.total === 1 ? "" : "s"}
         </span>
       </>
     );
-  }, [loading, error, stats.average, stats.total]);
+  }, [StarRating, loading, error, stats.average, stats.total]);
 
   const handleOpen = useCallback(() => {
     setIsOpen(true);
