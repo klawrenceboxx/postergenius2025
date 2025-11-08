@@ -95,7 +95,7 @@ export default async function Page({ params }) {
   return (
     <>
       <Navbar />
-      <div className=" lg:px-8 pt-2 border-red-500 border-2 ">
+      <div className=" lg:px-8 pt-2">
         {/* ProductPage/Infos must call addToCart with:
            {
              productId: product.productId,

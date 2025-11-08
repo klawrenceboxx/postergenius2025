@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { getAuth, clerkClient } from "@clerk/nextjs/server";
+import { getAuth } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/clerk-sdk-node";
 import mongoose from "mongoose";
 import connectDB from "@/config/db";
 import Review from "@/models/Review";
@@ -7,8 +8,16 @@ import Order from "@/models/Order";
 
 const sanitizeReview = (review) => {
   if (!review) return review;
-  const { _id, userId, username, rating, comment, productId, createdAt, updatedAt } =
-    review;
+  const {
+    _id,
+    userId,
+    username,
+    rating,
+    comment,
+    productId,
+    createdAt,
+    updatedAt,
+  } = review;
   return {
     _id: _id?.toString?.() || _id,
     userId: userId ?? null,
@@ -110,7 +119,8 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const productId = typeof body.productId === "string" ? body.productId.trim() : "";
+    const productId =
+      typeof body.productId === "string" ? body.productId.trim() : "";
     const rating = Number(body.rating);
     const comment = (body.comment || "").trim();
     const providedUsername = (body.username || "").trim();

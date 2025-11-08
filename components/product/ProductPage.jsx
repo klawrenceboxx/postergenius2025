@@ -29,7 +29,7 @@ export default function ProductPage({ product }) {
       </nav>
 
       {/* Two-column layout */}
-      <div className="flex flex-col lg:flex-row w-full gap-8 border-red-500 border-2">
+      <div className="flex flex-col lg:flex-row w-full gap-8">
         <div className="flex-1 min-w-0 ">
           <PosterMockupViewer
             posterUrl={product.imageUrl}

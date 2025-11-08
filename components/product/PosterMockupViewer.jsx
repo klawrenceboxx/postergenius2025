@@ -116,7 +116,7 @@ export default function PosterMockupViewer({
 
   return (
     /////////////////////////////
-    <div className="relative flex flex-col-reverse lg:flex-row gap-4 border-red-500 border-2">
+    <div className="relative flex flex-col-reverse lg:flex-row gap-4">
       {/* Thumbs */}
       <div className="absolute bottom-2 left-2 lg:top-4 lg:bottom-auto flex lg:flex-col gap-2 z-20 bg-white/20 p-2 rounded-md shadow">
         {mockups.map((mk, idx) => (
