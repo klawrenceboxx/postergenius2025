@@ -61,7 +61,7 @@ const fieldOrder = [
 ];
 
 const CheckoutPage = () => {
-  const { user, ensureGuestId, fetchGuestAddress, fetchCart, router } =
+  const { user, ensureGuestId, fetchGuestAddress, fetchCart, router, shippingQuote } =
     useAppContext();
   const [formValues, setFormValues] = useState(EMPTY_GUEST_ADDRESS);
   const [guestId, setGuestId] = useState(null);
@@ -314,7 +314,7 @@ const CheckoutPage = () => {
           </button>
         </div>
         <div className="w-full lg:max-w-md">
-          <OrderSummary />
+          <OrderSummary shippingQuote={shippingQuote} />
         </div>
       </div>
       <Footer />

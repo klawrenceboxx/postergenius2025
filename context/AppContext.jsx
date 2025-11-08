@@ -2,7 +2,14 @@
 import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import toast from "react-hot-toast";
 import { augmentProductWithPricing } from "@/lib/pricing";
 import {
@@ -28,6 +35,12 @@ export const AppContextProvider = (props) => {
   const [cartItems, setCartItems] = useState({});
   const [wishlist, setWishlist] = useState([]);
   const [activeGuestId, setActiveGuestId] = useState(null);
+  const [shippingQuote, setShippingQuote] = useState({
+    amount: 0,
+    currency: "usd",
+    name: null,
+    id: null,
+  });
   const previousUserRef = useRef(null);
 
   const guestStorageKey =
@@ -186,6 +199,43 @@ export const AppContextProvider = (props) => {
       toast.error(error.message || "Failed to load cart");
     }
   };
+
+  const updateShippingQuote = useCallback((quote) => {
+    setShippingQuote((prev) => {
+      if (!quote) {
+        return {
+          amount: 0,
+          currency: prev.currency || "usd",
+          name: null,
+          id: null,
+        };
+      }
+
+      const rawAmount = Number(quote.amount ?? quote.rate ?? 0);
+      const amount = Number.isFinite(rawAmount)
+        ? Math.max(Math.round(rawAmount * 100) / 100, 0)
+        : 0;
+      const nextCurrency = quote.currency
+        ? String(quote.currency).toLowerCase()
+        : prev.currency || "usd";
+
+      return {
+        amount,
+        currency: nextCurrency,
+        name: quote.name || quote.service || null,
+        id: quote.id || null,
+      };
+    });
+  }, []);
+
+  const resetShippingQuote = useCallback(() => {
+    setShippingQuote((prev) => ({
+      amount: 0,
+      currency: prev.currency || "usd",
+      name: null,
+      id: null,
+    }));
+  }, []);
 
   const fetchUserData = async () => {
     try {
@@ -592,6 +642,12 @@ export const AppContextProvider = (props) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
+  useEffect(() => {
+    if (!cartItems || Object.keys(cartItems).length === 0) {
+      resetShippingQuote();
+    }
+  }, [cartItems, resetShippingQuote]);
+
   const value = {
     user,
     getToken,
@@ -619,6 +675,9 @@ export const AppContextProvider = (props) => {
     addToWishlist,
     removeFromWishlist,
     getWishlistCount,
+    shippingQuote,
+    updateShippingQuote,
+    resetShippingQuote,
   };
 
   return (

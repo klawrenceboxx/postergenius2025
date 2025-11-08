@@ -9,7 +9,14 @@ import { useAppContext } from "@/context/AppContext";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const Cart = () => {
-  const { products, router, cartItems, updateCartQuantity, getCartCount } =
+  const {
+    products,
+    router,
+    cartItems,
+    updateCartQuantity,
+    getCartCount,
+    shippingQuote,
+  } =
     useAppContext();
 
   return (
@@ -180,7 +187,7 @@ const Cart = () => {
         </div>
 
         {/* Order summary (right-hand panel) */}
-        <OrderSummary />
+        <OrderSummary shippingQuote={shippingQuote} />
       </div>
     </>
   );
