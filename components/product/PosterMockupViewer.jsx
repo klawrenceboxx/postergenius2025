@@ -183,7 +183,7 @@ export default function PosterMockupViewer({
             width: posterWidth, // ← dynamic % with min/max guardrails
             height: "auto",
             boxShadow: "-3px 3px 2px rgba(0,0,0,0.3)",
-            zIndex: 2,
+            zIndex: 0,
           }}
           sizes="(max-width: 1024px) 60vw, 40vw"
         />
