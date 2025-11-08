@@ -57,7 +57,10 @@ const Cart = () => {
                 {Object.entries(cartItems).map(([key, entry]) => {
                   const isObj = entry && typeof entry === "object";
                   const productId = isObj ? entry.productId : key;
-                  const product = products.find((p) => p._id === productId);
+                  const product = products.find(
+                    (p) =>
+                      (p.productId || p._id?.toString?.() || p._id) === productId
+                  );
                   if (!product) return null;
 
                   const quantity = isObj ? entry.quantity : entry;
@@ -73,8 +76,15 @@ const Cart = () => {
                       );
                   const title = isObj ? entry.title : product.name;
                   const imageUrl = isObj ? entry.imageUrl : product.image?.[0];
+                  const slug = isObj ? entry.slug : product.slug;
                   const format = isObj ? entry.format : undefined;
                   const dims = isObj ? entry.dimensions : undefined;
+
+                  const handleNavigate = () => {
+                    const targetSlug = slug || product?.slug || productId;
+                    if (!targetSlug) return;
+                    router.push(`/product/${targetSlug}`);
+                  };
 
                   return (
                     <tr
@@ -84,7 +94,11 @@ const Cart = () => {
                       {/* Product */}
                       <td className="flex items-center gap-4 py-4 md:px-4 px-1">
                         <div>
-                          <div className="rounded-lg overflow-hidden bg-gray-100 p-2 shadow-sm">
+                          <button
+                            type="button"
+                            onClick={handleNavigate}
+                            className="rounded-lg overflow-hidden bg-gray-100 p-2 shadow-sm block focus:outline-none focus:ring-2 focus:ring-primary/60"
+                          >
                             <Image
                               {...getOptimizedImageProps(imageUrl, { variant: "thumbnail" })}
                               alt={title}
@@ -93,7 +107,7 @@ const Cart = () => {
                               height={720}
                               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             />
-                          </div>
+                          </button>
                           <button
                             className="md:hidden text-xs text-primary mt-1 hover:underline"
                             onClick={() => updateCartQuantity(key, 0)}
@@ -102,13 +116,21 @@ const Cart = () => {
                           </button>
                         </div>
                         <div className="text-sm hidden md:block">
-                          <p className="text-blackhex">{title}</p>
-                          {isObj && (
-                            <p className="text-xs text-gray-500">
-                              {format}
-                              {dims && dims !== "digital" ? ` • ${dims}` : ""}
+                          <button
+                            type="button"
+                            onClick={handleNavigate}
+                            className="text-left"
+                          >
+                            <p className="text-blackhex hover:underline focus-visible:underline">
+                              {title}
                             </p>
-                          )}
+                            {isObj && (
+                              <p className="text-xs text-gray-500">
+                                {format}
+                                {dims && dims !== "digital" ? ` • ${dims}` : ""}
+                              </p>
+                            )}
+                          </button>
                           <button
                             className="text-xs text-primary mt-1 hover:underline"
                             onClick={() => updateCartQuantity(key, 0)}
