@@ -103,16 +103,19 @@ const OrderConfirmationWithOrders = () => {
   // Step 3: Handle download for a digital product
   // ------------------------------------
   const handleDownload = async (productId) => {
-    if (!productId) {
+    const productKey =
+      typeof productId === "string" ? productId : productId?.toString?.();
+
+    if (!productKey) {
       toast.error("Download unavailable for this item");
       return;
     }
     try {
-      console.log("[DEBUG] Attempting download for productId:", productId);
-      setDownloading(productId);
+      console.log("[DEBUG] Attempting download for productId:", productKey);
+      setDownloading(productKey);
 
       const { data } = await axios.get(
-        `/api/download-link?productId=${productId}`
+        `/api/download-link?productId=${productKey}`
       );
       console.log("[DEBUG] Response from /api/download-link:", data);
 
@@ -170,7 +173,31 @@ const OrderConfirmationWithOrders = () => {
                         const productName = product?.name || "Unnamed product";
                         const productImage = product?.image?.[0] || null;
                         const productId = product?._id;
-                        const isDownloading = downloading === productId;
+                        const productIdStr =
+                          typeof productId === "string"
+                            ? productId
+                            : productId?.toString?.();
+                        const digitalDownloadEntry = (order?.digitalDownloads || []).find(
+                          (download) => {
+                            if (!download) return false;
+                            const downloadProduct = download.product;
+                            const downloadProductId =
+                              typeof downloadProduct === "object"
+                                ? downloadProduct?._id || downloadProduct?.toString?.()
+                                : downloadProduct;
+                            if (!downloadProductId || !productIdStr) return false;
+                            return (
+                              downloadProductId === productIdStr ||
+                              downloadProductId?.toString?.() === productIdStr
+                            );
+                          }
+                        );
+                        const downloadUrl = digitalDownloadEntry?.url;
+                        const isDigitalItem = item?.format === "digital";
+                        const canDownload = isDigitalItem || Boolean(digitalDownloadEntry);
+                        const isDownloading = productIdStr
+                          ? downloading === productIdStr
+                          : false;
                         return (
                           <div
                             key={i}
@@ -194,13 +221,26 @@ const OrderConfirmationWithOrders = () => {
                             <span className="text-xs font-medium text-gray-700">
                               {productName}
                             </span>
-                            <button
-                              onClick={() => handleDownload(productId)}
-                              disabled={!productId || isDownloading}
-                              className="px-3 py-1 bg-blue-600 text-white rounded text-xs disabled:opacity-50"
-                            >
-                              {isDownloading ? "Preparing..." : "Download"}
-                            </button>
+                            {canDownload && (
+                              downloadUrl ? (
+                                <a
+                                  href={downloadUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs disabled:opacity-50"
+                                >
+                                  Download
+                                </a>
+                              ) : (
+                                <button
+                                  onClick={() => handleDownload(productIdStr || productId)}
+                                  disabled={!productIdStr || isDownloading}
+                                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs disabled:opacity-50"
+                                >
+                                  {isDownloading ? "Preparing..." : "Download"}
+                                </button>
+                              )
+                            )}
                           </div>
                         );
                       })}
