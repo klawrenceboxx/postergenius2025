@@ -14,6 +14,8 @@ import {
 export const AppContext = createContext();
 export const useAppContext = () => useContext(AppContext);
 
+const CART_REFRESH_EVENT = "postergenius:cart:refresh";
+
 export const AppContextProvider = (props) => {
   const currency = process.env.NEXT_PUBLIC_CURRENCY;
   const router = useRouter();
@@ -186,6 +188,33 @@ export const AppContextProvider = (props) => {
       toast.error(error.message || "Failed to load cart");
     }
   };
+
+  const fetchCartRef = useRef(fetchCart);
+
+  useEffect(() => {
+    fetchCartRef.current = fetchCart;
+  }, [fetchCart]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    const handleCartRefresh = () => {
+      const action = fetchCartRef.current;
+      if (typeof action === "function") {
+        Promise.resolve(action({ createGuestIfMissing: true })).catch((error) => {
+          console.error("[AppContext] Failed to refresh cart after event", error);
+        });
+      }
+    };
+
+    window.addEventListener(CART_REFRESH_EVENT, handleCartRefresh);
+
+    return () => {
+      window.removeEventListener(CART_REFRESH_EVENT, handleCartRefresh);
+    };
+  }, []);
 
   const fetchUserData = async () => {
     try {
@@ -606,6 +635,12 @@ export const AppContextProvider = (props) => {
     fetchCart,
     cartItems,
     setCartItems,
+    triggerCartRefresh: () => {
+      if (typeof window === "undefined") {
+        return;
+      }
+      window.dispatchEvent(new Event(CART_REFRESH_EVENT));
+    },
     activeGuestId,
     ensureGuestId,
     fetchGuestAddress,

@@ -7,15 +7,17 @@ import { useEffect } from "react";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 const OrderPlaced = () => {
-  const { router } = useAppContext();
+  const { router, setCartItems, triggerCartRefresh } = useAppContext();
 
   useEffect(() => {
+    setCartItems({});
+    triggerCartRefresh();
     const timeout = setTimeout(() => {
       router.push("/my-orders");
     }, 5000);
 
     return () => clearTimeout(timeout);
-  }, [router]);
+  }, [router, setCartItems, triggerCartRefresh]);
 
   return (
     <div className="h-screen flex flex-col justify-center items-center gap-5">

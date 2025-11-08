@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import connectDB from "@/config/db";
 import Order from "@/models/Order";
+import Cart from "@/models/Cart";
 import Address from "@/models/Address";
 import Product from "@/models/Product";
 import { computePricing } from "@/lib/pricing";
@@ -75,6 +76,22 @@ export async function POST(req) {
       }
 
       const itemsMetadata = safeJsonParse(metadata.items, []);
+      const rawUserId =
+        typeof metadata.userId === "string" ? metadata.userId.trim() : "";
+      const normalizedUserId = rawUserId.length > 0 ? rawUserId : null;
+      const normalizedGuestId = (() => {
+        const candidate =
+          typeof metadata.guestId === "string"
+            ? metadata.guestId
+            : typeof metadata.guest_id === "string"
+            ? metadata.guest_id
+            : typeof metadata.guest === "string"
+            ? metadata.guest
+            : null;
+        if (!candidate) return null;
+        const trimmed = candidate.trim();
+        return trimmed.length > 0 ? trimmed : null;
+      })();
       const shippingMeta = safeJsonParse(metadata.shipping, null);
       const recipientSnapshot = safeJsonParse(metadata.recipient, null);
 
@@ -257,7 +274,10 @@ export async function POST(req) {
       );
 
       const baseOrder = {
-        userId: metadata.userId,
+        ...(normalizedUserId ? { userId: normalizedUserId } : {}),
+        ...(normalizedGuestId && !normalizedUserId
+          ? { guestId: normalizedGuestId }
+          : {}),
         items: orderItems,
         subtotal,
         tax,
@@ -287,6 +307,42 @@ export async function POST(req) {
 
       await newOrder.save();
       console.log("📝 Order saved:", newOrder._id);
+
+      const cartIdentifier = normalizedUserId
+        ? { userId: normalizedUserId }
+        : normalizedGuestId
+        ? { guestId: normalizedGuestId }
+        : null;
+
+      if (cartIdentifier) {
+        try {
+          const clearedCart = await Cart.findOneAndUpdate(
+            cartIdentifier,
+            { items: {} },
+            { new: true }
+          );
+          if (clearedCart) {
+            console.log(
+              "🧹 Cleared cart for identifier",
+              JSON.stringify(cartIdentifier)
+            );
+          } else {
+            console.log(
+              "ℹ️ No cart found to clear for identifier",
+              JSON.stringify(cartIdentifier)
+            );
+          }
+        } catch (cartError) {
+          console.error(
+            "⚠️ Failed to clear cart after Stripe webhook order save",
+            cartError
+          );
+        }
+      } else {
+        console.log(
+          "ℹ️ Skipping cart clear – no userId or guestId found in Stripe metadata"
+        );
+      }
 
       await appendOrderLog(
         newOrder._id,
