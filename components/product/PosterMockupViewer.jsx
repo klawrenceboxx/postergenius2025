@@ -112,7 +112,7 @@ export default function PosterMockupViewer({
   // --- poster width that respects M/L/XL (%) but never too small/large
   const pct = m.posterWidthPct * scale * portraitFactor; // your percentage logic
   const { min, max } = boundsFor(selectedDimensions);
-  const posterWidth = `clamp(${min}px, ${pct}%, ${max}px)`;
+  const posterWidth = `${min}px`;
 
   return (
     /////////////////////////////
