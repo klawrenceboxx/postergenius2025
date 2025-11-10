@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
+const DISMISS_STORAGE_KEY = "posterGenius.optInDismissed";
+const DISMISS_DURATION_DAYS = 1;
+
 const SlideInOptIn = () => {
   const [isVisible, setIsVisible] = useState(false);
   const [hasClosed, setHasClosed] = useState(false);
@@ -19,6 +22,26 @@ const SlideInOptIn = () => {
 
     if (typeof window === "undefined") {
       return undefined;
+    }
+
+    try {
+      const storedValue = window.localStorage.getItem(DISMISS_STORAGE_KEY);
+
+      if (storedValue) {
+        const parsedValue = JSON.parse(storedValue);
+        const dismissedAt = parsedValue?.dismissedAt;
+        const expiresAt = parsedValue?.expiresAt;
+
+        if (typeof expiresAt === "number" && expiresAt <= Date.now()) {
+          window.localStorage.removeItem(DISMISS_STORAGE_KEY);
+        } else if (typeof dismissedAt === "number") {
+          setHasClosed(true);
+          return undefined;
+        }
+      }
+    } catch (error) {
+      // Ignore malformed storage entries and proceed with showing the popup
+      window.localStorage.removeItem(DISMISS_STORAGE_KEY);
     }
 
     let triggered = false;
@@ -70,6 +93,21 @@ const SlideInOptIn = () => {
     if (closeTimeoutRef.current) {
       window.clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = null;
+    }
+
+    if (typeof window !== "undefined") {
+      const dismissedAt = Date.now();
+      const expiresAt =
+        dismissedAt + DISMISS_DURATION_DAYS * 24 * 60 * 60 * 1000;
+
+      try {
+        window.localStorage.setItem(
+          DISMISS_STORAGE_KEY,
+          JSON.stringify({ dismissedAt, expiresAt })
+        );
+      } catch (error) {
+        // Swallow storage write errors (e.g., storage full or disabled)
+      }
     }
 
     setIsVisible(false);
