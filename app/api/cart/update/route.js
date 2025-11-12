@@ -5,15 +5,30 @@ import { NextResponse } from "next/server";
 
 export async function POST(request) {
   try {
-    const { userId } = getAuth(request);
+    const expectedSecret = process.env.INTERNAL_API_SECRET;
+    const providedSecret = request.headers.get("x-internal-secret");
+    const body = (await request.json()) || {};
+    const { cartData = {}, userId: bodyUserId } = body;
+
+    const isInternalRequest = Boolean(
+      expectedSecret &&
+      providedSecret &&
+      providedSecret === expectedSecret
+    );
+
+    const auth = isInternalRequest ? null : getAuth(request);
+    const userId = isInternalRequest ? bodyUserId : auth?.userId;
+
     if (!userId) {
+      const message = isInternalRequest
+        ? "Missing userId for internal cart update"
+        : "Unauthorized";
       return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
+        { success: false, message },
+        { status: isInternalRequest ? 400 : 401 }
       );
     }
 
-    const { cartData = {} } = await request.json();
     await connectDB();
 
     // Clerk user id is stored on the User doc as `userId`
