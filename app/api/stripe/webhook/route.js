@@ -295,10 +295,49 @@ export async function POST(req) {
       );
 
       if (digitalDownloads.length) {
-        await appendOrderLog(
-          newOrder._id,
-          "digital_delivery_prepared",
-          `Prepared ${digitalDownloads.length} digital download link(s).`
+      await appendOrderLog(
+        newOrder._id,
+        "digital_delivery_prepared",
+        `Prepared ${digitalDownloads.length} digital download link(s).`
+      );
+      }
+
+      const internalSecret = process.env.INTERNAL_API_SECRET;
+      if (metadata.userId && internalSecret) {
+        try {
+          const cartUpdateUrl = new URL("/api/cart/update", req.url);
+          const response = await fetch(cartUpdateUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-internal-secret": internalSecret,
+            },
+            body: JSON.stringify({
+              userId: metadata.userId,
+              cartData: {},
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(
+              "⚠️ Failed to clear cart after checkout:",
+              response.status,
+              errorText
+            );
+          } else {
+            console.log("🛒 Cleared cart for user", metadata.userId);
+          }
+        } catch (error) {
+          console.error("⚠️ Error clearing cart after checkout:", error);
+        }
+      } else if (!metadata.userId) {
+        console.warn(
+          "⚠️ Missing userId in session metadata; skipping cart clear."
+        );
+      } else {
+        console.warn(
+          "⚠️ INTERNAL_API_SECRET not configured; unable to clear cart via API."
         );
       }
 
