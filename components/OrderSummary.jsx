@@ -260,7 +260,6 @@ const OrderSummary = ({ shippingQuote: shippingOverride }) => {
 
   // -------------------- Totals --------------------
   const subtotal = getCartAmount(); // total price before tax
-  const tax = parseFloat((subtotal * 0.13).toFixed(2)); // 13% HST (hardcoded for Ontario)
   const cartItemsArray = useMemo(() => normaliseCartItems(cartItems), [cartItems]);
   const hasPhysicalItems = useMemo(
     () =>
@@ -280,11 +279,11 @@ const OrderSummary = ({ shippingQuote: shippingOverride }) => {
     promoResult?.valid && promoResult.promoType === "shipping"
       ? 0
       : originalShippingAmount;
-  const totalBeforeDiscount = subtotal + tax + effectiveShippingAmount;
+  const totalBeforeDiscount = subtotal + effectiveShippingAmount;
 
   const promoCartPayload = useMemo(
-    () => buildPromoCart(cartItems, subtotal + tax, originalShippingAmount),
-    [cartItems, subtotal, tax, originalShippingAmount]
+    () => buildPromoCart(cartItems, subtotal, originalShippingAmount),
+    [cartItems, subtotal, originalShippingAmount]
   );
 
   const rawDiscountAmount = promoResult?.valid
@@ -308,7 +307,6 @@ const OrderSummary = ({ shippingQuote: shippingOverride }) => {
 
   console.log("Cart Summary:", {
     subtotal,
-    tax,
     shipping: effectiveShippingAmount,
     total: totalBeforeDiscount,
     itemCount: getCartCount(),
@@ -630,11 +628,8 @@ const OrderSummary = ({ shippingQuote: shippingOverride }) => {
             </p>
           </div>
           <div className="flex justify-between">
-            <p className="text-gray-600">Tax (13%)</p>
-            <p className="font-medium text-blackhex">
-              {currency}
-              {tax.toFixed(2)}
-            </p>
+            <p className="text-gray-600">Taxes</p>
+            <p className="font-medium text-blackhex">Calculated at checkout</p>
           </div>
           {promoResult?.valid && discountAmount > 0 && (
             <div className="flex justify-between text-red-600">

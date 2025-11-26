@@ -158,28 +158,23 @@ export async function POST(request) {
       });
     }
 
+    const metadata = {
+      promoCode: promoCode || "",
+    };
+
     const session = await stripe.checkout.sessions.create({
-      line_items: stripeLineItems,
       mode: "payment",
+      payment_method_types: ["card"],
+      line_items: stripeLineItems,
       success_url: successUrl || `${getBaseUrl(request)}/checkout/success`,
       cancel_url: cancelUrl || `${getBaseUrl(request)}/checkout/cancel`,
-      ...(couponId ? { discounts: [{ coupon: couponId }] } : {}),
-      ...(shouldWaiveShipping
-        ? {
-            shipping_options: [
-              {
-                shipping_rate_data: {
-                  type: "fixed_amount",
-                  display_name: "Free Shipping",
-                  fixed_amount: { amount: 0, currency },
-                },
-              },
-            ],
-          }
-        : {}),
-      metadata: {
-        promoCode: promoCode || "",
+      metadata,
+      automatic_tax: { enabled: true },
+      billing_address_collection: "required",
+      shipping_address_collection: {
+        allowed_countries: ["CA"],
       },
+      ...(couponId ? { discounts: [{ coupon: couponId }] } : {}),
     });
 
     return NextResponse.json({

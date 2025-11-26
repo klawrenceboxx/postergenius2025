@@ -126,17 +126,8 @@ export async function POST(request) {
       }
     }
 
-    const subtotal = cartTotal;
-    const tax = parseFloat((subtotal * 0.13).toFixed(2));
-    const total = subtotal + tax;
-    console.log(
-      "💰 Totals => Subtotal:",
-      subtotal,
-      "Tax:",
-      tax,
-      "Total:",
-      total
-    );
+    const goodsTotal = Number(cartTotal.toFixed(2));
+    console.log("💰 Totals => Subtotal:", goodsTotal);
 
     const hasPhysicalItems = physicalForPrintful.length > 0;
     let shippingMetadata = null;
@@ -228,7 +219,6 @@ export async function POST(request) {
       }
     }
 
-    const goodsTotal = Number((subtotal + tax).toFixed(2));
     const originalTotalBeforeDiscount = Number(
       (goodsTotal + originalShippingAmount).toFixed(2)
     );
@@ -408,6 +398,11 @@ export async function POST(request) {
         success_url: successUrl || process.env.STRIPE_SUCCESS_URL,
         cancel_url: cancelUrl || process.env.STRIPE_CANCEL_URL,
         metadata,
+        automatic_tax: { enabled: true },
+        billing_address_collection: "required",
+        shipping_address_collection: {
+          allowed_countries: ["CA"],
+        },
         ...(couponId ? { discounts: [{ coupon: couponId }] } : {}),
       });
 
