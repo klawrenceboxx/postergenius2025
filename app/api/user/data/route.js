@@ -8,7 +8,7 @@ import mongoose from "mongoose";
 
 export async function GET(request) {
   try {
-    const { userId } = getAuth(request);
+    const { userId } = auth(request);
     console.log("USER ID FROM CLERK:", userId);
 
     if (!userId) {
