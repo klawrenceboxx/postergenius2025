@@ -40,6 +40,10 @@ export async function GET(request) {
 
     await connectDB();
 
+    // after await connectDB();
+    console.log("✅ CONNECTED TO DB:", mongoose.connection.name);
+    console.log("✅ FULL URI:", process.env.MONGODB_URI);
+
     let user = await User.findOne({ userId });
 
     // ✅ AUTO-CREATE USER IF MISSING
