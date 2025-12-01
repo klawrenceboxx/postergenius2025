@@ -2,7 +2,7 @@ export const runtime = "nodejs";
 
 import connectDB from "@/config/db";
 import User from "@/models/User";
-import { getAuth, clerkClient } from "@clerk/nextjs/server";
+import { auth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 
