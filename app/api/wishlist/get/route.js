@@ -2,13 +2,13 @@ export const runtime = "nodejs";
 
 import connectDB from "@/config/db";
 import User from "@/models/User";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { getAuth, clerkClient } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 
 export async function GET(request) {
   try {
-    const { userId } = auth(request);
+    const { userId } = getAuth(request);
     console.log("USER ID FROM CLERK:", userId);
 
     if (!userId) {
