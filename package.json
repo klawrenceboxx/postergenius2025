@@ -23,7 +23,7 @@
     "inngest": "^3.40.1",
     "lucide-react": "^0.545.0",
     "mongoose": "^8.16.4",
-    "next": "^15.4.1",
+    "next": "15.4.10",
     "nodemailer": "^7.0.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
