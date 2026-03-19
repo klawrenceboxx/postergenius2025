@@ -7,7 +7,7 @@ import { useAppContext } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
 
-const ProductCard = ({ product }) => {
+const ProductCard = React.memo(function ProductCard({ product }) {
   const { currency, router, wishlist, addToWishlist, removeFromWishlist } =
     useAppContext();
   const [wishlistAnimation, setWishlistAnimation] = useState("");
@@ -157,6 +157,6 @@ const ProductCard = ({ product }) => {
       </div> */}
     </div>
   );
-};
+});
 
 export default ProductCard;

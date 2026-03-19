@@ -34,7 +34,6 @@ function toNumber(value, fallback = 0) {
 }
 
 export async function POST(req) {
-  console.log("=== [STRIPE WEBHOOK] START ===");
   const body = await req.text();
   const sig = req.headers.get("stripe-signature");
 
@@ -45,9 +44,8 @@ export async function POST(req) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET
     );
-    console.log("📩 Stripe Event:", event.type);
   } catch (err) {
-    console.error("❌ Webhook signature verification failed:", err.message);
+    console.error("Webhook signature verification failed:", err.message);
     return NextResponse.json(
       { success: false, message: err.message },
       { status: 400 }
@@ -58,38 +56,16 @@ export async function POST(req) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const metadata = session.metadata || {};
-      console.log("✅ checkout.session.completed, metadata:", metadata);
-
-      try {
-        const printfulTriggerUrl = new URL("/api/printful/test-order", req.url);
-        await fetch(printfulTriggerUrl, { method: "POST" });
-        console.log(
-          "🚀 Triggered Printful test-order route for session",
-          session.id
-        );
-      } catch (error) {
-        console.error(
-          "⚠️ Failed to trigger Printful test-order route:",
-          error?.message || error
-        );
-      }
 
       const itemsMetadata = safeJsonParse(metadata.items, []);
       const shippingMeta = safeJsonParse(metadata.shipping, null);
       const recipientSnapshot = safeJsonParse(metadata.recipient, null);
 
       await connectDB();
-      console.log("✅ DB connected in webhook");
 
       // prevent duplicate orders for same Stripe session
       const existing = await Order.findOne({ stripeSessionId: session.id });
       if (existing) {
-        console.log(
-          "ℹ️ Order already exists for session:",
-          session.id,
-          "orderId:",
-          existing._id
-        );
         return NextResponse.json({ received: true });
       }
 
@@ -114,16 +90,23 @@ export async function POST(req) {
       let hasPhysical = false;
       let hasDigital = false;
 
-      for (const entry of Array.isArray(itemsMetadata) ? itemsMetadata : []) {
+      const validEntries = (Array.isArray(itemsMetadata) ? itemsMetadata : []).filter((entry) => {
         const productId = entry?.productId || entry?.product;
         const quantity = Math.max(1, Number(entry?.quantity) || 0);
-        if (!productId || quantity <= 0) {
-          continue;
-        }
+        return productId && quantity > 0;
+      });
 
-        const product = await Product.findById(productId).lean();
+      const productIds = validEntries.map((e) => e?.productId || e?.product);
+      const productsArray = await Product.find({ _id: { $in: productIds } }).lean();
+      const productMap = new Map(productsArray.map((p) => [p._id.toString(), p]));
+
+      for (const entry of validEntries) {
+        const productId = entry?.productId || entry?.product;
+        const quantity = Math.max(1, Number(entry?.quantity) || 0);
+
+        const product = productMap.get(productId?.toString?.());
         if (!product) {
-          console.warn("⚠️ Product missing for order item", productId);
+          console.error("Product missing for order item", productId);
           continue;
         }
 
@@ -286,7 +269,6 @@ export async function POST(req) {
       const newOrder = new Order(baseOrder);
 
       await newOrder.save();
-      console.log("📝 Order saved:", newOrder._id);
 
       await appendOrderLog(
         newOrder._id,
@@ -355,37 +337,37 @@ export async function POST(req) {
               payload.shipping = shippingMeta.id;
             }
 
-            // const printfulOrder = await createPrintfulOrder(payload, {
-            //   confirm: true,
-            // });
+            const printfulOrder = await createPrintfulOrder(payload, {
+              confirm: true,
+            });
 
-            // const printfulId =
-            //   printfulOrder?.id ||
-            //   printfulOrder?.result?.id ||
-            //   printfulOrder?.order?.id ||
-            //   null;
-            // const printfulStatus =
-            //   printfulOrder?.status ||
-            //   printfulOrder?.result?.status ||
-            //   printfulOrder?.order?.status ||
-            //   null;
-            // const tracking = extractTrackingFromPrintful(printfulOrder);
+            const printfulId =
+              printfulOrder?.id ||
+              printfulOrder?.result?.id ||
+              printfulOrder?.order?.id ||
+              null;
+            const printfulStatus =
+              printfulOrder?.status ||
+              printfulOrder?.result?.status ||
+              printfulOrder?.order?.status ||
+              null;
+            const tracking = extractTrackingFromPrintful(printfulOrder);
 
-            // await Order.findByIdAndUpdate(newOrder._id, {
-            //   $set: {
-            //     printfulOrderId: printfulId || undefined,
-            //     printfulStatus: printfulStatus || undefined,
-            //     status: mapPrintfulStatus(printfulStatus),
-            //     trackingUrl: tracking.trackingUrl || undefined,
-            //   },
-            // });
-            // await appendOrderLog(
-            //   newOrder._id,
-            //   "printful_order_created",
-            //   `Printful order ${
-            //     printfulId || "(pending id)"
-            //   } created with status ${printfulStatus || "unknown"}.`
-            // );
+            await Order.findByIdAndUpdate(newOrder._id, {
+              $set: {
+                printfulOrderId: printfulId || undefined,
+                printfulStatus: printfulStatus || undefined,
+                status: mapPrintfulStatus(printfulStatus),
+                trackingUrl: tracking.trackingUrl || undefined,
+              },
+            });
+            await appendOrderLog(
+              newOrder._id,
+              "printful_order_created",
+              `Printful order ${
+                printfulId || "(pending id)"
+              } created with status ${printfulStatus || "unknown"}.`
+            );
           } catch (error) {
             console.error("❌ Printful order creation failed:", error);
             await Order.findByIdAndUpdate(newOrder._id, {
@@ -404,13 +386,12 @@ export async function POST(req) {
       }
     }
   } catch (err) {
-    console.error("❌ ERROR processing webhook:", err?.message || err);
+    console.error("Stripe webhook processing error:", err?.message || err);
     return NextResponse.json(
       { success: false, message: "Webhook processing error" },
       { status: 500 }
     );
   }
 
-  console.log("=== [STRIPE WEBHOOK] END ===");
   return NextResponse.json({ received: true });
 }

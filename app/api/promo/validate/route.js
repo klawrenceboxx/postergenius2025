@@ -30,6 +30,11 @@ const isRateLimited = (request, code) => {
   const key = `${clientId}:${code?.toLowerCase() ?? ""}`;
   const now = Date.now();
 
+  // Purge expired entries to prevent unbounded memory growth
+  for (const [k, v] of store) {
+    if (v.expiresAt <= now) store.delete(k);
+  }
+
   const entry = store.get(key);
 
   if (!entry || entry.expiresAt <= now) {

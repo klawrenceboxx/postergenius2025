@@ -6,7 +6,30 @@ import { NextResponse } from "next/server";
 export async function POST(request) {
   try {
     const { userId } = getAuth(request);
+
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
     const { address } = await request.json();
+
+    if (!address || typeof address !== "object") {
+      return NextResponse.json(
+        { success: false, message: "Address is required" },
+        { status: 400 }
+      );
+    }
+
+    const { firstName, lastName, street, city } = address;
+    if (!firstName || !lastName || !street || !city) {
+      return NextResponse.json(
+        { success: false, message: "firstName, lastName, street, and city are required" },
+        { status: 400 }
+      );
+    }
 
     await connectDB();
     const newAddress = await Address.create({ ...address, userId });

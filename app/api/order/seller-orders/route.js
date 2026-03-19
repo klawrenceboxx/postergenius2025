@@ -1,6 +1,5 @@
 import connectDB from "@/config/db";
 import authAdmin from "@/lib/authAdmin";
-import Address from "@/models/Address";
 import Order from "@/models/Order";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
@@ -16,8 +15,6 @@ export async function GET(request) {
     }
 
     await connectDB();
-
-    Address.length;
 
     const orders = await Order.find({})
       .populate("address")

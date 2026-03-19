@@ -12,10 +12,11 @@ export async function GET(request) {
     const isAdmin = await authAdmin(userId);
 
     if (isAdmin !== true) {
-      return NextResponse.json({ success: false, message: "Unauthorized" });
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
     }
-
-    console.log("Admin authenticated successfully:", userId);
 
     await connectDB();
 

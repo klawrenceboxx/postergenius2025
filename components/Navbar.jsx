@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { assets, BagIcon, BoxIcon, CartIcon, HomeIcon } from "@/assets/assets";
 import Link from "next/link";
 import { useAppContext } from "@/context/AppContext";
@@ -14,8 +14,8 @@ const Navbar = () => {
   const { isAdmin, router, user, getCartCount, getWishlistCount } =
     useAppContext();
   const { openSignIn } = useClerk();
-  const cartCount = getCartCount();
-  const wishlistCount = getWishlistCount?.() ?? 0;
+  const cartCount = useMemo(() => getCartCount(), [getCartCount]);
+  const wishlistCount = useMemo(() => getWishlistCount?.() ?? 0, [getWishlistCount]);
 
   const handleWishlistNavigation = () => {
     if (user) {
