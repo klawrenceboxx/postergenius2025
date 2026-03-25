@@ -39,7 +39,7 @@ const OrderConfirmationWithOrders = () => {
         // 🔎 Check endpoint: should be /api/stripe/confirm or similar,
         // but here you call /api/stripe/list (possible mismatch)
         const { data } = await axios.post(
-          "/api/stripe/list",
+          "/api/stripe/confirm",
           { sessionId },
           { headers: { Authorization: `Bearer ${token}` } }
         );

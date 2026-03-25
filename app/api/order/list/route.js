@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import connectDB from "@/config/db";
 import Order from "@/models/Order";
+import "@/models/Product"; // register Product model for populate
 
 export async function GET(request) {
   try {
