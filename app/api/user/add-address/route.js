@@ -23,10 +23,10 @@ export async function POST(request) {
       );
     }
 
-    const { firstName, lastName, street, city } = address;
-    if (!firstName || !lastName || !street || !city) {
+    const { fullName, phoneNumber, pincode, area, city, state } = address;
+    if (!fullName || !phoneNumber || !pincode || !area || !city || !state) {
       return NextResponse.json(
-        { success: false, message: "firstName, lastName, street, and city are required" },
+        { success: false, message: "All address fields are required" },
         { status: 400 }
       );
     }

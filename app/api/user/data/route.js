@@ -1,11 +1,11 @@
 import connectDB from "@/config/db";
 import User from "@/models/User";
-import { getAuth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 export async function GET(request) {
   try {
-    const { userId } = getAuth(request);
+    const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json(
@@ -18,11 +18,24 @@ export async function GET(request) {
 
     let user = await User.findOne({ userId });
 
-    // 🔹 Inngest hasn't finished creating the user yet
     if (!user) {
-      return NextResponse.json(
-        { success: false, status: "pending" },
-        { status: 202 }
+      // User exists in Clerk but not in MongoDB (e.g. Inngest webhook missed).
+      // Auto-create them now so the app works immediately.
+      const clerkUser = await currentUser();
+      if (!clerkUser) {
+        return NextResponse.json(
+          { success: false, message: "Unauthorized" },
+          { status: 401 }
+        );
+      }
+
+      const email = clerkUser.emailAddresses?.[0]?.emailAddress ?? "";
+      const name = `${clerkUser.firstName ?? ""} ${clerkUser.lastName ?? ""}`.trim();
+
+      user = await User.findOneAndUpdate(
+        { userId },
+        { userId, name, email, imageUrl: clerkUser.imageUrl ?? "" },
+        { upsert: true, new: true }
       );
     }
 
