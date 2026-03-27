@@ -177,7 +177,8 @@ const OrderConfirmationWithOrders = () => {
                           typeof productId === "string"
                             ? productId
                             : productId?.toString?.();
-                        const digitalDownloadEntry = (order?.digitalDownloads || []).find(
+                        const isDigitalItem = item?.format === "digital";
+                        const hasDigitalDownload = (order?.digitalDownloads || []).some(
                           (download) => {
                             if (!download) return false;
                             const downloadProduct = download.product;
@@ -185,16 +186,10 @@ const OrderConfirmationWithOrders = () => {
                               typeof downloadProduct === "object"
                                 ? downloadProduct?._id || downloadProduct?.toString?.()
                                 : downloadProduct;
-                            if (!downloadProductId || !productIdStr) return false;
-                            return (
-                              downloadProductId === productIdStr ||
-                              downloadProductId?.toString?.() === productIdStr
-                            );
+                            return downloadProductId === productIdStr || downloadProductId?.toString?.() === productIdStr;
                           }
                         );
-                        const downloadUrl = digitalDownloadEntry?.url;
-                        const isDigitalItem = item?.format === "digital";
-                        const canDownload = isDigitalItem || Boolean(digitalDownloadEntry);
+                        const canDownload = isDigitalItem || hasDigitalDownload;
                         const isDownloading = productIdStr
                           ? downloading === productIdStr
                           : false;
@@ -222,24 +217,13 @@ const OrderConfirmationWithOrders = () => {
                               {productName}
                             </span>
                             {canDownload && (
-                              downloadUrl ? (
-                                <a
-                                  href={downloadUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs disabled:opacity-50"
-                                >
-                                  Download
-                                </a>
-                              ) : (
-                                <button
-                                  onClick={() => handleDownload(productIdStr || productId)}
-                                  disabled={!productIdStr || isDownloading}
-                                  className="px-3 py-1 bg-blue-600 text-white rounded text-xs disabled:opacity-50"
-                                >
-                                  {isDownloading ? "Preparing..." : "Download"}
-                                </button>
-                              )
+                              <button
+                                onClick={() => handleDownload(productIdStr || productId)}
+                                disabled={!productIdStr || isDownloading}
+                                className="px-3 py-1 bg-blue-600 text-white rounded text-xs disabled:opacity-50"
+                              >
+                                {isDownloading ? "Preparing..." : "Download"}
+                              </button>
                             )}
                           </div>
                         );
