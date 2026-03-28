@@ -74,7 +74,7 @@ const TopBanner = () => {
         <span className="mr-2">
           🔥 Up to 35% off all posters! Use code: POSTER35
         </span>
-        <span className="rounded bg-white/20 px-2 py-1 font-bold">
+        <span className="rounded bg-white px-2 py-1 font-bold text-primary">
           {timeRemaining.hours}:{timeRemaining.minutes}:{timeRemaining.seconds}{" "}
           left
         </span>

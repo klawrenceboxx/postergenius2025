@@ -107,9 +107,9 @@ export default function RootLayout({ children }) {
           <Toaster />
           {/* Provide application context */}
           <AppContextProvider>
-            <div className="mx-auto w-full max-w-content lg:px-0">
+            <main className="mx-auto w-full max-w-content lg:px-0">
               {children}
-            </div>
+            </main>
             <SlideInOptIn />
           </AppContextProvider>
         </body>
