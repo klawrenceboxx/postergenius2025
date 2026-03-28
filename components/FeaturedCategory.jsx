@@ -69,7 +69,7 @@ const FeaturedCategory = () => {
                 fill
                 className="object-cover"
                 style={{ objectPosition: `center ${posY ?? 50}%` }}
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
               />
 
               {/* Optional subtle darken on hover */}

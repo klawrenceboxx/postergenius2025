@@ -31,6 +31,7 @@ export default function RootLayout({ children }) {
     <ClerkProvider>
       <html lang="en">
         <head>
+          <link rel="preconnect" href="https://clerk.postergenius.ca" />
           {/* Google Analytics 4 setup */}
           <Script
             async

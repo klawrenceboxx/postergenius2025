@@ -31,7 +31,7 @@ export default function CommunityMasonry() {
                 width={800}
                 height={1000}
                 className="w-full h-auto rounded-xl object-cover shadow-sm"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 25vw"
               />
             </figure>
           ))}
