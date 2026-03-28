@@ -113,7 +113,7 @@ const ProductCard = React.memo(function ProductCard({ product, priority = false 
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             width={400}
             height={400}
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+            sizes="(max-width: 767px) 50vw, (max-width: 1023px) 33vw, (max-width: 1279px) 25vw, 20vw"
             priority={priority}
           />
         ) : (
