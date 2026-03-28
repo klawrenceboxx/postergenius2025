@@ -2,7 +2,6 @@
 import React from "react";
 import Navbar from "@/components/Navbar";
 import HeroBanner from "@/components/HeroBanner";
-import HeaderSlider from "@/components/HeaderSlider";
 import HomeProducts from "@/components/HomeProducts";
 import FeaturedCategory from "@/components/FeaturedCategory";
 import Testimonial from "@/components/Testimonials";

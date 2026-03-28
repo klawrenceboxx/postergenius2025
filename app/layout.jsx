@@ -10,7 +10,7 @@ import SlideInOptIn from "@/components/SlideInOptIn";
 
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "600", "700"],
   display: "swap",
   variable: "--font-poppins",
 });
