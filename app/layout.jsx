@@ -62,9 +62,8 @@ export default function RootLayout({ children }) {
             `}
           </Script>
           {/* 1) Ensure a queue exists BEFORE anything else touches it */}
-          <Script id="omnisend-queue" strategy="beforeInteractive">
+          <Script id="omnisend-queue" strategy="afterInteractive">
             {`
-  // If an extension set window.omnisend to something non-array, reset it.
   if (!Array.isArray(window.omnisend)) window.omnisend = [];
 `}
           </Script>

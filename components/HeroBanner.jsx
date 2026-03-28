@@ -10,6 +10,8 @@ const HeroBanner = () => {
         {...getOptimizedImageProps(assets.peacock_hero)}
         alt="Peacock hero"
         fill
+        priority
+        sizes="100vw"
         className="object-cover"
       />
       <div className="relative z-10 max-w-xl pl-6 md:pl-10">

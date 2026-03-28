@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { assets } from "@/assets/assets";
 
@@ -33,9 +34,6 @@ const products = [
 const cardHeights = "h-48 sm:h-56 md:h-64 lg:h-96";
 const barHeights = "h-24 sm:h-28 md:h-32";
 
-// Support string paths or imported images (StaticImport)
-const toUrl = (img) => (typeof img === "string" ? img : img?.src ?? "");
-
 const clamp2 = {
   display: "-webkit-box",
   WebkitLineClamp: 2,
@@ -65,12 +63,13 @@ const FeaturedCategory = () => {
               className={`group relative w-full ${cardHeights} overflow-hidden rounded-xl border`}
             >
               {/* Background image layer with per-card vertical offset */}
-              <div
-                className="absolute inset-0 bg-cover"
-                style={{
-                  backgroundImage: `url(${toUrl(image)})`,
-                  backgroundPosition: `center ${posY ?? 50}%`,
-                }}
+              <Image
+                src={image}
+                alt={title}
+                fill
+                className="object-cover"
+                style={{ objectPosition: `center ${posY ?? 50}%` }}
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               />
 
               {/* Optional subtle darken on hover */}

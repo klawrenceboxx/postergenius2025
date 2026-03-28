@@ -7,7 +7,7 @@ import { useAppContext } from "@/context/AppContext";
 import { usePathname } from "next/navigation";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
 
-const ProductCard = React.memo(function ProductCard({ product }) {
+const ProductCard = React.memo(function ProductCard({ product, priority = false }) {
   const { currency, router, wishlist, addToWishlist, removeFromWishlist } =
     useAppContext();
   const [wishlistAnimation, setWishlistAnimation] = useState("");
@@ -111,10 +111,10 @@ const ProductCard = React.memo(function ProductCard({ product }) {
             {...getOptimizedImageProps(previewImage, { variant: "thumbnail" })}
             alt={product?.name || product?.title || "Poster"}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            width={800}
-            height={800}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            priority={false}
+            width={400}
+            height={400}
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+            priority={priority}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gray-100 text-gray-400">
