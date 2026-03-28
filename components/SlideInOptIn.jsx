@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const DISMISS_STORAGE_KEY = "posterGenius.optInDismissed";
-const DISMISS_DURATION_DAYS = 1;
+const DISMISS_DURATION_DAYS = 7;
 
 const SlideInOptIn = () => {
   const [isVisible, setIsVisible] = useState(false);
