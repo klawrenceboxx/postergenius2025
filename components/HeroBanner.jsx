@@ -38,7 +38,7 @@ const HeroBanner = () => {
           className="object-cover"
         />
         <div className="relative z-10 max-w-xl pl-6 md:pl-10 lg:pl-14">
-          <h1 className="text-4xl md:text-6xl lg:text-7xl xl:text-[5.5rem] font-extrabold text-white drop-shadow-md leading-[0.95] tracking-tight">
+          <h1 className="text-4xl md:text-[3.4rem] lg:text-[4rem] xl:text-[5rem] font-extrabold text-white drop-shadow-md leading-[0.95] tracking-tight">
             <span className="block">Discover Your</span>
             <span className="block">Perfect Poster</span>
             <span className="block">Collection Today</span>
