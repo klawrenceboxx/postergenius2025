@@ -41,7 +41,7 @@ function Price({ product, format, selectedDimensions }) {
     if (hasDiscount) {
       return (
         <div className="flex flex-wrap items-end gap-3">
-          <span className="text-[2.35rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.65rem]">
+          <span className="text-[2rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.25rem]">
             ${finalPrice.toFixed(2)}
           </span>
           <span className="text-sm font-semibold text-gray-400 line-through md:text-base">
@@ -55,7 +55,7 @@ function Price({ product, format, selectedDimensions }) {
     }
 
     return (
-      <div className="text-[2.35rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.65rem]">
+      <div className="text-[2rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.25rem]">
         ${finalPrice.toFixed(2)}
       </div>
     );
@@ -78,7 +78,7 @@ function Price({ product, format, selectedDimensions }) {
   if (hasDiscount) {
     return (
       <div className="flex flex-wrap items-end gap-3">
-        <span className="text-[2.35rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.65rem]">
+        <span className="text-[2rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.25rem]">
           ${finalPrice.toFixed(2)}
         </span>
         <span className="text-sm font-semibold text-gray-400 line-through md:text-base">
@@ -92,7 +92,7 @@ function Price({ product, format, selectedDimensions }) {
   }
 
   return (
-    <div className="text-[2.35rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.65rem]">
+    <div className="text-[2rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.25rem]">
       ${finalPrice.toFixed(2)}
     </div>
   );
@@ -261,36 +261,57 @@ function MobileSelectorTabs({
   onDimensionsChange,
   labelForIndex,
 }) {
+  const [activePanel, setActivePanel] = useState(
+    format === "digital" ? "product" : "size"
+  );
+
+  const showSizePanel = format !== "digital";
+
+  React.useEffect(() => {
+    if (format === "digital" && activePanel === "size") {
+      setActivePanel("product");
+    }
+  }, [activePanel, format]);
+
   return (
     <div className="rounded-[24px] border border-secondary/10 bg-white p-4 lg:hidden">
-      <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-secondary">
-        Customize your poster
-      </div>
-
-      <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
-        Product type
-      </div>
-      <PillGroup className="w-full">
-        {[
-          { key: "physical", label: "Physical Print" },
-          { key: "digital", label: "Digital Download" },
-        ].map((opt) => (
-          <OptionChip
-            key={opt.key}
-            active={format === opt.key}
-            onClick={() => onFormatChange(opt.key)}
-            className="flex-1"
+      <div className="flex justify-center">
+        <PillGroup className="justify-center">
+          {showSizePanel ? (
+            <button
+              type="button"
+              onClick={() => setActivePanel("size")}
+              className={cx(
+                "rounded-full px-5 py-2 text-[15px] font-medium transition",
+                activePanel === "size"
+                  ? "border border-secondary/20 bg-white text-secondary shadow-sm"
+                  : "text-gray-600"
+              )}
+            >
+              Size
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setActivePanel("product")}
+            className={cx(
+              "rounded-full px-5 py-2 text-[15px] font-medium transition",
+              activePanel === "product"
+                ? "border border-secondary/20 bg-white text-secondary shadow-sm"
+                : "text-gray-600"
+            )}
           >
-            {opt.label}
-          </OptionChip>
-        ))}
-      </PillGroup>
+            Product Type
+          </button>
+        </PillGroup>
+      </div>
 
-      {sizes?.length ? (
-        <div className="mt-5">
-          <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
-            Size (inches)
-          </div>
+      <div className="mt-4 text-center">
+        <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+          {activePanel === "size" && showSizePanel ? "Size (inches)" : "Product type"}
+        </div>
+
+        {activePanel === "size" && showSizePanel ? (
           <PillGroup>
             {sizes.map((s, i) => {
               const dims = s.dimensions || s.size;
@@ -307,8 +328,24 @@ function MobileSelectorTabs({
               );
             })}
           </PillGroup>
-        </div>
-      ) : null}
+        ) : (
+          <PillGroup className="w-full">
+            {[
+              { key: "physical", label: "Physical Print" },
+              { key: "digital", label: "Digital Download" },
+            ].map((opt) => (
+              <OptionChip
+                key={opt.key}
+                active={format === opt.key}
+                onClick={() => onFormatChange(opt.key)}
+                className="flex-1"
+              >
+                {opt.label}
+              </OptionChip>
+            ))}
+          </PillGroup>
+        )}
+      </div>
     </div>
   );
 }
@@ -415,7 +452,7 @@ export default function Infos({
   const selectorProps = {
     format,
     onFormatChange,
-    sizes,
+    sizes: format === "digital" ? [] : sizes,
     selectedDimensions,
     onDimensionsChange,
     labelForIndex,
@@ -432,7 +469,7 @@ export default function Infos({
           Poster Genius
         </div>
 
-        <h1 className="mt-4 text-[2rem] font-black leading-[0.98] tracking-[-0.05em] text-blackhex md:text-[2.45rem]">
+        <h1 className="mt-4 text-[1.8rem] font-black leading-[0.98] tracking-[-0.05em] text-blackhex md:text-[2.15rem]">
           {product?.name || "Product"}
         </h1>
 
@@ -457,14 +494,14 @@ export default function Infos({
             onClick={handleAdd}
             disabled={physicalDisabled}
             className={cx(
-              "h-14 w-full rounded-full font-bold uppercase tracking-[0.16em] text-white transition",
+              "h-12 w-full rounded-full font-bold uppercase tracking-[0.16em] text-white transition",
               "bg-primary hover:bg-tertiary",
               physicalDisabled && "cursor-not-allowed opacity-50"
             )}
           >
             Add To Cart
           </button>
-          <p className="mt-3 text-center text-xs font-medium uppercase tracking-[0.18em] text-gray-500">
+          <p className="mt-3 text-center text-[10px] font-medium uppercase tracking-[0.18em] text-gray-500">
             Enjoy free shipping over $50
           </p>
         </div>

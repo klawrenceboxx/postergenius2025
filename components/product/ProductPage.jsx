@@ -67,7 +67,7 @@ function SectionHeading({ eyebrow, title, description, centered = false }) {
           {eyebrow}
         </p>
       ) : null}
-      <h2 className="mt-3 text-3xl font-semibold tracking-tight text-blackhex">
+      <h2 className="mt-3 text-[2.2rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.5rem]">
         {title}
       </h2>
       {description ? (
@@ -301,7 +301,7 @@ export default function ProductPage({ product }) {
 
       <div className="flex w-full flex-col gap-6 lg:gap-8">
         <div className="flex w-full flex-col gap-8 lg:flex-row">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 lg:pt-5">
             <div className="lg:sticky lg:top-8">
             <PosterMockupViewer
               posterUrl={product.imageUrl}
@@ -341,7 +341,6 @@ export default function ProductPage({ product }) {
         <SectionHeading
           eyebrow="Keep exploring"
           title="Explore more posters"
-          description="This extends the product detail page into a browseable feed so shoppers can stay in flow instead of bouncing back to the shop grid."
           centered
         />
 
@@ -369,11 +368,7 @@ export default function ProductPage({ product }) {
           </div>
         </div>
 
-        <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-gray-600">
-          {discoveryTabs.find((tab) => tab.key === discoveryTab)?.description}
-        </p>
-
-        <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 xl:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 xl:grid-cols-5">
           {visibleDiscoveryProducts.map((item, index) => (
             <ProductCard
               key={normalizeId(item)}
@@ -413,11 +408,11 @@ export default function ProductPage({ product }) {
           <SectionHeading
             eyebrow="Recently viewed"
             title="Recently viewed posters"
-            description="A local history strip so people can jump back to posters they already opened during the session."
+            description="A local history so you can jump back to the posters you already viewed."
             centered
           />
 
-          <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 xl:grid-cols-4">
+          <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4 xl:grid-cols-5">
             {recentProducts.map((item, index) => (
               <ProductCard
                 key={`recent-${normalizeId(item)}`}
