@@ -88,7 +88,10 @@ export default function PosterMockupViewer({
   orientation, // NEW
 }) {
   const [digitalScale, setDigitalScale] = useState(1);
+  const [digitalOffset, setDigitalOffset] = useState({ x: 0, y: 0 });
+  const [isDraggingDigital, setIsDraggingDigital] = useState(false);
   const digitalViewerRef = useRef(null);
+  const dragStateRef = useRef(null);
 
   useEffect(() => {
     const node = digitalViewerRef.current;
@@ -112,18 +115,69 @@ export default function PosterMockupViewer({
     };
   }, [format]);
 
+  useEffect(() => {
+    if (format !== "digital") return;
+    if (digitalScale <= 1) {
+      setDigitalOffset({ x: 0, y: 0 });
+      setIsDraggingDigital(false);
+      dragStateRef.current = null;
+    }
+  }, [digitalScale, format]);
+
+  const clampDigitalOffset = (value, limit) =>
+    Math.max(-limit, Math.min(limit, value));
+
+  const handleDigitalPointerDown = (event) => {
+    if (format !== "digital" || digitalScale <= 1) return;
+
+    dragStateRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: digitalOffset.x,
+      originY: digitalOffset.y,
+    };
+    setIsDraggingDigital(true);
+  };
+
+  const handleDigitalPointerMove = (event) => {
+    if (!dragStateRef.current || format !== "digital" || digitalScale <= 1)
+      return;
+
+    const limitX = (digitalScale - 1) * 180;
+    const limitY = (digitalScale - 1) * 220;
+    const nextX =
+      dragStateRef.current.originX +
+      (event.clientX - dragStateRef.current.startX);
+    const nextY =
+      dragStateRef.current.originY +
+      (event.clientY - dragStateRef.current.startY);
+
+    setDigitalOffset({
+      x: clampDigitalOffset(nextX, limitX),
+      y: clampDigitalOffset(nextY, limitY),
+    });
+  };
+
+  const handleDigitalPointerUp = () => {
+    dragStateRef.current = null;
+    setIsDraggingDigital(false);
+  };
+
   if (format === "digital") {
     return (
       <div
         ref={digitalViewerRef}
         className="relative w-full overflow-hidden rounded-lg min-h-[560px] xl:min-h-[680px] 2xl:min-h-[760px]"
+        onPointerMove={handleDigitalPointerMove}
+        onPointerUp={handleDigitalPointerUp}
+        onPointerLeave={handleDigitalPointerUp}
         style={{
           background:
-            "radial-gradient(circle at 50% 58%, rgba(255,232,177,0.18) 0%, rgba(222,191,120,0.10) 16%, rgba(120,100,60,0.06) 32%, rgba(20,18,16,0.94) 62%, #090909 100%)",
+            "radial-gradient(circle at 50% 58%, rgba(255,232,177,0.045) 0%, rgba(222,191,120,0.025) 16%, rgba(120,100,60,0.015) 32%, rgba(20,18,16,0.96) 62%, #090909 100%)",
           overscrollBehavior: "contain",
         }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_58%,rgba(255,241,204,0.12),rgba(255,224,153,0.05)_24%,transparent_58%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_58%,rgba(255,241,204,0.03),rgba(255,224,153,0.012)_24%,transparent_60%)]" />
         {digitalSpeckles.map((speckle, index) => (
           <span
             key={`speckle-${index}`}
@@ -146,11 +200,19 @@ export default function PosterMockupViewer({
           alt="Poster (Digital)"
           width={1200}
           height={1800}
+          onPointerDown={handleDigitalPointerDown}
           className="absolute left-1/2 top-1/2 max-h-[82%] w-auto max-w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain shadow transition-transform duration-150 ease-out"
           sizes="(max-width: 1024px) 60vw, 40vw"
           style={{
-            transform: `translate(-50%, -50%) scale(${digitalScale})`,
+            transform: `translate(calc(-50% + ${digitalOffset.x}px), calc(-50% + ${digitalOffset.y}px)) scale(${digitalScale})`,
             boxShadow: "0 18px 36px rgba(0,0,0,0.38)",
+            cursor:
+              digitalScale > 1
+                ? isDraggingDigital
+                  ? "grabbing"
+                  : "grab"
+                : "default",
+            touchAction: "none",
           }}
         />
         <div className="absolute top-3 right-3 rounded-full bg-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
