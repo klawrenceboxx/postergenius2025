@@ -8,8 +8,8 @@ import { usePathname } from "next/navigation";
 const SideBar = () => {
   const pathname = usePathname();
   const menuItems = [
-    { name: "Overview", path: "/seller", icon: assets.order_icon },
-    { name: "Add Product", path: "/seller/add-product", icon: assets.add_icon },
+    { name: "Overview", path: "/seller/overview", icon: assets.order_icon },
+    { name: "Add Product", path: "/seller", icon: assets.add_icon },
     {
       name: "Product List",
       path: "/seller/product-list",
