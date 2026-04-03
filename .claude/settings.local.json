@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Vercel__get_runtime_logs",
+      "mcp__claude_ai_Stripe__list_payment_intents",
+      "mcp__claude_ai_Stripe__fetch_stripe_resources",
+      "WebSearch",
+      "WebFetch(domain:www.omnisend.com)",
+      "WebFetch(domain:www.klaviyo.com)",
+      "WebFetch(domain:www.emailtooltester.com)",
+      "WebFetch(domain:www.brevo.com)",
+      "WebFetch(domain:pagespeed.web.dev)",
+      "WebFetch(domain:www.tailwindapp.com)",
+      "WebFetch(domain:pinnerdsmedia.com)",
+      "WebFetch(domain:www.blogtopin.com)",
+      "WebFetch(domain:www.debbieroy.com)",
+      "WebFetch(domain:www.lumaprints.com)",
+      "WebFetch(domain:heatherfarris.com)",
+      "WebFetch(domain:socialrails.com)"
+    ]
+  }
+}

@@ -160,7 +160,7 @@ export default function PosterMockupViewer({
 
       {/* Scene */}
       {/* <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden min-h-[420px] sm:min-h-[480px] md:min-h-[560px]"> */}
-      <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden min-h-[560px]">
+      <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden min-h-[560px] xl:min-h-[680px] 2xl:min-h-[760px]">
         <Image
           {...getOptimizedImageProps(m.src)}
           alt="Room mockup"
