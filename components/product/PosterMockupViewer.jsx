@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 /** Calibrate each physical room mockup once using percentages (scales at all widths). */
@@ -88,29 +88,42 @@ export default function PosterMockupViewer({
   orientation, // NEW
 }) {
   const [digitalScale, setDigitalScale] = useState(1);
+  const digitalViewerRef = useRef(null);
 
-  const handleDigitalWheel = (event) => {
-    if (format !== "digital") return;
-    event.preventDefault();
+  useEffect(() => {
+    const node = digitalViewerRef.current;
+    if (!node || format !== "digital") return;
 
-    const direction = event.deltaY < 0 ? 0.08 : -0.08;
-    setDigitalScale((current) => {
-      const next = current + direction;
-      return Math.min(2, Math.max(1, Number(next.toFixed(2))));
-    });
-  };
+    const handleWheel = (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const direction = event.deltaY < 0 ? 0.08 : -0.08;
+      setDigitalScale((current) => {
+        const next = current + direction;
+        return Math.min(2, Math.max(1, Number(next.toFixed(2))));
+      });
+    };
+
+    node.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      node.removeEventListener("wheel", handleWheel);
+    };
+  }, [format]);
 
   if (format === "digital") {
     return (
       <div
+        ref={digitalViewerRef}
         className="relative w-full overflow-hidden rounded-lg min-h-[560px] xl:min-h-[680px] 2xl:min-h-[760px]"
-        onWheel={handleDigitalWheel}
         style={{
           background:
-            "radial-gradient(circle at 50% 42%, rgba(155,122,36,0.18) 0%, rgba(96,72,18,0.10) 18%, rgba(20,18,16,0.96) 48%, #090909 100%)",
+            "radial-gradient(circle at 50% 58%, rgba(255,232,177,0.18) 0%, rgba(222,191,120,0.10) 16%, rgba(120,100,60,0.06) 32%, rgba(20,18,16,0.94) 62%, #090909 100%)",
+          overscrollBehavior: "contain",
         }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,214,102,0.06),transparent_38%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_58%,rgba(255,241,204,0.12),rgba(255,224,153,0.05)_24%,transparent_58%)]" />
         {digitalSpeckles.map((speckle, index) => (
           <span
             key={`speckle-${index}`}
