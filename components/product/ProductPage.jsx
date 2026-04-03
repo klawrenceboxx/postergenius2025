@@ -6,6 +6,7 @@ import ProductCard from "@/components/ProductCard";
 import Testimonials from "@/components/Testimonials";
 import NewsLetter from "@/components/NewsLetter";
 import { useAppContext } from "@/context/AppContext";
+import { getOrCreateGuestId } from "@/lib/guestUtils";
 import { RotateCcw, ShieldCheck, Truck } from "lucide-react";
 import Link from "next/link";
 
@@ -106,7 +107,7 @@ function TrustCard({ icon: Icon, title, description, detail, children }) {
 }
 
 export default function ProductPage({ product }) {
-  const { products } = useAppContext();
+  const { products, user, getToken } = useAppContext();
   const initialDimensions =
     product?.defaultPhysicalDimensions ||
     product?.variations?.[0]?.sizes?.[0]?.size ||
@@ -127,6 +128,52 @@ export default function ProductPage({ product }) {
   useEffect(() => {
     setVisibleDiscoveryCount(DISCOVERY_BATCH_SIZE);
   }, [discoveryTab, currentProductId]);
+
+  useEffect(() => {
+    let isActive = true;
+
+    const trackProductView = async () => {
+      if (!currentProductId) return;
+
+      const headers = { "Content-Type": "application/json" };
+      const payload = {
+        productId: currentProductId,
+        path: `/product/${currentProductId}`,
+      };
+
+      if (user) {
+        const token = await getToken?.();
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+      } else {
+        const guestId = getOrCreateGuestId();
+        if (guestId) {
+          headers["x-guest-id"] = guestId;
+          payload.guestId = guestId;
+        }
+      }
+
+      try {
+        await fetch("/api/events/view", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+          keepalive: true,
+        });
+      } catch (error) {
+        if (isActive) {
+          console.warn("[ProductPage] Failed to track product view", error);
+        }
+      }
+    };
+
+    trackProductView();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentProductId, getToken, user]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -252,7 +299,19 @@ export default function ProductPage({ product }) {
         </span>
       </nav>
 
-      <div className="flex w-full flex-col gap-8 lg:flex-row">
+      <div className="flex w-full flex-col gap-6 lg:gap-8">
+        <div className="px-4 lg:hidden">
+          <Infos
+            product={product}
+            selectedDimensions={selectedDimensions}
+            onDimensionsChange={setSelectedDimensions}
+            format={format}
+            onFormatChange={setFormat}
+            mobileControlsOnly
+          />
+        </div>
+
+        <div className="flex w-full flex-col gap-8 lg:flex-row">
         <div className="min-w-0 flex-1">
           <PosterMockupViewer
             posterUrl={product.imageUrl}
@@ -270,8 +329,10 @@ export default function ProductPage({ product }) {
             onDimensionsChange={setSelectedDimensions}
             format={format}
             onFormatChange={setFormat}
+            hideMobileControls
           />
         </div>
+      </div>
       </div>
 
       <section className="mt-20 border-t border-gray-200 pt-14">

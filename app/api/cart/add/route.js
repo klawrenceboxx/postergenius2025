@@ -1,4 +1,5 @@
 import connectDB from "@/config/db";
+import { STORE_EVENT_TYPES, recordStoreEvent } from "@/lib/storeEvents";
 import Cart from "@/models/Cart";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
@@ -92,9 +93,51 @@ export async function POST(request) {
       cart = await Cart.create({ ...query, items: {} });
     }
 
+    const previousItem = cart.items?.[itemKey]
+      ? JSON.parse(JSON.stringify(cart.items[itemKey]))
+      : null;
+
     cart.items[itemKey] = sanitizedItem;
     cart.markModified("items");
     await cart.save();
+
+    if (!previousItem) {
+      await recordStoreEvent({
+        eventType: STORE_EVENT_TYPES.CART_ADDED,
+        productId: sanitizedItem.productId || sanitizedItem._id || itemKey,
+        userId,
+        guestId,
+        format: sanitizedItem.format,
+        dimensions: sanitizedItem.dimensions,
+        quantity: sanitizedItem.quantity,
+        unitPrice: sanitizedItem.price,
+        lineTotal: Number(sanitizedItem.price || 0) * sanitizedItem.quantity,
+        source: "cart_api",
+        metadata: {
+          itemKey,
+          title: sanitizedItem.title,
+        },
+      });
+    } else if (Number(previousItem.quantity) !== Number(sanitizedItem.quantity)) {
+      await recordStoreEvent({
+        eventType: STORE_EVENT_TYPES.CART_QUANTITY_UPDATED,
+        productId: sanitizedItem.productId || sanitizedItem._id || itemKey,
+        userId,
+        guestId,
+        format: sanitizedItem.format,
+        dimensions: sanitizedItem.dimensions,
+        quantity: sanitizedItem.quantity,
+        unitPrice: sanitizedItem.price,
+        lineTotal: Number(sanitizedItem.price || 0) * sanitizedItem.quantity,
+        source: "cart_api",
+        metadata: {
+          itemKey,
+          title: sanitizedItem.title,
+          previousQuantity: Number(previousItem.quantity || 0),
+          nextQuantity: Number(sanitizedItem.quantity || 0),
+        },
+      });
+    }
 
     return NextResponse.json({ success: true, cartItems: cart.items });
   } catch (error) {

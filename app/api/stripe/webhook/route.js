@@ -16,6 +16,8 @@ import {
 import { ensureProductCdnUrl } from "@/lib/cdn";
 import { appendOrderLog, buildLogEntry } from "@/lib/order-logs";
 import { getDownloadUrl } from "@/lib/s3";
+import { sendPurchaseAlertEmail } from "@/lib/sellerAlerts";
+import { STORE_EVENT_TYPES, recordStoreEvents } from "@/lib/storeEvents";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "");
 
@@ -270,6 +272,25 @@ export async function POST(req) {
 
       await newOrder.save();
 
+      await recordStoreEvents(
+        orderItems.map((item) => ({
+          eventType: STORE_EVENT_TYPES.PURCHASE_COMPLETED,
+          productId:
+            typeof item.product === "object" && item.product !== null
+              ? item.product.toString()
+              : String(item.product),
+          userId: metadata.userId || undefined,
+          orderId: String(newOrder._id),
+          stripeSessionId: session.id,
+          format: item.format,
+          dimensions: item.dimensions,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          lineTotal: item.lineTotal,
+          source: "stripe_webhook",
+        }))
+      );
+
       await appendOrderLog(
         newOrder._id,
         "stripe_payment_confirmed",
@@ -384,6 +405,22 @@ export async function POST(req) {
           }
         }
       }
+
+      await sendPurchaseAlertEmail({
+        order: newOrder,
+        customerLabel: metadata.userId || session.customer_email || "Guest",
+        purchasedItems: validEntries.map((entry) => {
+          const productId = entry?.productId || entry?.product;
+          const product = productMap.get(productId?.toString?.());
+
+          return {
+            name: product?.name || "Unknown product",
+            quantity: Math.max(1, Number(entry?.quantity) || 1),
+            format: String(entry?.format || "physical").toLowerCase(),
+            dimensions: entry?.dimensions || null,
+          };
+        }),
+      });
     }
   } catch (err) {
     console.error("Stripe webhook processing error:", err?.message || err);

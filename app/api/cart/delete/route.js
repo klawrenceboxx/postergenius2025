@@ -1,4 +1,5 @@
 import connectDB from "@/config/db";
+import { STORE_EVENT_TYPES, recordStoreEvent } from "@/lib/storeEvents";
 import Cart from "@/models/Cart";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
@@ -49,9 +50,27 @@ export async function POST(request) {
     }
 
     if (cart.items && cart.items[itemKey]) {
+      const removedItem = JSON.parse(JSON.stringify(cart.items[itemKey]));
       delete cart.items[itemKey];
       cart.markModified("items");
       await cart.save();
+
+      await recordStoreEvent({
+        eventType: STORE_EVENT_TYPES.CART_REMOVED,
+        productId: removedItem.productId || removedItem._id || itemKey,
+        userId,
+        guestId,
+        format: removedItem.format,
+        dimensions: removedItem.dimensions,
+        quantity: removedItem.quantity,
+        unitPrice: removedItem.price,
+        lineTotal: Number(removedItem.price || 0) * Number(removedItem.quantity || 1),
+        source: "cart_api",
+        metadata: {
+          itemKey,
+          title: removedItem.title,
+        },
+      });
     }
 
     return NextResponse.json({ success: true, cartItems: cart.items });

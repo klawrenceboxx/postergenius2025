@@ -4,7 +4,6 @@ import React, { useMemo, useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import ReviewSummary from "@/components/ReviewSummary";
 
-// tiny helper
 const cx = (...xs) => xs.filter(Boolean).join(" ");
 
 function Price({ product, format, selectedDimensions }) {
@@ -41,14 +40,14 @@ function Price({ product, format, selectedDimensions }) {
 
     if (hasDiscount) {
       return (
-        <div className="flex items-baseline gap-3">
-          <span className="text-2xl font-semibold">
+        <div className="flex flex-wrap items-end gap-3">
+          <span className="text-4xl font-black tracking-[-0.05em] text-blackhex md:text-[2.75rem]">
             ${finalPrice.toFixed(2)}
           </span>
-          <span className="text-gray-400 line-through">
+          <span className="text-base font-semibold text-gray-400 line-through md:text-lg">
             ${basePrice.toFixed(2)}
           </span>
-          <span className="text-green-600 text-sm font-medium">
+          <span className="inline-flex rounded-full bg-secondary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-secondary">
             Save {pct}%
           </span>
         </div>
@@ -56,7 +55,9 @@ function Price({ product, format, selectedDimensions }) {
     }
 
     return (
-      <div className="text-2xl font-semibold">${finalPrice.toFixed(2)}</div>
+      <div className="text-4xl font-black tracking-[-0.05em] text-blackhex md:text-[2.75rem]">
+        ${finalPrice.toFixed(2)}
+      </div>
     );
   }
 
@@ -76,39 +77,46 @@ function Price({ product, format, selectedDimensions }) {
 
   if (hasDiscount) {
     return (
-      <div className="flex items-baseline gap-3">
-        <span className="text-2xl font-semibold">${finalPrice.toFixed(2)}</span>
-        <span className="text-gray-400 line-through">
+      <div className="flex flex-wrap items-end gap-3">
+        <span className="text-4xl font-black tracking-[-0.05em] text-blackhex md:text-[2.75rem]">
+          ${finalPrice.toFixed(2)}
+        </span>
+        <span className="text-base font-semibold text-gray-400 line-through md:text-lg">
           ${basePrice.toFixed(2)}
         </span>
-        <span className="text-green-600 text-sm font-medium">Save {pct}%</span>
+        <span className="inline-flex rounded-full bg-secondary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-secondary">
+          Save {pct}%
+        </span>
       </div>
     );
   }
 
-  return <div className="text-2xl font-semibold">${finalPrice.toFixed(2)}</div>;
-}
-
-function ReadMore({ text, limit = 50 }) {
-  const [open, setOpen] = useState(false);
-  if (!text) return null;
-  const short = text.length > limit ? text.slice(0, limit).trim() + "…" : text;
   return (
-    <div className="text-sm text-gray-700 leading-relaxed">
-      <span>{open ? text : short} </span>
-      {text.length > limit && !open && (
-        <button
-          className="text-blue-600 hover:underline font-medium"
-          onClick={() => setOpen(true)}
-        >
-          Read more
-        </button>
-      )}
+    <div className="text-4xl font-black tracking-[-0.05em] text-blackhex md:text-[2.75rem]">
+      ${finalPrice.toFixed(2)}
     </div>
   );
 }
 
-// --- Animated Accordion (simple) ---
+function ReadMore({ text, limit = 120 }) {
+  const [open, setOpen] = useState(false);
+  if (!text) return null;
+  const short = text.length > limit ? text.slice(0, limit).trim() + "…" : text;
+  return (
+    <div className="text-sm leading-7 text-gray-700">
+      <span>{open ? text : short} </span>
+      {text.length > limit && !open ? (
+        <button
+          className="font-semibold text-secondary transition hover:text-primary"
+          onClick={() => setOpen(true)}
+        >
+          Read more
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function Accordion({ title, children }) {
   const [open, setOpen] = useState(false);
   const id = useMemo(() => `acc_${title.replace(/\s+/g, "_")}`, [title]);
@@ -116,14 +124,16 @@ function Accordion({ title, children }) {
   return (
     <div className="border-b border-gray-200">
       <button
-        className="w-full flex items-center justify-between py-4 text-left"
+        className="flex w-full items-center justify-between py-4 text-left"
         aria-controls={id}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
-        <span className="font-medium">{title}</span>
+        <span className="text-sm font-semibold uppercase tracking-[0.18em] text-blackhex">
+          {title}
+        </span>
         <span
-          className={`transition-transform duration-300 ${
+          className={`text-lg text-secondary transition-transform duration-300 ${
             open ? "rotate-180" : ""
           }`}
         >
@@ -131,28 +141,199 @@ function Accordion({ title, children }) {
         </span>
       </button>
 
-      {/* Animate max-height + opacity instead of toggling display */}
       <div
         id={id}
         className={`overflow-hidden transition-all duration-300 ease-in-out ${
           open ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <div className="pb-4 text-sm text-gray-700">{children}</div>
+        <div className="pb-4 text-sm leading-7 text-gray-700">{children}</div>
       </div>
     </div>
   );
 }
 
-export default function InfosV2({
+function OptionChip({ active, onClick, children, className }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cx(
+        "min-w-[84px] rounded-full border px-4 py-3 text-sm font-semibold transition duration-200",
+        active
+          ? "border-secondary bg-secondary text-white shadow-[0_10px_24px_rgba(109,40,217,0.28)]"
+          : "border-gray-200 bg-white text-gray-700 hover:border-secondary/30 hover:bg-secondary/5",
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DesktopSelectors({
+  format,
+  onFormatChange,
+  sizes,
+  selectedDimensions,
+  onDimensionsChange,
+  labelForIndex,
+}) {
+  return (
+    <div className="hidden lg:block">
+      <div className="rounded-[28px] border border-secondary/10 bg-[#fbf8ff] p-5 shadow-[0_12px_36px_rgba(109,40,217,0.08)]">
+        <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-secondary">
+          Customize your poster
+        </div>
+
+        <div className="mt-4">
+          <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+            Product type
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { key: "physical", label: "Physical Print" },
+              { key: "digital", label: "Digital Download" },
+            ].map((opt) => (
+              <OptionChip
+                key={opt.key}
+                active={format === opt.key}
+                onClick={() => onFormatChange(opt.key)}
+              >
+                {opt.label}
+              </OptionChip>
+            ))}
+          </div>
+        </div>
+
+        {sizes?.length ? (
+          <div className="mt-5">
+            <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+              Size
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {sizes.map((s, i) => {
+                const dims = s.dimensions || s.size;
+                const label = s.label || labelForIndex(i, s);
+                return (
+                  <OptionChip
+                    key={`${label}-${dims}`}
+                    active={selectedDimensions === dims}
+                    onClick={() => onDimensionsChange(dims)}
+                  >
+                    <span className="block">{label}</span>
+                    <span className="mt-0.5 block text-[11px] font-medium opacity-80">
+                      {dims}
+                    </span>
+                  </OptionChip>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function MobileSelectorTabs({
+  format,
+  onFormatChange,
+  sizes,
+  selectedDimensions,
+  onDimensionsChange,
+  labelForIndex,
+}) {
+  const [activeTab, setActiveTab] = useState("product");
+
+  const tabBase =
+    "flex-1 rounded-full px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] transition";
+
+  return (
+    <div className="rounded-[24px] border border-secondary/10 bg-white p-4 shadow-[0_12px_30px_rgba(17,24,39,0.08)] lg:hidden">
+      <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-secondary">
+        Customize your poster
+      </div>
+
+      <div className="flex gap-2 rounded-full bg-[#f6f1ff] p-1">
+        <button
+          type="button"
+          onClick={() => setActiveTab("product")}
+          className={cx(
+            tabBase,
+            activeTab === "product"
+              ? "bg-secondary text-white shadow-[0_8px_20px_rgba(109,40,217,0.24)]"
+              : "text-secondary"
+          )}
+        >
+          Product Type
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("size")}
+          className={cx(
+            tabBase,
+            activeTab === "size"
+              ? "bg-secondary text-white shadow-[0_8px_20px_rgba(109,40,217,0.24)]"
+              : "text-secondary"
+          )}
+        >
+          Size
+        </button>
+      </div>
+
+      <div className="mt-4 min-h-[88px] rounded-[20px] bg-[#fcfbff] p-3">
+        {activeTab === "product" ? (
+          <div className="flex flex-wrap gap-2">
+            {[
+              { key: "physical", label: "Physical Print" },
+              { key: "digital", label: "Digital Download" },
+            ].map((opt) => (
+              <OptionChip
+                key={opt.key}
+                active={format === opt.key}
+                onClick={() => onFormatChange(opt.key)}
+                className="min-w-0 flex-1"
+              >
+                {opt.label}
+              </OptionChip>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {sizes.map((s, i) => {
+              const dims = s.dimensions || s.size;
+              const label = s.label || labelForIndex(i, s);
+              return (
+                <OptionChip
+                  key={`${label}-${dims}`}
+                  active={selectedDimensions === dims}
+                  onClick={() => onDimensionsChange(dims)}
+                >
+                  <span className="block">{label}</span>
+                  <span className="mt-0.5 block text-[11px] font-medium opacity-80">
+                    {dims}
+                  </span>
+                </OptionChip>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function Infos({
   product,
   selectedDimensions,
   onDimensionsChange,
   format,
   onFormatChange,
+  mobileControlsOnly = false,
+  hideMobileControls = false,
 }) {
   const { addToCart } = useAppContext();
-
   const pricing = product?.pricing || {};
 
   const productId = useMemo(() => {
@@ -193,7 +374,7 @@ export default function InfosV2({
       product?.printfulEnabled ??
       product?.PrintfulEnabled
   );
-  const physicalDisabled = isPhysical && !printfulActive; // flip per product when Printful is ready
+  const physicalDisabled = isPhysical && !printfulActive;
 
   const physicalPricing =
     product?.physicalPricing || pricing?.physicalPricing || {};
@@ -222,7 +403,7 @@ export default function InfosV2({
   const handleAdd = async () => {
     if (physicalDisabled) return;
     await addToCart({
-      productId: product._id.toString(), // ✅ use productId, not _id
+      productId: product._id.toString(),
       title: product.name,
       imageUrl: product.imageUrl || product.image?.[0] || "",
       price: effectivePrice,
@@ -243,131 +424,84 @@ export default function InfosV2({
     return scale[i] || `#${i + 1}`;
   };
 
+  const selectorProps = {
+    format,
+    onFormatChange,
+    sizes,
+    selectedDimensions,
+    onDimensionsChange,
+    labelForIndex,
+  };
+
+  if (mobileControlsOnly) {
+    return <MobileSelectorTabs {...selectorProps} />;
+  }
+
   return (
-    <aside className="lg:sticky lg:top-8 h-fit">
-      {/* Title */}
-      <h1 className="text-3xl font-semibold mb-2">
-        {product?.name || "Product"}
-      </h1>
+    <aside className="h-fit lg:sticky lg:top-8">
+      {hideMobileControls ? null : <MobileSelectorTabs {...selectorProps} />}
 
-      {/* Price */}
-      <Price
-        product={product}
-        format={format}
-        selectedDimensions={selectedDimensions}
-      />
+      <DesktopSelectors {...selectorProps} />
 
-      <div className="mt-3">
-        <ReviewSummary productId={productId} />
-      </div>
-
-      {/* Short description (first 50 chars) with Read more */}
-      <div className="mt-6">
-        <ReadMore text={product?.description || ""} limit={50} />
-      </div>
-
-      {/* Format segmented control — logic unchanged */}
-      <div className="mt-5">
-        <div className="inline-flex rounded-full bg-gray-100 p-1">
-          {[
-            { key: "physical", label: "Physical Print" },
-            { key: "digital", label: "Digital Download" },
-          ].map((opt) => {
-            const active = format === opt.key;
-            return (
-              <button
-                key={opt.key}
-                aria-pressed={active}
-                onClick={() => onFormatChange(opt.key)}
-                className={cx(
-                  "px-4 py-2 text-sm rounded-full transition",
-                  active
-                    ? "bg-white shadow border text-gray-900"
-                    : "text-gray-600 hover:text-gray-900"
-                )}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+      <div className="mt-5 rounded-[30px] border border-gray-200 bg-white p-6 shadow-[0_18px_42px_rgba(17,24,39,0.08)] md:p-7">
+        <div className="inline-flex rounded-full bg-[#f6f1ff] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-secondary">
+          Poster Genius
         </div>
-      </div>
 
-      {/* Size segmented control */}
-      {sizes?.length > 0 && (
+        <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.06em] text-blackhex md:text-5xl">
+          {product?.name || "Product"}
+        </h1>
+
+        <div className="mt-5">
+          <Price
+            product={product}
+            format={format}
+            selectedDimensions={selectedDimensions}
+          />
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-gray-100 bg-[#faf8ff] px-4 py-3">
+          <ReviewSummary productId={productId} />
+        </div>
+
+        <div className="mt-5">
+          <ReadMore text={product?.description || ""} limit={120} />
+        </div>
+
         <div className="mt-6">
-          <div className="text-xs uppercase text-gray-500 mb-2">
-            Size (inches)
-          </div>
-
-          <div className="inline-flex items-center gap-2 bg-gray-100 rounded-full p-1">
-            {sizes.map((s, i) => {
-              const dims = s.dimensions || s.size;
-              const label = s.label || labelForIndex(i, s);
-              const sel = selectedDimensions === dims;
-
-              return (
-                <button
-                  key={`${label}-${dims}`}
-                  onClick={() => onDimensionsChange(dims)}
-                  className={`px-3 py-2 text-sm font-medium rounded-full 
-                    transition-colors transition-shadow duration-200 ease-in-out
-                    ${
-                      sel
-                        ? "bg-white text-secondary border border-secondary shadow"
-                        : "text-gray-700 hover:bg-gray-200"
-                    }`}
-                  style={{ minWidth: 60 }}
-                >
-                  {sel ? `${label} (${dims})` : label}
-                </button>
-              );
-            })}
-          </div>
+          <button
+            onClick={handleAdd}
+            disabled={physicalDisabled}
+            className={cx(
+              "h-14 w-full rounded-full font-bold uppercase tracking-[0.16em] text-white transition",
+              "bg-primary shadow-[0_18px_32px_rgba(109,40,217,0.28)] hover:bg-tertiary",
+              physicalDisabled && "cursor-not-allowed opacity-50"
+            )}
+          >
+            Add To Cart
+          </button>
+          <p className="mt-3 text-center text-xs font-medium uppercase tracking-[0.18em] text-gray-500">
+            Enjoy free shipping over $50
+          </p>
         </div>
-      )}
 
-      {/* CTA + free shipping note */}
-      <div className="mt-6">
-        <button
-          onClick={handleAdd}
-          disabled={physicalDisabled}
-          className={cx(
-            "w-full h-14 rounded-full font-semibold text-white transition",
-            "bg-primary hover:bg-tertiary",
-            physicalDisabled && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          {/* ${effectivePrice.toFixed(2)} ADD TO CART */}
-          ADD TO CART
-        </button>
-        <p className="text-xs text-gray-500 text-center mt-2">
-          Enjoy free shipping over $50
-        </p>
-      </div>
-
-      {/* Short description (first 50 chars) with Read more */}
-      {/* <div className="mt-6">
-        <ReadMore text={product?.description || ""} limit={50} />
-      </div> */}
-
-      {/* Details / Shipping / Returns accordions */}
-      <div className="mt-6 divide-y divide-gray-100 border-t border-gray-200">
-        <Accordion title="Details">
-          <div className="text-sm text-gray-700">
-            Premium materials and high-resolution print.
-          </div>
-        </Accordion>
-        <Accordion title="Shipping">
-          <div className="text-sm text-gray-700">
-            Ships in 3–5 business days. Tracking provided.
-          </div>
-        </Accordion>
-        <Accordion title="Returns">
-          <div className="text-sm text-gray-700">
-            30-day return policy. Contact support for assistance.
-          </div>
-        </Accordion>
+        <div className="mt-6 divide-y divide-gray-100 border-t border-gray-200">
+          <Accordion title="Details">
+            <div className="text-sm text-gray-700">
+              Premium materials and high-resolution print.
+            </div>
+          </Accordion>
+          <Accordion title="Shipping">
+            <div className="text-sm text-gray-700">
+              Ships in 3–5 business days. Tracking provided.
+            </div>
+          </Accordion>
+          <Accordion title="Returns">
+            <div className="text-sm text-gray-700">
+              30-day return policy. Contact support for assistance.
+            </div>
+          </Accordion>
+        </div>
       </div>
     </aside>
   );

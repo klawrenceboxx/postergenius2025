@@ -15,6 +15,7 @@ import {
   pickCheapestRate,
 } from "@/lib/printful";
 import { applyPromo } from "@/lib/promoCode";
+import { STORE_EVENT_TYPES, recordStoreEvents } from "@/lib/storeEvents";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -421,6 +422,23 @@ export async function POST(request) {
     }
 
     console.log("=== [CREATE SESSION API] END ===");
+
+    await recordStoreEvents(
+      items.map((item) => ({
+        eventType: STORE_EVENT_TYPES.CHECKOUT_STARTED,
+        productId: item.productId,
+        userId,
+        format: item.format || "physical",
+        dimensions: item.dimensions || null,
+        quantity: Math.max(1, Number(item.quantity) || 1),
+        source: "stripe_create_session",
+        metadata: {
+          checkoutType: responseData.type,
+          promoCode: trimmedPromoCode || null,
+        },
+      }))
+    );
+
     return NextResponse.json({ success: true, ...responseData });
   } catch (error) {
     console.error("❌ ERROR in create-session:", error.message, error.stack);

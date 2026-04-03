@@ -37,11 +37,11 @@ const HeroBanner = () => {
           sizes="100vw"
           className="object-cover"
         />
-        <div className="relative z-10 max-w-xl pl-6 md:pl-10 lg:pl-14">
-          <h1 className="text-4xl md:text-[3.4rem] lg:text-[4rem] xl:text-[5rem] font-extrabold text-white drop-shadow-md leading-[0.95] tracking-tight">
-            <span className="block">Discover Your</span>
-            <span className="block">Perfect Poster</span>
-            <span className="block">Collection Today</span>
+        <div className="relative z-10 max-w-xl md:max-w-3xl pl-6 md:pl-10 lg:pl-14">
+          <h1 className="text-4xl md:text-[3.4rem] lg:text-[4rem] xl:text-[5rem] font-extrabold text-white drop-shadow-md leading-[1.02] md:leading-[1.06] tracking-tight">
+            <span className="block whitespace-nowrap">Discover Your</span>
+            <span className="block whitespace-nowrap">Perfect Poster</span>
+            <span className="block whitespace-nowrap">Collection Today</span>
           </h1>
           <p className="mt-4 max-w-md text-white/90 drop-shadow font-[500] text-base md:text-lg">
             Explore the latest posters and premium materials.
