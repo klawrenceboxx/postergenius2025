@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import React from "react";
+import React, { useState } from "react";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
 
 /** Calibrate each physical room mockup once using percentages (scales at all widths). */
@@ -29,6 +29,17 @@ const mockups = [
     posterLeftPct: 40,
     posterWidthPct: 24.5,
   },
+];
+
+const digitalSpeckles = [
+  { top: "12%", left: "18%", size: 2, delay: "0s", duration: "8s" },
+  { top: "22%", left: "76%", size: 3, delay: "1.5s", duration: "10s" },
+  { top: "34%", left: "62%", size: 2, delay: "0.8s", duration: "9s" },
+  { top: "48%", left: "14%", size: 2, delay: "2.2s", duration: "11s" },
+  { top: "58%", left: "81%", size: 3, delay: "1.1s", duration: "9.5s" },
+  { top: "67%", left: "41%", size: 2, delay: "2.8s", duration: "12s" },
+  { top: "74%", left: "23%", size: 3, delay: "0.4s", duration: "10.5s" },
+  { top: "81%", left: "69%", size: 2, delay: "1.9s", duration: "8.5s" },
 ];
 
 function scaleFor(dim) {
@@ -76,20 +87,78 @@ export default function PosterMockupViewer({
   format,
   orientation, // NEW
 }) {
+  const [digitalScale, setDigitalScale] = useState(1);
+
+  const handleDigitalWheel = (event) => {
+    if (format !== "digital") return;
+    event.preventDefault();
+
+    const direction = event.deltaY < 0 ? 0.08 : -0.08;
+    setDigitalScale((current) => {
+      const next = current + direction;
+      return Math.min(2, Math.max(1, Number(next.toFixed(2))));
+    });
+  };
+
   if (format === "digital") {
     return (
-      <div className="relative w-full overflow-hidden rounded-lg bg-gray-100 min-h-[560px] xl:min-h-[680px] 2xl:min-h-[760px]">
+      <div
+        className="relative w-full overflow-hidden rounded-lg min-h-[560px] xl:min-h-[680px] 2xl:min-h-[760px]"
+        onWheel={handleDigitalWheel}
+        style={{
+          background:
+            "radial-gradient(circle at 50% 42%, rgba(155,122,36,0.18) 0%, rgba(96,72,18,0.10) 18%, rgba(20,18,16,0.96) 48%, #090909 100%)",
+        }}
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,214,102,0.06),transparent_38%)]" />
+        {digitalSpeckles.map((speckle, index) => (
+          <span
+            key={`speckle-${index}`}
+            className="absolute rounded-full"
+            style={{
+              top: speckle.top,
+              left: speckle.left,
+              width: `${speckle.size}px`,
+              height: `${speckle.size}px`,
+              background:
+                "radial-gradient(circle, rgba(255,220,140,0.9) 0%, rgba(212,167,74,0.55) 45%, rgba(212,167,74,0) 100%)",
+              boxShadow: "0 0 10px rgba(212,167,74,0.18)",
+              opacity: 0.5,
+              animation: `digitalSpecklePulse ${speckle.duration} ease-in-out ${speckle.delay} infinite`,
+            }}
+          />
+        ))}
         <Image
           {...getOptimizedImageProps(posterUrl, { variant: "detail" })}
           alt="Poster (Digital)"
           width={1200}
           height={1800}
-          className="absolute left-1/2 top-1/2 max-h-[82%] w-auto max-w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain shadow"
+          className="absolute left-1/2 top-1/2 max-h-[82%] w-auto max-w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain shadow transition-transform duration-150 ease-out"
           sizes="(max-width: 1024px) 60vw, 40vw"
+          style={{
+            transform: `translate(-50%, -50%) scale(${digitalScale})`,
+            boxShadow: "0 18px 36px rgba(0,0,0,0.38)",
+          }}
         />
         <div className="absolute top-3 right-3 rounded-full bg-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
           DIGITAL
         </div>
+        <div className="absolute bottom-4 right-4 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-white/70 backdrop-blur-sm">
+          Scroll to zoom
+        </div>
+        <style jsx>{`
+          @keyframes digitalSpecklePulse {
+            0%,
+            100% {
+              opacity: 0.18;
+              transform: scale(1);
+            }
+            50% {
+              opacity: 0.5;
+              transform: scale(1.35);
+            }
+          }
+        `}</style>
       </div>
     );
   }
