@@ -55,22 +55,27 @@ export async function POST(request) {
       cart.markModified("items");
       await cart.save();
 
-      await recordStoreEvent({
-        eventType: STORE_EVENT_TYPES.CART_REMOVED,
-        productId: removedItem.productId || removedItem._id || itemKey,
-        userId,
-        guestId,
-        format: removedItem.format,
-        dimensions: removedItem.dimensions,
-        quantity: removedItem.quantity,
-        unitPrice: removedItem.price,
-        lineTotal: Number(removedItem.price || 0) * Number(removedItem.quantity || 1),
-        source: "cart_api",
-        metadata: {
-          itemKey,
-          title: removedItem.title,
-        },
-      });
+      try {
+        await recordStoreEvent({
+          eventType: STORE_EVENT_TYPES.CART_REMOVED,
+          productId: removedItem.productId || removedItem._id || itemKey,
+          userId,
+          guestId,
+          format: removedItem.format,
+          dimensions: removedItem.dimensions,
+          quantity: removedItem.quantity,
+          unitPrice: removedItem.price,
+          lineTotal:
+            Number(removedItem.price || 0) * Number(removedItem.quantity || 1),
+          source: "cart_api",
+          metadata: {
+            itemKey,
+            title: removedItem.title,
+          },
+        });
+      } catch (trackingError) {
+        console.error("[cart-delete] Failed to record store event", trackingError);
+      }
     }
 
     return NextResponse.json({ success: true, cartItems: cart.items });

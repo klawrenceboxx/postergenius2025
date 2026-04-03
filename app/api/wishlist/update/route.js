@@ -61,7 +61,11 @@ export async function POST(request) {
     }
 
     if (events.length) {
-      await recordStoreEvents(events);
+      try {
+        await recordStoreEvents(events);
+      } catch (trackingError) {
+        console.error("[wishlist-update] Failed to record store events", trackingError);
+      }
     }
 
     return NextResponse.json({

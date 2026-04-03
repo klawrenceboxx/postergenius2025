@@ -101,42 +101,48 @@ export async function POST(request) {
     cart.markModified("items");
     await cart.save();
 
-    if (!previousItem) {
-      await recordStoreEvent({
-        eventType: STORE_EVENT_TYPES.CART_ADDED,
-        productId: sanitizedItem.productId || sanitizedItem._id || itemKey,
-        userId,
-        guestId,
-        format: sanitizedItem.format,
-        dimensions: sanitizedItem.dimensions,
-        quantity: sanitizedItem.quantity,
-        unitPrice: sanitizedItem.price,
-        lineTotal: Number(sanitizedItem.price || 0) * sanitizedItem.quantity,
-        source: "cart_api",
-        metadata: {
-          itemKey,
-          title: sanitizedItem.title,
-        },
-      });
-    } else if (Number(previousItem.quantity) !== Number(sanitizedItem.quantity)) {
-      await recordStoreEvent({
-        eventType: STORE_EVENT_TYPES.CART_QUANTITY_UPDATED,
-        productId: sanitizedItem.productId || sanitizedItem._id || itemKey,
-        userId,
-        guestId,
-        format: sanitizedItem.format,
-        dimensions: sanitizedItem.dimensions,
-        quantity: sanitizedItem.quantity,
-        unitPrice: sanitizedItem.price,
-        lineTotal: Number(sanitizedItem.price || 0) * sanitizedItem.quantity,
-        source: "cart_api",
-        metadata: {
-          itemKey,
-          title: sanitizedItem.title,
-          previousQuantity: Number(previousItem.quantity || 0),
-          nextQuantity: Number(sanitizedItem.quantity || 0),
-        },
-      });
+    try {
+      if (!previousItem) {
+        await recordStoreEvent({
+          eventType: STORE_EVENT_TYPES.CART_ADDED,
+          productId: sanitizedItem.productId || sanitizedItem._id || itemKey,
+          userId,
+          guestId,
+          format: sanitizedItem.format,
+          dimensions: sanitizedItem.dimensions,
+          quantity: sanitizedItem.quantity,
+          unitPrice: sanitizedItem.price,
+          lineTotal: Number(sanitizedItem.price || 0) * sanitizedItem.quantity,
+          source: "cart_api",
+          metadata: {
+            itemKey,
+            title: sanitizedItem.title,
+          },
+        });
+      } else if (
+        Number(previousItem.quantity) !== Number(sanitizedItem.quantity)
+      ) {
+        await recordStoreEvent({
+          eventType: STORE_EVENT_TYPES.CART_QUANTITY_UPDATED,
+          productId: sanitizedItem.productId || sanitizedItem._id || itemKey,
+          userId,
+          guestId,
+          format: sanitizedItem.format,
+          dimensions: sanitizedItem.dimensions,
+          quantity: sanitizedItem.quantity,
+          unitPrice: sanitizedItem.price,
+          lineTotal: Number(sanitizedItem.price || 0) * sanitizedItem.quantity,
+          source: "cart_api",
+          metadata: {
+            itemKey,
+            title: sanitizedItem.title,
+            previousQuantity: Number(previousItem.quantity || 0),
+            nextQuantity: Number(sanitizedItem.quantity || 0),
+          },
+        });
+      }
+    } catch (trackingError) {
+      console.error("[cart-add] Failed to record store event", trackingError);
     }
 
     return NextResponse.json({ success: true, cartItems: cart.items });

@@ -423,21 +423,28 @@ export async function POST(request) {
 
     console.log("=== [CREATE SESSION API] END ===");
 
-    await recordStoreEvents(
-      items.map((item) => ({
-        eventType: STORE_EVENT_TYPES.CHECKOUT_STARTED,
-        productId: item.productId,
-        userId,
-        format: item.format || "physical",
-        dimensions: item.dimensions || null,
-        quantity: Math.max(1, Number(item.quantity) || 1),
-        source: "stripe_create_session",
-        metadata: {
-          checkoutType: responseData.type,
-          promoCode: trimmedPromoCode || null,
-        },
-      }))
-    );
+    try {
+      await recordStoreEvents(
+        items.map((item) => ({
+          eventType: STORE_EVENT_TYPES.CHECKOUT_STARTED,
+          productId: item.productId,
+          userId,
+          format: item.format || "physical",
+          dimensions: item.dimensions || null,
+          quantity: Math.max(1, Number(item.quantity) || 1),
+          source: "stripe_create_session",
+          metadata: {
+            checkoutType: responseData.type,
+            promoCode: trimmedPromoCode || null,
+          },
+        }))
+      );
+    } catch (trackingError) {
+      console.error(
+        "[stripe-create-session] Failed to record checkout events",
+        trackingError
+      );
+    }
 
     return NextResponse.json({ success: true, ...responseData });
   } catch (error) {

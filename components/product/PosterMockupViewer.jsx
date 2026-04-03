@@ -91,7 +91,7 @@ export default function PosterMockupViewer({
           className="max-h-[90%] max-w-[80%] object-contain shadow"
           sizes="(max-width: 1024px) 80vw, 60vw"
         />
-        <div className="absolute top-3 right-3 rounded-full bg-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white shadow-[0_10px_24px_rgba(109,40,217,0.28)]">
+        <div className="absolute top-3 right-3 rounded-full bg-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
           DIGITAL
         </div>
       </div>
@@ -118,15 +118,13 @@ export default function PosterMockupViewer({
     /////////////////////////////
     <div className="relative flex flex-col-reverse gap-4 lg:flex-row">
       {/* Thumbs */}
-      <div className="absolute bottom-3 left-3 z-20 flex gap-2 rounded-2xl bg-white/70 p-2 shadow-[0_12px_24px_rgba(17,24,39,0.12)] backdrop-blur-sm lg:bottom-auto lg:top-4 lg:flex-col">
+      <div className="absolute bottom-2 left-2 z-20 flex gap-2 rounded-md bg-white/20 p-2 shadow lg:bottom-auto lg:top-4 lg:flex-col">
         {mockups.map((mk, idx) => (
           <button
             key={mk.id}
             onClick={() => onMockupChange(idx)}
-            className={`rounded-xl border p-1 transition ${
-              idx === activeMockupIndex
-                ? "border-secondary bg-secondary/10"
-                : "border-gray-300 bg-white"
+            className={`rounded border p-1 ${
+              idx === activeMockupIndex ? "border-blue-500" : "border-gray-300"
             }`}
             aria-label={`Show mockup ${idx + 1}`}
           >
@@ -162,7 +160,7 @@ export default function PosterMockupViewer({
 
       {/* Scene */}
       {/* <div className="relative w-full bg-gray-100 rounded-lg overflow-hidden min-h-[420px] sm:min-h-[480px] md:min-h-[560px]"> */}
-      <div className="relative w-full overflow-hidden rounded-[28px] border border-gray-200 bg-gray-100 shadow-[0_22px_48px_rgba(17,24,39,0.12)] min-h-[360px] sm:min-h-[460px] lg:min-h-[560px] xl:min-h-[680px] 2xl:min-h-[760px]">
+      <div className="relative w-full overflow-hidden rounded-lg bg-gray-100 min-h-[560px] xl:min-h-[680px] 2xl:min-h-[760px]">
         <Image
           {...getOptimizedImageProps(m.src)}
           alt="Room mockup"
@@ -184,7 +182,7 @@ export default function PosterMockupViewer({
 
             width: posterWidth, // ← dynamic % with min/max guardrails
             height: "auto",
-            boxShadow: "0 18px 34px rgba(15, 23, 42, 0.22)",
+            boxShadow: "-3px 3px 2px rgba(0,0,0,0.3)",
             zIndex: 0,
           }}
           sizes="(max-width: 1024px) 60vw, 40vw"

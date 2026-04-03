@@ -272,24 +272,31 @@ export async function POST(req) {
 
       await newOrder.save();
 
-      await recordStoreEvents(
-        orderItems.map((item) => ({
-          eventType: STORE_EVENT_TYPES.PURCHASE_COMPLETED,
-          productId:
-            typeof item.product === "object" && item.product !== null
-              ? item.product.toString()
-              : String(item.product),
-          userId: metadata.userId || undefined,
-          orderId: String(newOrder._id),
-          stripeSessionId: session.id,
-          format: item.format,
-          dimensions: item.dimensions,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          lineTotal: item.lineTotal,
-          source: "stripe_webhook",
-        }))
-      );
+      try {
+        await recordStoreEvents(
+          orderItems.map((item) => ({
+            eventType: STORE_EVENT_TYPES.PURCHASE_COMPLETED,
+            productId:
+              typeof item.product === "object" && item.product !== null
+                ? item.product.toString()
+                : String(item.product),
+            userId: metadata.userId || undefined,
+            orderId: String(newOrder._id),
+            stripeSessionId: session.id,
+            format: item.format,
+            dimensions: item.dimensions,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            lineTotal: item.lineTotal,
+            source: "stripe_webhook",
+          }))
+        );
+      } catch (trackingError) {
+        console.error(
+          "[stripe-webhook] Failed to record purchase events",
+          trackingError
+        );
+      }
 
       await appendOrderLog(
         newOrder._id,
@@ -406,21 +413,25 @@ export async function POST(req) {
         }
       }
 
-      await sendPurchaseAlertEmail({
-        order: newOrder,
-        customerLabel: metadata.userId || session.customer_email || "Guest",
-        purchasedItems: validEntries.map((entry) => {
-          const productId = entry?.productId || entry?.product;
-          const product = productMap.get(productId?.toString?.());
+      try {
+        await sendPurchaseAlertEmail({
+          order: newOrder,
+          customerLabel: metadata.userId || session.customer_email || "Guest",
+          purchasedItems: validEntries.map((entry) => {
+            const productId = entry?.productId || entry?.product;
+            const product = productMap.get(productId?.toString?.());
 
-          return {
-            name: product?.name || "Unknown product",
-            quantity: Math.max(1, Number(entry?.quantity) || 1),
-            format: String(entry?.format || "physical").toLowerCase(),
-            dimensions: entry?.dimensions || null,
-          };
-        }),
-      });
+            return {
+              name: product?.name || "Unknown product",
+              quantity: Math.max(1, Number(entry?.quantity) || 1),
+              format: String(entry?.format || "physical").toLowerCase(),
+              dimensions: entry?.dimensions || null,
+            };
+          }),
+        });
+      } catch (alertError) {
+        console.error("[stripe-webhook] Failed to send purchase alert", alertError);
+      }
     }
   } catch (err) {
     console.error("Stripe webhook processing error:", err?.message || err);

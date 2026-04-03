@@ -59,9 +59,9 @@ function snapshotProduct(product) {
   };
 }
 
-function SectionHeading({ eyebrow, title, description }) {
+function SectionHeading({ eyebrow, title, description, centered = false }) {
   return (
-    <div className="max-w-2xl">
+    <div className={cx("max-w-2xl", centered && "mx-auto text-center")}>
       {eyebrow ? (
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-gray-500">
           {eyebrow}
@@ -312,27 +312,27 @@ export default function ProductPage({ product }) {
         </div>
 
         <div className="flex w-full flex-col gap-8 lg:flex-row">
-        <div className="min-w-0 flex-1">
-          <PosterMockupViewer
-            posterUrl={product.imageUrl}
-            selectedDimensions={selectedDimensions}
-            activeMockupIndex={activeMockupIndex}
-            onMockupChange={setActiveMockupIndex}
-            format={format}
-            orientation={product.orientation}
-          />
+          <div className="min-w-0 flex-1">
+            <PosterMockupViewer
+              posterUrl={product.imageUrl}
+              selectedDimensions={selectedDimensions}
+              activeMockupIndex={activeMockupIndex}
+              onMockupChange={setActiveMockupIndex}
+              format={format}
+              orientation={product.orientation}
+            />
+          </div>
+          <div className="w-full flex-shrink-0 px-4 md:w-[360px] xl:w-[400px]">
+            <Infos
+              product={product}
+              selectedDimensions={selectedDimensions}
+              onDimensionsChange={setSelectedDimensions}
+              format={format}
+              onFormatChange={setFormat}
+              hideMobileControls
+            />
+          </div>
         </div>
-        <div className="w-full flex-shrink-0 px-4 md:w-[360px] xl:w-[400px]">
-          <Infos
-            product={product}
-            selectedDimensions={selectedDimensions}
-            onDimensionsChange={setSelectedDimensions}
-            format={format}
-            onFormatChange={setFormat}
-            hideMobileControls
-          />
-        </div>
-      </div>
       </div>
 
       <section className="mt-20 border-t border-gray-200 pt-14">
@@ -340,9 +340,11 @@ export default function ProductPage({ product }) {
           eyebrow="Keep exploring"
           title="Explore more posters"
           description="This extends the product detail page into a browseable feed so shoppers can stay in flow instead of bouncing back to the shop grid."
+          centered
         />
 
-        <div className="mt-8 inline-flex rounded-full bg-gray-100 p-1">
+        <div className="mt-8 flex justify-center">
+          <div className="inline-flex rounded-full bg-gray-100 p-1">
           {discoveryTabs.map((tab) => {
             const active = discoveryTab === tab.key;
             return (
@@ -362,13 +364,14 @@ export default function ProductPage({ product }) {
               </button>
             );
           })}
+          </div>
         </div>
 
-        <p className="mt-4 text-sm text-gray-600">
+        <p className="mx-auto mt-4 max-w-2xl text-center text-sm text-gray-600">
           {discoveryTabs.find((tab) => tab.key === discoveryTab)?.description}
         </p>
 
-        <div className="mt-10 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 xl:grid-cols-4">
           {visibleDiscoveryProducts.map((item, index) => (
             <ProductCard
               key={normalizeId(item)}
@@ -398,6 +401,7 @@ export default function ProductPage({ product }) {
           eyebrow="In their space"
           title="Displayed posters in your space"
           description="A testimonial-style gallery to show how posters look once they are actually hung up."
+          centered
         />
         <Testimonials className="py-10 md:py-16" showHeader={false} />
       </section>
@@ -408,9 +412,10 @@ export default function ProductPage({ product }) {
             eyebrow="Recently viewed"
             title="Recently viewed posters"
             description="A local history strip so people can jump back to posters they already opened during the session."
+            centered
           />
 
-          <div className="mt-10 grid grid-cols-2 gap-6 md:grid-cols-3 xl:grid-cols-4">
+          <div className="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5 xl:grid-cols-4">
             {recentProducts.map((item, index) => (
               <ProductCard
                 key={`recent-${normalizeId(item)}`}
@@ -422,11 +427,7 @@ export default function ProductPage({ product }) {
         </section>
       ) : null}
 
-      <div className="mt-20">
-        <NewsLetter />
-      </div>
-
-      <section className="mt-14 mb-20 rounded-[32px] border border-gray-200 bg-white p-6 md:p-10">
+      <section className="mt-14 rounded-[32px] border border-gray-200 bg-white p-6 md:p-10">
         <SectionHeading
           eyebrow="Trust"
           title="Fast delivery, secure payments, and easy returns"
@@ -466,6 +467,10 @@ export default function ProductPage({ product }) {
           />
         </div>
       </section>
+
+      <div className="mt-14 mb-20">
+        <NewsLetter />
+      </div>
     </div>
   );
 }

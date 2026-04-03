@@ -153,16 +153,32 @@ function Accordion({ title, children }) {
   );
 }
 
-function OptionChip({ active, onClick, children, className }) {
+function PillGroup({ children, className }) {
+  return (
+    <div
+      className={cx(
+        "inline-flex flex-wrap items-center gap-1 rounded-full bg-gray-100 p-1",
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function OptionChip({ active, onClick, children, className, tone = "default" }) {
+  const activeClasses =
+    tone === "size"
+      ? "border-secondary bg-white text-secondary shadow-sm"
+      : "border-gray-200 bg-white text-gray-900 shadow-sm";
+
   return (
     <button
       type="button"
       onClick={onClick}
       className={cx(
-        "min-w-[84px] rounded-full border px-4 py-3 text-sm font-semibold transition duration-200",
-        active
-          ? "border-secondary bg-secondary text-white shadow-[0_10px_24px_rgba(109,40,217,0.28)]"
-          : "border-gray-200 bg-white text-gray-700 hover:border-secondary/30 hover:bg-secondary/5",
+        "min-w-[84px] rounded-full border px-5 py-2.5 text-sm font-medium transition duration-200",
+        active ? activeClasses : "border-transparent bg-transparent text-gray-600 hover:text-gray-900",
         className
       )}
     >
@@ -181,7 +197,7 @@ function DesktopSelectors({
 }) {
   return (
     <div className="hidden lg:block">
-      <div className="rounded-[28px] border border-secondary/10 bg-[#fbf8ff] p-5 shadow-[0_12px_36px_rgba(109,40,217,0.08)]">
+      <div className="rounded-[28px] border border-secondary/10 bg-[#fbf8ff] p-5">
         <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-secondary">
           Customize your poster
         </div>
@@ -190,7 +206,7 @@ function DesktopSelectors({
           <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
             Product type
           </div>
-          <div className="flex flex-wrap gap-2">
+          <PillGroup className="w-full">
             {[
               { key: "physical", label: "Physical Print" },
               { key: "digital", label: "Digital Download" },
@@ -199,11 +215,12 @@ function DesktopSelectors({
                 key={opt.key}
                 active={format === opt.key}
                 onClick={() => onFormatChange(opt.key)}
+                className="flex-1"
               >
                 {opt.label}
               </OptionChip>
             ))}
-          </div>
+          </PillGroup>
         </div>
 
         {sizes?.length ? (
@@ -211,7 +228,7 @@ function DesktopSelectors({
             <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
               Size
             </div>
-            <div className="flex flex-wrap gap-2">
+            <PillGroup>
               {sizes.map((s, i) => {
                 const dims = s.dimensions || s.size;
                 const label = s.label || labelForIndex(i, s);
@@ -220,15 +237,13 @@ function DesktopSelectors({
                     key={`${label}-${dims}`}
                     active={selectedDimensions === dims}
                     onClick={() => onDimensionsChange(dims)}
+                    tone="size"
                   >
-                    <span className="block">{label}</span>
-                    <span className="mt-0.5 block text-[11px] font-medium opacity-80">
-                      {dims}
-                    </span>
+                    {selectedDimensions === dims ? `${label} (${dims})` : label}
                   </OptionChip>
                 );
               })}
-            </div>
+            </PillGroup>
           </div>
         ) : null}
       </div>
@@ -244,63 +259,37 @@ function MobileSelectorTabs({
   onDimensionsChange,
   labelForIndex,
 }) {
-  const [activeTab, setActiveTab] = useState("product");
-
-  const tabBase =
-    "flex-1 rounded-full px-4 py-3 text-[11px] font-bold uppercase tracking-[0.16em] transition";
-
   return (
-    <div className="rounded-[24px] border border-secondary/10 bg-white p-4 shadow-[0_12px_30px_rgba(17,24,39,0.08)] lg:hidden">
+    <div className="rounded-[24px] border border-secondary/10 bg-white p-4 lg:hidden">
       <div className="mb-3 text-[11px] font-bold uppercase tracking-[0.24em] text-secondary">
         Customize your poster
       </div>
 
-      <div className="flex gap-2 rounded-full bg-[#f6f1ff] p-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab("product")}
-          className={cx(
-            tabBase,
-            activeTab === "product"
-              ? "bg-secondary text-white shadow-[0_8px_20px_rgba(109,40,217,0.24)]"
-              : "text-secondary"
-          )}
-        >
-          Product Type
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab("size")}
-          className={cx(
-            tabBase,
-            activeTab === "size"
-              ? "bg-secondary text-white shadow-[0_8px_20px_rgba(109,40,217,0.24)]"
-              : "text-secondary"
-          )}
-        >
-          Size
-        </button>
+      <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+        Product type
       </div>
+      <PillGroup className="w-full">
+        {[
+          { key: "physical", label: "Physical Print" },
+          { key: "digital", label: "Digital Download" },
+        ].map((opt) => (
+          <OptionChip
+            key={opt.key}
+            active={format === opt.key}
+            onClick={() => onFormatChange(opt.key)}
+            className="flex-1"
+          >
+            {opt.label}
+          </OptionChip>
+        ))}
+      </PillGroup>
 
-      <div className="mt-4 min-h-[88px] rounded-[20px] bg-[#fcfbff] p-3">
-        {activeTab === "product" ? (
-          <div className="flex flex-wrap gap-2">
-            {[
-              { key: "physical", label: "Physical Print" },
-              { key: "digital", label: "Digital Download" },
-            ].map((opt) => (
-              <OptionChip
-                key={opt.key}
-                active={format === opt.key}
-                onClick={() => onFormatChange(opt.key)}
-                className="min-w-0 flex-1"
-              >
-                {opt.label}
-              </OptionChip>
-            ))}
+      {sizes?.length ? (
+        <div className="mt-5">
+          <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+            Size (inches)
           </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
+          <PillGroup>
             {sizes.map((s, i) => {
               const dims = s.dimensions || s.size;
               const label = s.label || labelForIndex(i, s);
@@ -309,17 +298,15 @@ function MobileSelectorTabs({
                   key={`${label}-${dims}`}
                   active={selectedDimensions === dims}
                   onClick={() => onDimensionsChange(dims)}
+                  tone="size"
                 >
-                  <span className="block">{label}</span>
-                  <span className="mt-0.5 block text-[11px] font-medium opacity-80">
-                    {dims}
-                  </span>
+                  {selectedDimensions === dims ? `${label} (${dims})` : label}
                 </OptionChip>
               );
             })}
-          </div>
-        )}
-      </div>
+          </PillGroup>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -443,12 +430,12 @@ export default function Infos({
 
       <DesktopSelectors {...selectorProps} />
 
-      <div className="mt-5 rounded-[30px] border border-gray-200 bg-white p-6 shadow-[0_18px_42px_rgba(17,24,39,0.08)] md:p-7">
+      <div className="mt-5 rounded-[30px] border border-gray-200 bg-white p-6 shadow-[0_12px_28px_rgba(17,24,39,0.06)] md:p-7">
         <div className="inline-flex rounded-full bg-[#f6f1ff] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-secondary">
           Poster Genius
         </div>
 
-        <h1 className="mt-4 text-4xl font-black leading-[0.95] tracking-[-0.06em] text-blackhex md:text-5xl">
+        <h1 className="mt-4 text-[2.2rem] font-black leading-[0.98] tracking-[-0.05em] text-blackhex md:text-[2.8rem]">
           {product?.name || "Product"}
         </h1>
 
@@ -474,7 +461,7 @@ export default function Infos({
             disabled={physicalDisabled}
             className={cx(
               "h-14 w-full rounded-full font-bold uppercase tracking-[0.16em] text-white transition",
-              "bg-primary shadow-[0_18px_32px_rgba(109,40,217,0.28)] hover:bg-tertiary",
+              "bg-primary hover:bg-tertiary",
               physicalDisabled && "cursor-not-allowed opacity-50"
             )}
           >
