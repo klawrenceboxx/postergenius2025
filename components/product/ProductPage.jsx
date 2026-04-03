@@ -300,19 +300,9 @@ export default function ProductPage({ product }) {
       </nav>
 
       <div className="flex w-full flex-col gap-6 lg:gap-8">
-        <div className="px-4 lg:hidden">
-          <Infos
-            product={product}
-            selectedDimensions={selectedDimensions}
-            onDimensionsChange={setSelectedDimensions}
-            format={format}
-            onFormatChange={setFormat}
-            mobileControlsOnly
-          />
-        </div>
-
         <div className="flex w-full flex-col gap-8 lg:flex-row">
           <div className="min-w-0 flex-1">
+            <div className="lg:sticky lg:top-8">
             <PosterMockupViewer
               posterUrl={product.imageUrl}
               selectedDimensions={selectedDimensions}
@@ -321,7 +311,20 @@ export default function ProductPage({ product }) {
               format={format}
               orientation={product.orientation}
             />
+            </div>
           </div>
+
+          <div className="px-4 lg:hidden">
+            <Infos
+              product={product}
+              selectedDimensions={selectedDimensions}
+              onDimensionsChange={setSelectedDimensions}
+              format={format}
+              onFormatChange={setFormat}
+              controlsOnly
+            />
+          </div>
+
           <div className="w-full flex-shrink-0 px-4 md:w-[360px] xl:w-[400px]">
             <Infos
               product={product}
@@ -329,7 +332,6 @@ export default function ProductPage({ product }) {
               onDimensionsChange={setSelectedDimensions}
               format={format}
               onFormatChange={setFormat}
-              hideMobileControls
             />
           </div>
         </div>

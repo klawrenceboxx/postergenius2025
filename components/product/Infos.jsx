@@ -41,10 +41,10 @@ function Price({ product, format, selectedDimensions }) {
     if (hasDiscount) {
       return (
         <div className="flex flex-wrap items-end gap-3">
-          <span className="text-4xl font-black tracking-[-0.05em] text-blackhex md:text-[2.75rem]">
+          <span className="text-[2.35rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.65rem]">
             ${finalPrice.toFixed(2)}
           </span>
-          <span className="text-base font-semibold text-gray-400 line-through md:text-lg">
+          <span className="text-sm font-semibold text-gray-400 line-through md:text-base">
             ${basePrice.toFixed(2)}
           </span>
           <span className="inline-flex rounded-full bg-secondary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-secondary">
@@ -55,7 +55,7 @@ function Price({ product, format, selectedDimensions }) {
     }
 
     return (
-      <div className="text-4xl font-black tracking-[-0.05em] text-blackhex md:text-[2.75rem]">
+      <div className="text-[2.35rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.65rem]">
         ${finalPrice.toFixed(2)}
       </div>
     );
@@ -78,10 +78,10 @@ function Price({ product, format, selectedDimensions }) {
   if (hasDiscount) {
     return (
       <div className="flex flex-wrap items-end gap-3">
-        <span className="text-4xl font-black tracking-[-0.05em] text-blackhex md:text-[2.75rem]">
+        <span className="text-[2.35rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.65rem]">
           ${finalPrice.toFixed(2)}
         </span>
-        <span className="text-base font-semibold text-gray-400 line-through md:text-lg">
+        <span className="text-sm font-semibold text-gray-400 line-through md:text-base">
           ${basePrice.toFixed(2)}
         </span>
         <span className="inline-flex rounded-full bg-secondary/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-secondary">
@@ -92,7 +92,7 @@ function Price({ product, format, selectedDimensions }) {
   }
 
   return (
-    <div className="text-4xl font-black tracking-[-0.05em] text-blackhex md:text-[2.75rem]">
+    <div className="text-[2.35rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.65rem]">
       ${finalPrice.toFixed(2)}
     </div>
   );
@@ -177,8 +177,10 @@ function OptionChip({ active, onClick, children, className, tone = "default" }) 
       type="button"
       onClick={onClick}
       className={cx(
-        "min-w-[84px] rounded-full border px-5 py-2.5 text-sm font-medium transition duration-200",
-        active ? activeClasses : "border-transparent bg-transparent text-gray-600 hover:text-gray-900",
+        "min-w-[84px] whitespace-nowrap rounded-full border px-4 py-2 text-[13px] font-medium transition duration-200",
+        active
+          ? activeClasses
+          : "border-transparent bg-transparent text-gray-600 hover:text-gray-900",
         className
       )}
     >
@@ -317,8 +319,7 @@ export default function Infos({
   onDimensionsChange,
   format,
   onFormatChange,
-  mobileControlsOnly = false,
-  hideMobileControls = false,
+  controlsOnly = false,
 }) {
   const { addToCart } = useAppContext();
   const pricing = product?.pricing || {};
@@ -420,26 +421,22 @@ export default function Infos({
     labelForIndex,
   };
 
-  if (mobileControlsOnly) {
+  if (controlsOnly) {
     return <MobileSelectorTabs {...selectorProps} />;
   }
 
   return (
-    <aside className="h-fit lg:sticky lg:top-8">
-      {hideMobileControls ? null : <MobileSelectorTabs {...selectorProps} />}
-
-      <DesktopSelectors {...selectorProps} />
-
+    <aside className="h-fit">
       <div className="mt-5 rounded-[30px] border border-gray-200 bg-white p-6 shadow-[0_12px_28px_rgba(17,24,39,0.06)] md:p-7">
         <div className="inline-flex rounded-full bg-[#f6f1ff] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-secondary">
           Poster Genius
         </div>
 
-        <h1 className="mt-4 text-[2.2rem] font-black leading-[0.98] tracking-[-0.05em] text-blackhex md:text-[2.8rem]">
+        <h1 className="mt-4 text-[2rem] font-black leading-[0.98] tracking-[-0.05em] text-blackhex md:text-[2.45rem]">
           {product?.name || "Product"}
         </h1>
 
-        <div className="mt-5">
+        <div className="mt-4">
           <Price
             product={product}
             format={format}
@@ -489,6 +486,10 @@ export default function Infos({
             </div>
           </Accordion>
         </div>
+      </div>
+
+      <div className="mt-5 hidden lg:block">
+        <DesktopSelectors {...selectorProps} />
       </div>
     </aside>
   );

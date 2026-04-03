@@ -77,19 +77,15 @@ export default function PosterMockupViewer({
   orientation, // NEW
 }) {
   if (format === "digital") {
-    // Simple centered poster with a badge placeholder (replace later with your own asset).
     return (
-      <div
-        className="relative w-full bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center p-4"
-        style={{ aspectRatio: "16 / 9" }}
-      >
+      <div className="relative w-full overflow-hidden rounded-lg bg-gray-100 min-h-[560px] xl:min-h-[680px] 2xl:min-h-[760px]">
         <Image
           {...getOptimizedImageProps(posterUrl, { variant: "detail" })}
           alt="Poster (Digital)"
           width={1200}
           height={1800}
-          className="max-h-[90%] max-w-[80%] object-contain shadow"
-          sizes="(max-width: 1024px) 80vw, 60vw"
+          className="absolute left-1/2 top-1/2 max-h-[82%] w-auto max-w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain shadow"
+          sizes="(max-width: 1024px) 60vw, 40vw"
         />
         <div className="absolute top-3 right-3 rounded-full bg-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
           DIGITAL
