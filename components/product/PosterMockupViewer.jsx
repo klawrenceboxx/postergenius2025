@@ -173,11 +173,11 @@ export default function PosterMockupViewer({
         onPointerLeave={handleDigitalPointerUp}
         style={{
           background:
-            "radial-gradient(circle at 50% 58%, rgba(255,232,177,0.045) 0%, rgba(222,191,120,0.025) 16%, rgba(120,100,60,0.015) 32%, rgba(20,18,16,0.96) 62%, #090909 100%)",
+            "radial-gradient(circle at 50% 60%, rgba(255,232,177,0.012) 0%, rgba(222,191,120,0.008) 15%, rgba(120,100,60,0.004) 30%, rgba(20,18,16,0.975) 62%, #090909 100%)",
           overscrollBehavior: "contain",
         }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_58%,rgba(255,241,204,0.03),rgba(255,224,153,0.012)_24%,transparent_60%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_60%,rgba(255,241,204,0.008),rgba(255,224,153,0.004)_22%,transparent_62%)]" />
         {digitalSpeckles.map((speckle, index) => (
           <span
             key={`speckle-${index}`}
@@ -200,6 +200,8 @@ export default function PosterMockupViewer({
           alt="Poster (Digital)"
           width={1200}
           height={1800}
+          draggable={false}
+          onDragStart={(event) => event.preventDefault()}
           onPointerDown={handleDigitalPointerDown}
           className="absolute left-1/2 top-1/2 max-h-[82%] w-auto max-w-[78%] -translate-x-1/2 -translate-y-1/2 object-contain shadow transition-transform duration-150 ease-out"
           sizes="(max-width: 1024px) 60vw, 40vw"
