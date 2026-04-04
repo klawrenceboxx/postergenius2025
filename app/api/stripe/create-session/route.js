@@ -260,6 +260,13 @@ export async function POST(request) {
               items: items.map((item) => ({
                 productId: item.productId,
                 quantity: Number(item.quantity ?? 0),
+                format: item.format ?? "physical",
+                price: Number(item.price ?? 0),
+                lineTotal: Number(
+                  (
+                    Number(item.price ?? 0) * Number(item.quantity ?? 0)
+                  ).toFixed(2)
+                ),
               })),
               totalPrice: goodsTotal,
               shippingCost: originalShippingAmount,

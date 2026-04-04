@@ -11,8 +11,8 @@ const getProducts = async () => {
   try {
     await connectDB();
 
-    const products = await Product.find({})
-      .sort({ date: -1 })
+    const products = await Product.find({ isVisible: true })
+      .sort({ showOnHomepage: -1, date: -1 })
       .lean();
 
     return products.map((product) => ({

@@ -36,6 +36,12 @@ export async function POST(request) {
     const digitalDiscount = formData.get("digitalDiscount");
     const digitalPrice = formData.get("digitalPrice");
     const orientation = formData.get("orientation");
+    const isVisible =
+      formData.get("isVisible") !== "false" &&
+      formData.get("isVisible") !== "off";
+    const showOnHomepage =
+      formData.get("showOnHomepage") === "true" ||
+      formData.get("showOnHomepage") === "on";
     const rawPrintfulEnabled =
       formData.get("printfulEnabled") === "true" ||
       formData.get("printfulEnabled") === "on";
@@ -222,6 +228,8 @@ export async function POST(request) {
           : null),
       digitalFileName,
       orientation: normalizedOrientation,
+      isVisible,
+      showOnHomepage: isVisible ? showOnHomepage : false,
       date: Date.now(),
     });
 

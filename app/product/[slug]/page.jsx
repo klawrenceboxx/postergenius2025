@@ -19,6 +19,7 @@ async function getProduct(slugOrId) {
     doc = await Product.findOne({ slug: slugOrId }).lean();
   }
   if (!doc) return null;
+  if (doc.isVisible === false) return null;
 
   const plain = {
     ...doc,

@@ -48,6 +48,8 @@ const EditProductPage = () => {
   const [digitalDiscount, setDigitalDiscount] = useState("0");
   const [digitalPrice, setDigitalPrice] = useState("6.5");
   const [orientation, setOrientation] = useState("portrait");
+  const [isVisible, setIsVisible] = useState(true);
+  const [showOnHomepage, setShowOnHomepage] = useState(false);
   const [printfulEnabled, setPrintfulEnabled] = useState(false);
   const [printfulVariantIds, setPrintfulVariantIds] = useState(
     createDefaultPrintfulVariantState
@@ -103,6 +105,10 @@ const EditProductPage = () => {
           product.digitalPrice != null ? String(product.digitalPrice) : "6.5"
         );
         setExistingImages(product.image || []);
+        setIsVisible(product.isVisible !== false);
+        setShowOnHomepage(
+          product.isVisible === false ? false : Boolean(product.showOnHomepage)
+        );
         const remotePrintfulEnabled = Boolean(
           product.isPrintfulEnabled ??
             product.printfulEnabled ??
@@ -212,6 +218,8 @@ const EditProductPage = () => {
       formData.append("printfulEnabled", printfulEnabled ? "true" : "false");
       formData.append("isPrintfulEnabled", printfulEnabled ? "true" : "false");
       formData.append("orientation", orientation);
+      formData.append("isVisible", isVisible ? "true" : "false");
+      formData.append("showOnHomepage", showOnHomepage ? "true" : "false");
       formData.append(
         "printfulVariantIds",
         JSON.stringify({
@@ -534,6 +542,37 @@ const EditProductPage = () => {
             <option value="portrait">Portrait</option>
             <option value="landscape">Landscape</option>
           </select>
+        </div>
+
+        <div className="space-y-3 rounded border border-gray-200 p-4 max-w-md">
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={isVisible}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                setIsVisible(checked);
+                if (!checked) {
+                  setShowOnHomepage(false);
+                }
+              }}
+            />
+            <span className="text-base font-medium">Visible in storefront</span>
+          </label>
+          <label className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={showOnHomepage}
+              disabled={!isVisible}
+              onChange={(event) => setShowOnHomepage(event.target.checked)}
+            />
+            <span className="text-base font-medium">Show on homepage</span>
+          </label>
+          <p className="text-sm text-gray-500">
+            Hidden products stay in the dashboard but disappear from the storefront and homepage.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">

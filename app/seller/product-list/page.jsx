@@ -15,6 +15,7 @@ const ProductList = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
 
   const fetchSellerProduct = useCallback(async () => {
     try {
@@ -70,6 +71,31 @@ const ProductList = () => {
     }
   };
 
+  const handleToggle = async (productId, updates) => {
+    try {
+      setUpdatingId(productId);
+      const token = await getToken();
+      const { data } = await axios.patch(`/api/product/${productId}`, updates, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (data.success) {
+        setProducts((prev) =>
+          prev.map((item) =>
+            item._id === productId ? { ...item, ...data.product } : item
+          )
+        );
+        toast.success("Product updated");
+      } else {
+        toast.error(data.message || "Failed to update product");
+      }
+    } catch (error) {
+      toast.error(error.message || "Failed to update product");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   return (
     <div className="flex-1 min-h-screen flex flex-col justify-between">
       {loading ? (
@@ -88,6 +114,9 @@ const ProductList = () => {
                     Category
                   </th>
                   <th className="px-4 py-3 font-medium truncate">Price</th>
+                  <th className="px-4 py-3 font-medium truncate max-lg:hidden">
+                    Visibility
+                  </th>
                   <th className="px-4 py-3 font-medium truncate max-sm:hidden">
                     Action
                   </th>
@@ -144,6 +173,42 @@ const ProductList = () => {
                           "-"
                         )}
                       </td>
+                      <td className="px-4 py-3 max-lg:hidden">
+                        <div className="flex flex-col gap-2">
+                          <label className="flex items-center gap-2 text-xs text-gray-700">
+                            <input
+                              type="checkbox"
+                              checked={product.isVisible !== false}
+                              disabled={updatingId === product._id}
+                              onChange={(event) =>
+                                handleToggle(product._id, {
+                                  isVisible: event.target.checked,
+                                  showOnHomepage: event.target.checked
+                                    ? Boolean(product.showOnHomepage)
+                                    : false,
+                                })
+                              }
+                            />
+                            <span>Visible</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs text-gray-700">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(product.showOnHomepage)}
+                              disabled={
+                                updatingId === product._id ||
+                                product.isVisible === false
+                              }
+                              onChange={(event) =>
+                                handleToggle(product._id, {
+                                  showOnHomepage: event.target.checked,
+                                })
+                              }
+                            />
+                            <span>Homepage</span>
+                          </label>
+                        </div>
+                      </td>
                       <td className="px-4 py-3 max-sm:hidden">
                         <div className="flex items-center gap-2">
                           <button
@@ -156,13 +221,17 @@ const ProductList = () => {
                           </button>
                           <button
                             onClick={() => handleDelete(product._id)}
-                            disabled={deletingId === product._id}
+                            disabled={
+                              deletingId === product._id ||
+                              updatingId === product._id
+                            }
                             className="px-3 py-2 border border-red-300 text-red-600 rounded-md text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                           >
                             {deletingId === product._id ? "Deleting..." : "Delete"}
                           </button>
                           <button
                             onClick={() => router.push(`/product/${product._id}`)}
+                            disabled={product.isVisible === false}
                             className="flex items-center gap-1 px-1.5 md:px-3.5 py-2 bg-orange-600 text-white rounded-md"
                           >
                             <span className="hidden md:block">Visit</span>

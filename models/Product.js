@@ -34,6 +34,8 @@ const productSchema = new mongoose.Schema({
     enum: ["portrait", "landscape"],
     default: "portrait",
   }, // NEW
+  isVisible: { type: Boolean, default: true },
+  showOnHomepage: { type: Boolean, default: false },
 
   date: { type: Date, default: Date.now },
 });

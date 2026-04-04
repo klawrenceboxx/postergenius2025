@@ -5,6 +5,9 @@ import { useAppContext } from "@/context/AppContext";
 
 const HomeProducts = () => {
   const { products, router } = useAppContext();
+  const homepageProducts = products.filter((product) => product.showOnHomepage);
+  const displayProducts =
+    homepageProducts.length > 0 ? homepageProducts : products.slice(0, 15);
 
   return (
     <div className="flex flex-col items-center pt-14  w-auto border-t mt-4">
@@ -12,7 +15,7 @@ const HomeProducts = () => {
       <div className="w-28 h-0.5 bg-primary mt-2 mb-4"></div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 flex-col items-center gap-6 mt-6 pb-14 w-full">
-        {products.slice(0, 15).map((product, index) => (
+        {displayProducts.slice(0, 15).map((product, index) => (
           <ProductCard key={product._id} product={product} priority={index < 4} />
         ))}
       </div>

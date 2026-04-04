@@ -57,6 +57,9 @@ const buildPromoCart = (cartItems = {}, total = 0, shippingCost = 0) => ({
   items: normaliseCartItems(cartItems).map((item) => ({
     productId: item.productId,
     quantity: item.quantity,
+    format: item.format || "physical",
+    price: Number(item.price ?? 0),
+    lineTotal: Number((Number(item.price ?? 0) * Number(item.quantity ?? 0)).toFixed(2)),
   })),
   totalPrice: Number(Number(total).toFixed(2)),
   shippingCost: Number(Number(shippingCost).toFixed(2)),

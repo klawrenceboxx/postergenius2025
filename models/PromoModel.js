@@ -8,6 +8,11 @@ const PromoSchema = new mongoose.Schema(
       enum: ["flat", "percent", "shipping"],
       required: true,
     },
+    appliesTo: {
+      type: String,
+      enum: ["all", "digital", "physical"],
+      default: "all",
+    },
     condition: {
       type: String,
       enum: ["none", "cartValue", "quantity"],
@@ -18,6 +23,7 @@ const PromoSchema = new mongoose.Schema(
     minQuantity: { type: Number, min: 0 },
     expiresAt: { type: Date },
     isActive: { type: Boolean, default: true },
+    showInBanner: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

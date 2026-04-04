@@ -84,6 +84,12 @@ export async function PUT(request, { params }) {
     const digitalDiscount = formData.get("digitalDiscount");
     const digitalPrice = formData.get("digitalPrice");
     const orientation = formData.get("orientation");
+    const isVisible =
+      formData.get("isVisible") !== "false" &&
+      formData.get("isVisible") !== "off";
+    const showOnHomepage =
+      formData.get("showOnHomepage") === "true" ||
+      formData.get("showOnHomepage") === "on";
     const rawPrintfulEnabled =
       formData.get("printfulEnabled") === "true" ||
       formData.get("printfulEnabled") === "on";
@@ -283,6 +289,8 @@ export async function PUT(request, { params }) {
     product.printfulVariantIds = printfulVariantIds;
     product.digitalPrice = Math.round(normalizedDigitalPrice * 100) / 100;
     product.orientation = normalizedOrientation;
+    product.isVisible = isVisible;
+    product.showOnHomepage = isVisible ? showOnHomepage : false;
 
     const finalImages = [...existingImages, ...uploadedImages];
     if (finalImages.length > 0) {
@@ -327,6 +335,43 @@ export async function PUT(request, { params }) {
     if (digitalFileKeyToDelete) {
       await deleteFileFromS3(digitalFileKeyToDelete);
     }
+
+    return NextResponse.json({ success: true, product });
+  } catch (error) {
+    return NextResponse.json({ success: false, message: error.message });
+  }
+}
+
+export async function PATCH(request, { params }) {
+  try {
+    const { userId } = getAuth(request);
+    const isAdmin = await authAdmin(userId);
+
+    if (isAdmin !== true) {
+      return NextResponse.json({ success: false, message: "Unauthorized" });
+    }
+
+    const body = await request.json();
+    await connectDB();
+
+    const product = await Product.findById(params.id);
+    if (!product) {
+      return NextResponse.json({ success: false, message: "Product not found" });
+    }
+
+    if (typeof body.isVisible === "boolean") {
+      product.isVisible = body.isVisible;
+      if (!body.isVisible) {
+        product.showOnHomepage = false;
+      }
+    }
+
+    if (typeof body.showOnHomepage === "boolean") {
+      product.showOnHomepage =
+        product.isVisible === false ? false : body.showOnHomepage;
+    }
+
+    await product.save();
 
     return NextResponse.json({ success: true, product });
   } catch (error) {

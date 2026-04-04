@@ -2,16 +2,19 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { buildBannerMessage } from "@/lib/promoBanner";
 
 const defaultFormState = {
   code: "",
   type: "flat",
+  appliesTo: "all",
   condition: "none",
   value: "0",
   minCartValue: "",
   minQuantity: "",
   expiresAt: "",
   isActive: true,
+  showInBanner: false,
 };
 
 const typeLabels = {
@@ -24,6 +27,12 @@ const conditionLabels = {
   none: "No Condition",
   cartValue: "Minimum Cart Value",
   quantity: "Minimum Quantity",
+};
+
+const appliesToLabels = {
+  all: "All Products",
+  digital: "Digital Products",
+  physical: "Physical Posters",
 };
 
 export default function DiscountsPage() {
@@ -51,12 +60,18 @@ export default function DiscountsPage() {
       return;
     }
 
+    if (form.type === "shipping" && form.appliesTo === "digital") {
+      toast.error("Free shipping promos must target physical posters or all products");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
       const payload = {
         code: form.code.trim().toUpperCase(),
         type: form.type,
+        appliesTo: form.appliesTo,
         condition: form.condition,
         value: form.type === "shipping" ? 0 : Number(form.value),
         minCartValue:
@@ -69,6 +84,7 @@ export default function DiscountsPage() {
             : undefined,
         expiresAt: form.expiresAt || undefined,
         isActive: form.isActive,
+        showInBanner: form.showInBanner,
       };
 
       const response = await fetch("/api/promo/create", {
@@ -94,6 +110,12 @@ export default function DiscountsPage() {
 
   const showMinCartValue = form.condition === "cartValue";
   const showMinQuantity = form.condition === "quantity";
+  const bannerPreview = buildBannerMessage({
+    code: form.code.trim().toUpperCase() || "PROMO",
+    type: form.type,
+    value: form.type === "shipping" ? 0 : Number(form.value || 0),
+    appliesTo: form.appliesTo,
+  });
 
   return (
     <div className="p-8 max-w-3xl mx-auto w-full">
@@ -140,6 +162,22 @@ export default function DiscountsPage() {
               onChange={handleChange}
             >
               {Object.entries(conditionLabels).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm font-medium">
+            Applies To
+            <select
+              name="appliesTo"
+              className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              value={form.appliesTo}
+              onChange={handleChange}
+            >
+              {Object.entries(appliesToLabels).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
@@ -221,7 +259,28 @@ export default function DiscountsPage() {
             />
             Active Promo
           </label>
+
+          <label className="flex items-center gap-3 text-sm font-medium md:col-span-2">
+            <input
+              type="checkbox"
+              name="showInBanner"
+              checked={form.showInBanner}
+              onChange={handleChange}
+              className="h-4 w-4"
+            />
+            Show this promo in the top banner
+          </label>
         </div>
+
+        {form.showInBanner && (
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <p className="text-sm font-semibold text-primary">Banner Preview</p>
+            <p className="mt-2 text-sm text-gray-700">{bannerPreview}</p>
+            <p className="mt-2 text-xs text-gray-500">
+              Turning this on will replace any previously active banner promo.
+            </p>
+          </div>
+        )}
 
         <div className="flex items-center gap-3">
           <button

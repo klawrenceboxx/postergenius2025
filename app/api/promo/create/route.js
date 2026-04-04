@@ -12,10 +12,12 @@ export async function POST(request) {
   try {
     await connectDB();
     const payload = await request.json();
+    const normalizedCode = payload.code?.trim()?.toUpperCase();
 
     const promoData = {
-      code: payload.code?.trim(),
+      code: normalizedCode,
       type: payload.type,
+      appliesTo: payload.appliesTo ?? "all",
       condition: payload.condition ?? "none",
       value: sanitizeNumber(payload.value) ?? 0,
       minCartValue: sanitizeNumber(payload.minCartValue),
@@ -23,12 +25,21 @@ export async function POST(request) {
       expiresAt: payload.expiresAt ? new Date(payload.expiresAt) : undefined,
       isActive:
         typeof payload.isActive === "boolean" ? payload.isActive : true,
+      showInBanner:
+        typeof payload.showInBanner === "boolean" ? payload.showInBanner : false,
     };
 
     if (!promoData.code || !promoData.type || promoData.value < 0) {
       return NextResponse.json(
         { success: false, message: "Invalid promo payload" },
         { status: 400 }
+      );
+    }
+
+    if (promoData.showInBanner) {
+      await Promo.updateMany(
+        { showInBanner: true },
+        { $set: { showInBanner: false } }
       );
     }
 
