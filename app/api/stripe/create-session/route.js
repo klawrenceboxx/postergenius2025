@@ -16,8 +16,44 @@ import {
 } from "@/lib/printful";
 import { applyPromo } from "@/lib/promoCode";
 import { STORE_EVENT_TYPES, recordStoreEvents } from "@/lib/storeEvents";
+import {
+  sanitizeEnum,
+  sanitizeIdentifier,
+  sanitizeNumber,
+  sanitizePlainText,
+  sanitizeRelativeOrAbsoluteUrl,
+} from "@/lib/security/input";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+function sanitizeCheckoutItems(items = []) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+
+  return items
+    .map((item) => {
+      const productId = sanitizeIdentifier(item?.productId, { maxLength: 64 });
+      const quantity = sanitizeNumber(item?.quantity, {
+        min: 1,
+        max: 25,
+        fallback: 0,
+      });
+
+      if (!productId || quantity <= 0) {
+        return null;
+      }
+
+      return {
+        productId,
+        quantity,
+        format: sanitizeEnum(item?.format, ["physical", "digital"], "physical"),
+        dimensions: sanitizePlainText(item?.dimensions, { maxLength: 32 }),
+        price: sanitizeNumber(item?.price, { min: 0, fallback: 0 }),
+      };
+    })
+    .filter(Boolean);
+}
 
 export async function POST(request) {
   try {
@@ -31,8 +67,12 @@ export async function POST(request) {
     const userId = auth.userId;
     console.log("🔑 User ID:", userId);
 
-    const { items, address, successUrl, cancelUrl, promoCode } =
-      await request.json();
+    const body = await request.json();
+    const items = sanitizeCheckoutItems(body?.items);
+    const address = sanitizeIdentifier(body?.address, { maxLength: 64 });
+    const successUrl = sanitizeRelativeOrAbsoluteUrl(body?.successUrl);
+    const cancelUrl = sanitizeRelativeOrAbsoluteUrl(body?.cancelUrl);
+    const promoCode = sanitizePlainText(body?.promoCode, { maxLength: 64 });
     console.log("📦 Items received:", JSON.stringify(items, null, 2));
     console.log("🏠 Address received:", address);
 

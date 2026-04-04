@@ -1,5 +1,11 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import {
+  sanitizeMultilineText,
+  sanitizeNumber,
+  sanitizePlainText,
+  sanitizeRelativeOrAbsoluteUrl,
+} from "@/lib/security/input";
 
 const getBaseUrl = (request) => {
   return (
@@ -15,7 +21,7 @@ const normaliseCartItems = (cart = {}) => {
   return cart.items
     .map((item, index) => {
       const quantity = Math.max(Number(item?.quantity ?? 1), 1);
-      const price = Math.max(Number(item?.price ?? 0), 0);
+      const price = sanitizeNumber(item?.price ?? 0, { min: 0, fallback: 0 });
       const unitAmountCents = Math.round(price * 100);
 
       if (!Number.isFinite(unitAmountCents) || unitAmountCents < 0) {
@@ -23,7 +29,10 @@ const normaliseCartItems = (cart = {}) => {
       }
 
       const name =
-        item?.title || item?.name || item?.productName || `Item ${index + 1}`;
+        sanitizePlainText(
+          item?.title || item?.name || item?.productName || `Item ${index + 1}`,
+          { maxLength: 160 }
+        ) || `Item ${index + 1}`;
 
       return {
         name,
@@ -55,8 +64,13 @@ export async function POST(request) {
       );
     }
 
-    const currency = (cart.currency || "cad").toLowerCase();
-    const shippingCost = Math.max(Number(cart.shippingCost ?? 0), 0);
+    const currency =
+      sanitizePlainText(cart.currency || "cad", { maxLength: 8 }).toLowerCase() ||
+      "cad";
+    const shippingCost = sanitizeNumber(cart.shippingCost ?? 0, {
+      min: 0,
+      fallback: 0,
+    });
     const subtotalCents = lineItems.reduce(
       (sum, item) => sum + item.unitAmountCents * item.quantity,
       0
@@ -81,10 +95,13 @@ export async function POST(request) {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              code: promoCode,
+              code: sanitizePlainText(promoCode, { maxLength: 64 }),
               cart: {
                 items: cart.items,
-                totalPrice: cart.totalPrice ?? subtotalCents / 100,
+                totalPrice: sanitizeNumber(cart.totalPrice ?? subtotalCents / 100, {
+                  min: 0,
+                  fallback: subtotalCents / 100,
+                }),
                 shippingCost,
               },
             }),
@@ -161,8 +178,14 @@ export async function POST(request) {
     const session = await stripe.checkout.sessions.create({
       line_items: stripeLineItems,
       mode: "payment",
-      success_url: successUrl || `${getBaseUrl(request)}/checkout/success`,
-      cancel_url: cancelUrl || `${getBaseUrl(request)}/checkout/cancel`,
+      success_url:
+        sanitizeRelativeOrAbsoluteUrl(
+          successUrl || `${getBaseUrl(request)}/checkout/success`
+        ) || `${getBaseUrl(request)}/checkout/success`,
+      cancel_url:
+        sanitizeRelativeOrAbsoluteUrl(
+          cancelUrl || `${getBaseUrl(request)}/checkout/cancel`
+        ) || `${getBaseUrl(request)}/checkout/cancel`,
       ...(couponId ? { discounts: [{ coupon: couponId }] } : {}),
       ...(shouldWaiveShipping
         ? {
@@ -178,7 +201,7 @@ export async function POST(request) {
           }
         : {}),
       metadata: {
-        promoCode: promoCode || "",
+        promoCode: sanitizeMultilineText(promoCode, { maxLength: 64 }) || "",
       },
     });
 

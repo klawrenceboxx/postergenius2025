@@ -7,6 +7,13 @@ import { NextResponse } from "next/server";
 import { uploadFileToS3 } from "@/lib/s3";
 import { validateDigitalFile } from "@/lib/digitalFiles";
 import { PRINTFUL_POSTER_VARIANTS } from "@/config/printfulVariants";
+import {
+  sanitizeBoolean,
+  sanitizeEnum,
+  sanitizeMultilineText,
+  sanitizeNumber,
+  sanitizePlainText,
+} from "@/lib/security/input";
 
 // Configure Cloudinary
 cloudinary.config({
@@ -26,34 +33,42 @@ export async function POST(request) {
 
     const formData = await request.formData();
 
-    const name = formData.get("name");
-    const description = formData.get("description");
-    const category = formData.get("category");
+    const name = sanitizePlainText(formData.get("name"), { maxLength: 160 });
+    const description = sanitizeMultilineText(formData.get("description"), {
+      maxLength: 4000,
+    });
+    const category = sanitizePlainText(formData.get("category"), {
+      maxLength: 80,
+    });
     const physicalPriceM = formData.get("physicalPriceM");
     const physicalPriceL = formData.get("physicalPriceL");
     const physicalPriceXL = formData.get("physicalPriceXL");
     const physicalDiscount = formData.get("physicalDiscount");
     const digitalDiscount = formData.get("digitalDiscount");
     const digitalPrice = formData.get("digitalPrice");
-    const orientation = formData.get("orientation");
-    const isVisible =
-      formData.get("isVisible") !== "false" &&
-      formData.get("isVisible") !== "off";
-    const showOnHomepage =
-      formData.get("showOnHomepage") === "true" ||
-      formData.get("showOnHomepage") === "on";
-    const rawPrintfulEnabled =
-      formData.get("printfulEnabled") === "true" ||
-      formData.get("printfulEnabled") === "on";
-    const rawIsPrintfulEnabled =
-      formData.get("isPrintfulEnabled") === "true" ||
-      formData.get("isPrintfulEnabled") === "on";
+    const orientation = sanitizeEnum(formData.get("orientation"), [
+      "landscape",
+      "portrait",
+    ], "portrait");
+    const isVisible = sanitizeBoolean(formData.get("isVisible"), true);
+    const showOnHomepage = sanitizeBoolean(
+      formData.get("showOnHomepage"),
+      false
+    );
+    const rawPrintfulEnabled = sanitizeBoolean(
+      formData.get("printfulEnabled"),
+      false
+    );
+    const rawIsPrintfulEnabled = sanitizeBoolean(
+      formData.get("isPrintfulEnabled"),
+      false
+    );
     const printfulEnabled = rawPrintfulEnabled || rawIsPrintfulEnabled;
     const variantIdsRaw = formData.get("printfulVariantIds");
     const coerceVariantId = (value) => {
       if (value === undefined || value === null || value === "") return null;
-      const numeric = Number(value);
-      if (!Number.isFinite(numeric) || numeric <= 0) {
+      const numeric = sanitizeNumber(value, { min: 1, fallback: 0 });
+      if (numeric <= 0) {
         return null;
       }
       return numeric;
@@ -116,7 +131,7 @@ export async function POST(request) {
       if (value === null || value === undefined || value === "") {
         return { price: fallback, error: null };
       }
-      const parsed = Number(value);
+      const parsed = sanitizeNumber(value, { min: 0, fallback: NaN });
       if (!Number.isFinite(parsed) || parsed <= 0) {
         return { price: fallback, error: "Physical prices must be positive numbers" };
       }
@@ -136,7 +151,10 @@ export async function POST(request) {
     const lPrice = lParsed.price;
     const xlPrice = xlParsed.price;
 
-    const numericDigitalPrice = digitalPrice ? Number(digitalPrice) : 6.5;
+    const numericDigitalPrice =
+      digitalPrice !== null && digitalPrice !== undefined && digitalPrice !== ""
+        ? sanitizeNumber(digitalPrice, { min: 0, fallback: NaN })
+        : 6.5;
     if (Number.isNaN(numericDigitalPrice) || numericDigitalPrice < 0) {
       return NextResponse.json({
         success: false,
@@ -145,7 +163,7 @@ export async function POST(request) {
     }
 
     const normalizeDiscount = (value) => {
-      const parsed = Number(value);
+      const parsed = sanitizeNumber(value, { min: 0, max: 100, fallback: 0 });
       if (!Number.isFinite(parsed) || parsed < 0) return 0;
       if (parsed > 100) return 100;
       return Math.round(parsed);
@@ -160,9 +178,6 @@ export async function POST(request) {
         message: "No files uploaded",
       });
     }
-
-    const normalizedOrientation =
-      orientation === "landscape" ? "landscape" : "portrait";
 
     const result = await Promise.all(
       files.map(async (file) => {
@@ -227,7 +242,7 @@ export async function POST(request) {
           ? `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${digitalFileMeta.key}`
           : null),
       digitalFileName,
-      orientation: normalizedOrientation,
+      orientation,
       isVisible,
       showOnHomepage: isVisible ? showOnHomepage : false,
       date: Date.now(),

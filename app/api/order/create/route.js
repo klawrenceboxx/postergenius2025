@@ -3,6 +3,13 @@ import Cart from "@/models/Cart";
 import Order from "@/models/Order";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import {
+  sanitizeEmail,
+  sanitizeEnum,
+  sanitizeIdentifier,
+  sanitizeNumber,
+  sanitizePlainText,
+} from "@/lib/security/input";
 
 function isNonEmptyObject(value) {
   return (
@@ -14,8 +21,7 @@ function isNonEmptyObject(value) {
 }
 
 function toNumber(value, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  return sanitizeNumber(value, { fallback });
 }
 
 function normalizeCartItems(cartItems = {}) {
@@ -23,12 +29,16 @@ function normalizeCartItems(cartItems = {}) {
     .map(([key, entry]) => {
       const isObjectEntry = typeof entry === "object" && entry !== null;
       const productId = isObjectEntry
-        ? entry.productId
+        ? sanitizeIdentifier(entry.productId, { maxLength: 64 })
         : key.includes("-")
-        ? key.split("-")[0]
-        : key;
+        ? sanitizeIdentifier(key.split("-")[0], { maxLength: 64 })
+        : sanitizeIdentifier(key, { maxLength: 64 });
 
-      const quantity = Number(isObjectEntry ? entry.quantity ?? 0 : entry ?? 0);
+      const quantity = sanitizeNumber(isObjectEntry ? entry.quantity ?? 0 : entry ?? 0, {
+        min: 0,
+        max: 100,
+        fallback: 0,
+      });
 
       if (!productId || quantity <= 0) {
         return null;
@@ -37,17 +47,58 @@ function normalizeCartItems(cartItems = {}) {
       const normalized = { productId, quantity };
 
       if (isObjectEntry) {
-        if (entry.format) normalized.format = entry.format;
-        if (entry.dimensions) normalized.dimensions = entry.dimensions;
+        if (entry.format) {
+          normalized.format = sanitizeEnum(entry.format, ["physical", "digital"], "");
+        }
+        if (entry.dimensions) {
+          normalized.dimensions = sanitizePlainText(entry.dimensions, {
+            maxLength: 32,
+          });
+        }
       } else {
         const [, format, dimensions] = key.split("-");
-        if (format) normalized.format = format;
-        if (dimensions) normalized.dimensions = dimensions;
+        if (format) {
+          normalized.format = sanitizeEnum(format, ["physical", "digital"], "");
+        }
+        if (dimensions) {
+          normalized.dimensions = sanitizePlainText(dimensions, { maxLength: 32 });
+        }
       }
 
       return normalized;
     })
     .filter(Boolean);
+}
+
+function sanitizeShippingAddress(address = {}) {
+  if (!address || typeof address !== "object") {
+    return null;
+  }
+
+  const sanitized = {
+    _id: sanitizeIdentifier(address._id || address.id, { maxLength: 64 }),
+    fullName: sanitizePlainText(address.fullName, { maxLength: 120 }),
+    email: sanitizeEmail(address.email),
+    phone: sanitizePlainText(address.phone, { maxLength: 40 }),
+    street: sanitizePlainText(address.street, { maxLength: 160 }),
+    city: sanitizePlainText(address.city, { maxLength: 120 }),
+    postalCode: sanitizePlainText(address.postalCode, { maxLength: 32 }),
+    country: sanitizePlainText(address.country, { maxLength: 64 }),
+    province: sanitizePlainText(address.province, { maxLength: 64 }),
+  };
+
+  const required = [
+    sanitized.fullName,
+    sanitized.email,
+    sanitized.phone,
+    sanitized.street,
+    sanitized.city,
+    sanitized.postalCode,
+    sanitized.country,
+    sanitized.province,
+  ];
+
+  return required.every(Boolean) ? sanitized : null;
 }
 
 export async function POST(request) {
@@ -65,7 +116,11 @@ export async function POST(request) {
     } = body || {};
 
     const headerGuestId = request.headers.get("x-guest-id");
-    const guestId = userId ? null : bodyGuestId ?? headerGuestId ?? null;
+    const guestId = userId
+      ? null
+      : sanitizeIdentifier(bodyGuestId ?? headerGuestId ?? null, {
+          maxLength: 128,
+        });
 
     if (!userId && (!guestId || typeof guestId !== "string")) {
       return NextResponse.json(
@@ -81,7 +136,9 @@ export async function POST(request) {
       );
     }
 
-    if (!shippingAddress || typeof shippingAddress !== "object") {
+    const normalizedAddress = sanitizeShippingAddress(shippingAddress);
+
+    if (!normalizedAddress) {
       return NextResponse.json(
         { success: false, message: "Shipping address is required" },
         { status: 400 }
@@ -106,8 +163,8 @@ export async function POST(request) {
     const order = await Order.create({
       userId: userId || undefined,
       guestId: userId ? undefined : guestId,
-      cartSnapshot: cartItems,
-      shippingAddressSnapshot: shippingAddress,
+      cartSnapshot: normalizedItems,
+      shippingAddressSnapshot: normalizedAddress,
       totalPrice: Math.round(normalizedTotal * 100) / 100,
       shippingPrice: Math.round(normalizedShipping * 100) / 100,
       taxPrice: Math.round(normalizedTax * 100) / 100,
@@ -133,12 +190,12 @@ export async function POST(request) {
           externalId: order._id.toString(),
         };
 
-        if (shippingAddress && typeof shippingAddress === "object") {
-          if (shippingAddress._id || shippingAddress.id) {
+        if (normalizedAddress && typeof normalizedAddress === "object") {
+          if (normalizedAddress._id || normalizedAddress.id) {
             printfulPayload.addressId =
-              shippingAddress._id?.toString?.() || shippingAddress.id;
+              normalizedAddress._id?.toString?.() || normalizedAddress.id;
           }
-          printfulPayload.address = shippingAddress;
+          printfulPayload.address = normalizedAddress;
         }
 
         try {

@@ -3,6 +3,12 @@ import { STORE_EVENT_TYPES, recordStoreEvent } from "@/lib/storeEvents";
 import Cart from "@/models/Cart";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import {
+  sanitizeEnum,
+  sanitizeIdentifier,
+  sanitizeNumber,
+  sanitizePlainText,
+} from "@/lib/security/input";
 
 const ALLOWED_STRING_FIELDS = [
   "_id",
@@ -28,15 +34,26 @@ function sanitizeCartItem(item = {}) {
   }
 
   if (item.price !== undefined) {
-    const price = Number(item.price);
-    sanitized.price = Number.isFinite(price) ? price : 0;
+    sanitized.price = sanitizeNumber(item.price, { min: 0, fallback: 0 });
   }
 
-  const quantity = Number(item.quantity ?? 0);
-  if (!Number.isFinite(quantity) || quantity <= 0) {
+  const quantity = sanitizeNumber(item.quantity, {
+    min: 1,
+    max: 100,
+    fallback: 0,
+  });
+  if (quantity <= 0) {
     return null;
   }
   sanitized.quantity = quantity;
+  sanitized.format = sanitizeEnum(item.format, ["physical", "digital"], "");
+  sanitized.dimensions = sanitizePlainText(item.dimensions, { maxLength: 32 });
+  sanitized.title = sanitizePlainText(item.title, { maxLength: 160 });
+  sanitized.slug = sanitizePlainText(item.slug, { maxLength: 180 });
+  sanitized.imageUrl = sanitizePlainText(item.imageUrl, { maxLength: 500 });
+  sanitized.productId = sanitizeIdentifier(item.productId || item._id, {
+    maxLength: 64,
+  });
 
   return sanitized;
 }
@@ -54,14 +71,9 @@ export async function POST(request) {
     const { guestId: bodyGuestId, itemKey, itemData } = body || {};
 
     const headerGuestId = request.headers.get("x-guest-id");
-    const guestId = bodyGuestId ?? headerGuestId ?? null;
-
-    if (guestId && typeof guestId !== "string") {
-      return NextResponse.json(
-        { success: false, message: "Invalid guestId" },
-        { status: 400 }
-      );
-    }
+    const guestId = sanitizeIdentifier(bodyGuestId ?? headerGuestId ?? null, {
+      maxLength: 128,
+    });
 
     if (!userId && !guestId) {
       return NextResponse.json(
@@ -70,7 +82,9 @@ export async function POST(request) {
       );
     }
 
-    if (!itemKey || typeof itemKey !== "string") {
+    const sanitizedItemKey = sanitizePlainText(itemKey, { maxLength: 160 });
+
+    if (!sanitizedItemKey) {
       return NextResponse.json(
         { success: false, message: "Invalid cart item key" },
         { status: 400 }
@@ -93,11 +107,11 @@ export async function POST(request) {
       cart = await Cart.create({ ...query, items: {} });
     }
 
-    const previousItem = cart.items?.[itemKey]
-      ? JSON.parse(JSON.stringify(cart.items[itemKey]))
+    const previousItem = cart.items?.[sanitizedItemKey]
+      ? JSON.parse(JSON.stringify(cart.items[sanitizedItemKey]))
       : null;
 
-    cart.items[itemKey] = sanitizedItem;
+    cart.items[sanitizedItemKey] = sanitizedItem;
     cart.markModified("items");
     await cart.save();
 
@@ -115,7 +129,7 @@ export async function POST(request) {
           lineTotal: Number(sanitizedItem.price || 0) * sanitizedItem.quantity,
           source: "cart_api",
           metadata: {
-            itemKey,
+            itemKey: sanitizedItemKey,
             title: sanitizedItem.title,
           },
         });
@@ -134,7 +148,7 @@ export async function POST(request) {
           lineTotal: Number(sanitizedItem.price || 0) * sanitizedItem.quantity,
           source: "cart_api",
           metadata: {
-            itemKey,
+            itemKey: sanitizedItemKey,
             title: sanitizedItem.title,
             previousQuantity: Number(previousItem.quantity || 0),
             nextQuantity: Number(sanitizedItem.quantity || 0),

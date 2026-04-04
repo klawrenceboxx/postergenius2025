@@ -5,6 +5,11 @@ import mongoose from "mongoose";
 import connectDB from "@/config/db";
 import Review from "@/models/Review";
 import Order from "@/models/Order";
+import {
+  sanitizeIdentifier,
+  sanitizeMultilineText,
+  sanitizePlainText,
+} from "@/lib/security/input";
 
 const sanitizeReview = (review) => {
   if (!review) return review;
@@ -62,7 +67,9 @@ export async function GET(request) {
     await connectDB();
 
     const { searchParams } = new URL(request.url);
-    const productId = searchParams.get("productId");
+    const productId = sanitizeIdentifier(searchParams.get("productId"), {
+      maxLength: 64,
+    });
 
     const limit = 20;
     const filter = {};
@@ -119,11 +126,12 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    const productId =
-      typeof body.productId === "string" ? body.productId.trim() : "";
+    const productId = sanitizeIdentifier(body.productId, { maxLength: 64 });
     const rating = Number(body.rating);
-    const comment = (body.comment || "").trim();
-    const providedUsername = (body.username || "").trim();
+    const comment = sanitizeMultilineText(body.comment, { maxLength: 1500 });
+    const providedUsername = sanitizePlainText(body.username, {
+      maxLength: 80,
+    });
 
     if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
       return NextResponse.json(
@@ -147,7 +155,9 @@ export async function POST(request) {
     let username = await resolveUserName(userId);
 
     if (isAdmin) {
-      reviewUserId = body.userId ? String(body.userId) : null;
+      reviewUserId = body.userId
+        ? sanitizeIdentifier(String(body.userId), { maxLength: 128 })
+        : null;
 
       if (providedUsername) {
         username = providedUsername;

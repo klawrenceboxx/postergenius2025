@@ -1,6 +1,11 @@
 import connectDB from "@/config/db";
 import GuestAddress from "@/models/GuestAddress";
 import { NextResponse } from "next/server";
+import {
+  sanitizeEmail,
+  sanitizeIdentifier,
+  sanitizePlainText,
+} from "@/lib/security/input";
 
 const REQUIRED_FIELDS = [
   "fullName",
@@ -14,11 +19,16 @@ const REQUIRED_FIELDS = [
 ];
 
 function normalizeAddressPayload(addressData = {}) {
-  return REQUIRED_FIELDS.reduce((acc, field) => {
-    const value = addressData[field];
-    acc[field] = typeof value === "string" ? value.trim() : "";
-    return acc;
-  }, {});
+  return {
+    fullName: sanitizePlainText(addressData.fullName, { maxLength: 120 }),
+    email: sanitizeEmail(addressData.email),
+    phone: sanitizePlainText(addressData.phone, { maxLength: 40 }),
+    street: sanitizePlainText(addressData.street, { maxLength: 160 }),
+    city: sanitizePlainText(addressData.city, { maxLength: 120 }),
+    postalCode: sanitizePlainText(addressData.postalCode, { maxLength: 32 }),
+    country: sanitizePlainText(addressData.country, { maxLength: 64 }),
+    province: sanitizePlainText(addressData.province, { maxLength: 64 }),
+  };
 }
 
 function validateRequestBody(body) {
@@ -28,7 +38,9 @@ function validateRequestBody(body) {
 
   const { guestId, addressData } = body;
 
-  if (!guestId || typeof guestId !== "string") {
+  const normalizedGuestId = sanitizeIdentifier(guestId, { maxLength: 128 });
+
+  if (!normalizedGuestId) {
     return { valid: false, message: "guestId is required" };
   }
 
@@ -46,7 +58,7 @@ function validateRequestBody(body) {
     };
   }
 
-  return { valid: true, guestId, address: normalized };
+  return { valid: true, guestId: normalizedGuestId, address: normalized };
 }
 
 export async function POST(request) {

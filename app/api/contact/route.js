@@ -1,47 +1,22 @@
 import { NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import {
+  sanitizeEmail,
+  sanitizeMultilineText,
+  sanitizePlainText,
+} from "@/lib/security/input";
 
 const REQUIRED_FIELDS = ["name", "email", "message"];
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const RATE_LIMIT_MAX_REQUESTS = 3;
-const submissionTracker = new Map();
-
-const sanitizeEmail = (value) => value?.trim().toLowerCase() || "";
-
-function getClientIp(request) {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-
-  if (forwardedFor) {
-    return forwardedFor.split(",")[0].trim();
-  }
-
-  return request.ip || "unknown";
-}
-
-function isRateLimited(key) {
-  if (!key) {
-    return false;
-  }
-
-  const now = Date.now();
-  const recentRequests = (submissionTracker.get(key) || []).filter(
-    (timestamp) => now - timestamp < RATE_LIMIT_WINDOW_MS
-  );
-
-  if (recentRequests.length >= RATE_LIMIT_MAX_REQUESTS) {
-    submissionTracker.set(key, recentRequests);
-    return true;
-  }
-
-  recentRequests.push(now);
-  submissionTracker.set(key, recentRequests);
-  return false;
-}
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const missingField = REQUIRED_FIELDS.find((field) => !body?.[field]);
+    const payload = {
+      name: sanitizePlainText(body?.name, { maxLength: 120 }),
+      email: sanitizeEmail(body?.email),
+      message: sanitizeMultilineText(body?.message, { maxLength: 4000 }),
+    };
+    const missingField = REQUIRED_FIELDS.find((field) => !payload?.[field]);
 
     if (missingField) {
       return NextResponse.json(
@@ -50,23 +25,6 @@ export async function POST(request) {
           message: `Missing required field: ${missingField}`,
         },
         { status: 400 }
-      );
-    }
-
-    const clientIp = getClientIp(request);
-    const normalizedEmail = sanitizeEmail(body.email);
-
-    if (
-      isRateLimited(`ip:${clientIp}`) ||
-      isRateLimited(`email:${normalizedEmail}`)
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Too many messages received. Please wait a little while before trying again.",
-        },
-        { status: 429 }
       );
     }
 
@@ -103,9 +61,9 @@ export async function POST(request) {
     await transporter.sendMail({
       from: `PosterGenius Contact <${SMTP_USER}>`,
       to: recipient,
-      replyTo: body.email,
-      subject: `New contact form submission from ${body.name}`,
-      text: `Name: ${body.name}\nEmail: ${body.email}\n\nMessage:\n${body.message}`,
+      replyTo: payload.email,
+      subject: `New contact form submission from ${payload.name}`,
+      text: `Name: ${payload.name}\nEmail: ${payload.email}\n\nMessage:\n${payload.message}`,
     });
 
     return NextResponse.json({ success: true });

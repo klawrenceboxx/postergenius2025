@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { sanitizePlainText } from "@/lib/security/input";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -16,7 +17,8 @@ export async function POST(request) {
     }
 
     // Get and validate session ID
-    const { sessionId } = await request.json();
+    const { sessionId: rawSessionId } = await request.json();
+    const sessionId = sanitizePlainText(rawSessionId, { maxLength: 128 });
     if (!sessionId) {
       return NextResponse.json({
         success: false,

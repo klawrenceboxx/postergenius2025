@@ -1,18 +1,22 @@
 import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { recordProductViewOnce } from "@/lib/storeEvents";
+import { sanitizeIdentifier, sanitizePlainText } from "@/lib/security/input";
 
 export async function POST(request) {
   try {
     const { userId } = getAuth(request);
     const body = await request.json();
-    const guestId =
+    const guestId = sanitizeIdentifier(
       body?.guestId ||
-      request.headers.get("x-guest-id") ||
-      request.headers.get("x-session-id") ||
-      null;
+        request.headers.get("x-guest-id") ||
+        request.headers.get("x-session-id") ||
+        null,
+      { maxLength: 128 }
+    );
+    const productId = sanitizeIdentifier(body?.productId, { maxLength: 64 });
 
-    if (!body?.productId) {
+    if (!productId) {
       return NextResponse.json(
         { success: false, message: "productId is required" },
         { status: 400 }
@@ -20,12 +24,12 @@ export async function POST(request) {
     }
 
     const result = await recordProductViewOnce({
-      productId: body.productId,
+      productId,
       userId,
       guestId,
       source: "product_page",
       metadata: {
-        path: body.path || null,
+        path: sanitizePlainText(body.path, { maxLength: 240 }) || null,
       },
     });
 

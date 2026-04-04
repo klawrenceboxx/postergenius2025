@@ -1,48 +1,15 @@
 import { NextResponse } from "next/server";
-
-const RATE_LIMIT_MAP = new Map();
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const RATE_LIMIT_MAX = 5;
-
-function isRateLimited(ip) {
-  const now = Date.now();
-  const entry = RATE_LIMIT_MAP.get(ip);
-
-  if (!entry || now > entry.resetAt) {
-    RATE_LIMIT_MAP.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return false;
-  }
-
-  if (entry.count >= RATE_LIMIT_MAX) {
-    return true;
-  }
-
-  entry.count += 1;
-  return false;
-}
-
-function isValidEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
+import { sanitizeEmail, sanitizePlainText } from "@/lib/security/input";
 
 export async function POST(request) {
   try {
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      "unknown";
-
-    if (isRateLimited(ip)) {
-      return NextResponse.json(
-        { success: false, message: "Too many requests. Please try again later." },
-        { status: 429 }
-      );
-    }
-
     const body = await request.json();
-    const email = body?.email?.trim()?.toLowerCase();
-    const source = body?.source ?? "website-popup";
+    const email = sanitizeEmail(body?.email);
+    const source =
+      sanitizePlainText(body?.source || "website-popup", { maxLength: 64 }) ||
+      "website-popup";
 
-    if (!email || !isValidEmail(email)) {
+    if (!email) {
       return NextResponse.json(
         { success: false, message: "A valid email address is required." },
         { status: 400 }
