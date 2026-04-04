@@ -143,8 +143,8 @@ export default function PosterMockupViewer({
     if (!dragStateRef.current || format !== "digital" || digitalScale <= 1)
       return;
 
-    const limitX = (digitalScale - 1) * 180;
-    const limitY = (digitalScale - 1) * 220;
+    const limitX = (digitalScale - 1) * 260 + 80;
+    const limitY = (digitalScale - 1) * 320 + 100;
     const nextX =
       dragStateRef.current.originX +
       (event.clientX - dragStateRef.current.startX);
@@ -173,11 +173,10 @@ export default function PosterMockupViewer({
         onPointerLeave={handleDigitalPointerUp}
         style={{
           background:
-            "radial-gradient(circle at 50% 60%, rgba(255,232,177,0.012) 0%, rgba(222,191,120,0.008) 15%, rgba(120,100,60,0.004) 30%, rgba(20,18,16,0.975) 62%, #090909 100%)",
+            "radial-gradient(circle at 50% 52%, #4a4a4a 0%, #2c2c2c 26%, #171717 54%, #090909 100%)",
           overscrollBehavior: "contain",
         }}
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_60%,rgba(255,241,204,0.008),rgba(255,224,153,0.004)_22%,transparent_62%)]" />
         {digitalSpeckles.map((speckle, index) => (
           <span
             key={`speckle-${index}`}
