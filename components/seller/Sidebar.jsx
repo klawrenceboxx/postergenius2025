@@ -4,6 +4,7 @@ import { assets } from "../../assets/assets";
 import Image from "next/image";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
 import { usePathname } from "next/navigation";
+import { TicketPercent } from "lucide-react";
 
 const SideBar = () => {
   const pathname = usePathname();
@@ -17,7 +18,11 @@ const SideBar = () => {
     },
     { name: "Orders", path: "/seller/orders", icon: assets.order_icon },
     { name: "Reviews", path: "/seller/reviews", icon: assets.review_icon },
-    { name: "PROMO Codes", path: "/seller/discounts", icon: assets.promo_icon },
+    {
+      name: "PROMO Codes",
+      path: "/seller/discounts",
+      iconComponent: TicketPercent,
+    },
   ];
 
   return (
@@ -34,11 +39,19 @@ const SideBar = () => {
                   : "hover:bg-gray-100/90 border-white"
               }`}
             >
-              <Image
-                {...getOptimizedImageProps(item.icon)}
-                alt={`${item.name.toLowerCase()}_icon`}
-                className="w-7 h-7"
-              />
+              {item.iconComponent ? (
+                <item.iconComponent
+                  className="h-6 w-6 text-black"
+                  strokeWidth={1.9}
+                  aria-hidden="true"
+                />
+              ) : (
+                <Image
+                  {...getOptimizedImageProps(item.icon)}
+                  alt={`${item.name.toLowerCase()}_icon`}
+                  className="w-7 h-7"
+                />
+              )}
               <p className="md:block hidden text-center">{item.name}</p>
             </div>
           </Link>
