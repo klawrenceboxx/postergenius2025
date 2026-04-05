@@ -42,7 +42,7 @@ function Price({ product, format, selectedDimensions }) {
     if (hasDiscount) {
       return (
         <div className="flex flex-wrap items-end gap-3">
-          <span className="text-[2rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.25rem]">
+          <span className="text-[24px] font-black tracking-[-0.04em] text-blackhex">
             ${finalPrice.toFixed(2)}
           </span>
           <span className="text-sm font-semibold text-gray-400 line-through md:text-base">
@@ -56,7 +56,7 @@ function Price({ product, format, selectedDimensions }) {
     }
 
     return (
-      <div className="text-[2rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.25rem]">
+      <div className="text-[24px] font-black tracking-[-0.04em] text-blackhex">
         ${finalPrice.toFixed(2)}
       </div>
     );
@@ -79,7 +79,7 @@ function Price({ product, format, selectedDimensions }) {
   if (hasDiscount) {
     return (
       <div className="flex flex-wrap items-end gap-3">
-        <span className="text-[2rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.25rem]">
+        <span className="text-[24px] font-black tracking-[-0.04em] text-blackhex">
           ${finalPrice.toFixed(2)}
         </span>
         <span className="text-sm font-semibold text-gray-400 line-through md:text-base">
@@ -93,7 +93,7 @@ function Price({ product, format, selectedDimensions }) {
   }
 
   return (
-    <div className="text-[2rem] font-black tracking-[-0.04em] text-blackhex md:text-[2.25rem]">
+    <div className="text-[24px] font-black tracking-[-0.04em] text-blackhex">
       ${finalPrice.toFixed(2)}
     </div>
   );
@@ -114,42 +114,6 @@ function ReadMore({ text, limit = 120 }) {
           Read more
         </button>
       ) : null}
-    </div>
-  );
-}
-
-function Accordion({ title, children }) {
-  const [open, setOpen] = useState(false);
-  const id = useMemo(() => `acc_${title.replace(/\s+/g, "_")}`, [title]);
-
-  return (
-    <div className="border-b border-gray-200">
-      <button
-        className="flex w-full items-center justify-between py-4 text-left"
-        aria-controls={id}
-        aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="text-sm font-semibold uppercase tracking-[0.18em] text-blackhex">
-          {title}
-        </span>
-        <span
-          className={`text-lg text-secondary transition-transform duration-300 ${
-            open ? "rotate-180" : ""
-          }`}
-        >
-          ▾
-        </span>
-      </button>
-
-      <div
-        id={id}
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          open ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
-        }`}
-      >
-        <div className="pb-4 text-sm leading-7 text-gray-700">{children}</div>
-      </div>
     </div>
   );
 }
@@ -205,12 +169,13 @@ function resolveVideoUrl(url) {
   }
 }
 
-function DigitalPrintsPanel({
+function SidePanel({
   open,
   onClose,
-  onCheckout,
-  checkoutBusy,
-  videoUrl,
+  title,
+  subtitle,
+  children,
+  footer,
 }) {
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
@@ -234,30 +199,30 @@ function DigitalPrintsPanel({
 
   if (!open) return null;
 
-  const embeddedVideoUrl = resolveVideoUrl(videoUrl);
-  const isHostedVideo =
-    embeddedVideoUrl &&
-    (embeddedVideoUrl.endsWith(".mp4") || embeddedVideoUrl.endsWith(".webm"));
-
   return (
     <div className="fixed inset-0 z-[80]">
       <button
         type="button"
         aria-label="Close digital prints panel"
         onClick={onClose}
-        className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"
+        className="absolute inset-0 bg-[rgba(15,23,42,0.28)] backdrop-blur-[2px] transition-opacity duration-300"
       />
 
-      <aside className="absolute right-0 top-0 h-full w-full overflow-y-auto bg-white shadow-[-16px_0_48px_rgba(15,23,42,0.18)] sm:max-w-[440px]">
-        <div className="flex min-h-full flex-col px-5 py-5 sm:px-6">
+      <aside className="absolute right-0 top-0 h-full w-full overflow-y-auto border-l border-white/60 bg-[linear-gradient(180deg,#ffffff_0%,#fffdf8_100%)] shadow-[-24px_0_60px_rgba(15,23,42,0.18)] transition-transform duration-300 ease-out sm:max-w-[460px]">
+        <div className="flex min-h-full flex-col px-5 py-5 sm:px-6 sm:py-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h2 className="text-[1.4rem] font-black tracking-[-0.04em] text-blackhex">
-                How Digital Prints Work
+              <div className="inline-flex rounded-full bg-[#f6f1ff] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.22em] text-secondary">
+                Poster Genius
+              </div>
+              <h2 className="mt-3 text-[1.45rem] font-black tracking-[-0.04em] text-blackhex">
+                {title}
               </h2>
-              <p className="mt-2 text-sm text-gray-600">
-                Get your poster instantly - no waiting, no shipping.
-              </p>
+              {subtitle ? (
+                <p className="mt-2 max-w-[32ch] text-sm leading-6 text-gray-600">
+                  {subtitle}
+                </p>
+              ) : null}
             </div>
 
             <button
@@ -270,76 +235,100 @@ function DigitalPrintsPanel({
             </button>
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-[24px] border border-gray-200 bg-[#f8f6ff]">
-            <div className="aspect-[16/10] w-full bg-gray-100">
-              {embeddedVideoUrl ? (
-                isHostedVideo ? (
-                  <video
-                    className="h-full w-full object-cover"
-                    src={embeddedVideoUrl}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    controls
-                  />
-                ) : (
-                  <iframe
-                    className="h-full w-full"
-                    src={embeddedVideoUrl}
-                    title="How digital prints work"
-                    allow="autoplay; encrypted-media; picture-in-picture"
-                    allowFullScreen
-                  />
-                )
-              ) : (
-                <div className="flex h-full items-center justify-center px-6 text-center text-sm leading-6 text-gray-500">
-                  Add `NEXT_PUBLIC_DIGITAL_PRINTS_VIDEO_URL` to show the explainer video here.
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <ul className="space-y-3 text-sm font-medium text-gray-800">
-              {[
-                "Download instantly after purchase",
-                "Print in multiple sizes",
-                "Works with home or print shops",
-                "High-resolution, ready to frame",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-3">
-                  <span className="mt-[6px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-secondary" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <p className="mt-5 text-xs leading-5 text-gray-500">
-            Most customers print at a local shop like Staples for best results
-          </p>
-
-          <div className="mt-auto pt-8">
-            <button
-              type="button"
-              onClick={onCheckout}
-              disabled={checkoutBusy}
-              className="h-12 w-full rounded-full bg-primary px-5 text-sm font-bold uppercase tracking-[0.16em] text-white transition hover:bg-tertiary disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {checkoutBusy ? "Working..." : "Continue to Checkout"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="mt-3 h-12 w-full rounded-full border border-gray-200 px-5 text-sm font-bold uppercase tracking-[0.16em] text-blackhex transition hover:border-gray-300 hover:bg-gray-50"
-            >
-              Back to Poster
-            </button>
-          </div>
+          <div className="mt-5 flex-1">{children}</div>
+          {footer ? <div className="mt-auto pt-8">{footer}</div> : null}
         </div>
       </aside>
     </div>
+  );
+}
+
+function DigitalPrintsPanel({
+  open,
+  onClose,
+  onCheckout,
+  checkoutBusy,
+  videoUrl,
+}) {
+  const embeddedVideoUrl = resolveVideoUrl(videoUrl);
+  const isHostedVideo =
+    embeddedVideoUrl &&
+    (embeddedVideoUrl.endsWith(".mp4") || embeddedVideoUrl.endsWith(".webm"));
+
+  return (
+    <SidePanel
+      open={open}
+      onClose={onClose}
+      title="How Digital Prints Work"
+      subtitle="Get your poster instantly - no waiting, no shipping."
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onCheckout}
+            disabled={checkoutBusy}
+            className="h-12 w-full rounded-full bg-primary px-5 text-sm font-bold uppercase tracking-[0.16em] text-white transition hover:bg-tertiary disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {checkoutBusy ? "Working..." : "Continue to Checkout"}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="mt-3 h-12 w-full rounded-full border border-gray-200 px-5 text-sm font-bold uppercase tracking-[0.16em] text-blackhex transition hover:border-gray-300 hover:bg-gray-50"
+          >
+            Back to Poster
+          </button>
+        </>
+      }
+    >
+      <div className="overflow-hidden rounded-[24px] border border-gray-200 bg-[#f8f6ff] shadow-[0_14px_34px_rgba(80,44,140,0.08)]">
+        <div className="aspect-[16/10] w-full bg-gray-100">
+          {embeddedVideoUrl ? (
+            isHostedVideo ? (
+              <video
+                className="h-full w-full object-cover"
+                src={embeddedVideoUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls
+              />
+            ) : (
+              <iframe
+                className="h-full w-full"
+                src={embeddedVideoUrl}
+                title="How digital prints work"
+                allow="autoplay; encrypted-media; picture-in-picture"
+                allowFullScreen
+              />
+            )
+          ) : (
+            <div className="flex h-full items-center justify-center px-6 text-center text-sm leading-6 text-gray-500">
+              Add `NEXT_PUBLIC_DIGITAL_PRINTS_VIDEO_URL` to show the explainer video here.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <ul className="mt-6 space-y-3 text-sm font-medium text-gray-800">
+        {[
+          "Download instantly after purchase",
+          "Print in multiple sizes",
+          "Works with home or print shops",
+          "High-resolution, ready to frame",
+        ].map((item) => (
+          <li key={item} className="flex items-start gap-3">
+            <span className="mt-[6px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-secondary" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-5 text-xs leading-5 text-gray-500">
+        Most customers print at a local shop like Staples for best results
+      </p>
+    </SidePanel>
   );
 }
 
@@ -553,6 +542,7 @@ export default function Infos({
   const pricing = product?.pricing || {};
   const [digitalPrintsOpen, setDigitalPrintsOpen] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
+  const [activeInfoPanel, setActiveInfoPanel] = useState(null);
 
   const productId = useMemo(() => {
     const id = product?._id ?? product?.id;
@@ -680,8 +670,50 @@ export default function Infos({
     labelForIndex,
   };
 
+  const infoPanels = {
+    details: {
+      title: "Details",
+      subtitle: "Gallery-grade quality, made to look clean on the wall from day one.",
+      body: (
+        <div className="space-y-4 text-sm leading-7 text-gray-700">
+          <p>Sharp, high-resolution artwork with a clean, ready-to-frame finish.</p>
+          <p>
+            Designed to feel polished in modern spaces, with strong color and
+            crisp detail up close.
+          </p>
+        </div>
+      ),
+    },
+    shipping: {
+      title: "Shipping",
+      subtitle: "Simple fulfillment, with instant access when you choose digital.",
+      body: (
+        <div className="space-y-4 text-sm leading-7 text-gray-700">
+          <p>Physical prints ship in 3-5 business days with tracking included.</p>
+          <p>
+            Digital posters arrive instantly after checkout, so there is nothing
+            to wait on and nothing to ship.
+          </p>
+        </div>
+      ),
+    },
+    returns: {
+      title: "Returns",
+      subtitle: "Straightforward support if something is off.",
+      body: (
+        <div className="space-y-4 text-sm leading-7 text-gray-700">
+          <p>30-day returns on eligible physical orders.</p>
+          <p>
+            If your print arrives damaged or incorrect, we will help make it
+            right quickly.
+          </p>
+        </div>
+      ),
+    },
+  };
+
   if (controlsOnly) {
-    return <MobileSelectorTabs {...selectorProps} />;
+    return null;
   }
 
   return (
@@ -691,7 +723,7 @@ export default function Infos({
           Poster Genius
         </div>
 
-        <h1 className="mt-4 text-[1.8rem] font-black leading-[0.98] tracking-[-0.05em] text-blackhex md:text-[2.15rem]">
+        <h1 className="mt-4 text-[28px] font-black leading-[0.98] tracking-[-0.05em] text-blackhex">
           {product?.name || "Product"}
         </h1>
 
@@ -712,6 +744,15 @@ export default function Infos({
         </div>
 
         <div className="mt-6">
+          <div className="lg:hidden">
+            <MobileSelectorTabs {...selectorProps} />
+          </div>
+          <div className="hidden lg:block">
+            <DesktopSelectors {...selectorProps} />
+          </div>
+        </div>
+
+        <div className="mt-6">
           <button
             onClick={handleAdd}
             disabled={physicalDisabled}
@@ -729,30 +770,17 @@ export default function Infos({
         </div>
 
         <div className="mt-6 divide-y divide-gray-100 border-t border-gray-200">
-          <Accordion title="Details">
-            <div className="text-sm text-gray-700">
-              Premium materials and high-resolution print.
-            </div>
-          </Accordion>
-          <Accordion title="Shipping">
-            <div className="text-sm text-gray-700">
-              Ships in 3–5 business days. Tracking provided.
-            </div>
-          </Accordion>
-          <Accordion title="Returns">
-            <div className="text-sm text-gray-700">
-              30-day return policy. Contact support for assistance.
-            </div>
-          </Accordion>
+          <ActionRow title="Details" onClick={() => setActiveInfoPanel("details")} />
+          <ActionRow
+            title="Shipping"
+            onClick={() => setActiveInfoPanel("shipping")}
+          />
+          <ActionRow title="Returns" onClick={() => setActiveInfoPanel("returns")} />
           <ActionRow
             title="How Digital Prints Work"
             onClick={() => setDigitalPrintsOpen(true)}
           />
         </div>
-      </div>
-
-      <div className="mt-5 hidden lg:block">
-        <DesktopSelectors {...selectorProps} />
       </div>
 
       <DigitalPrintsPanel
@@ -766,6 +794,15 @@ export default function Infos({
           ""
         }
       />
+
+      <SidePanel
+        open={Boolean(activeInfoPanel)}
+        onClose={() => setActiveInfoPanel(null)}
+        title={activeInfoPanel ? infoPanels[activeInfoPanel]?.title : ""}
+        subtitle={activeInfoPanel ? infoPanels[activeInfoPanel]?.subtitle : ""}
+      >
+        {activeInfoPanel ? infoPanels[activeInfoPanel]?.body : null}
+      </SidePanel>
     </aside>
   );
 }

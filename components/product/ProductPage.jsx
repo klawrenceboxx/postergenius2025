@@ -314,17 +314,6 @@ export default function ProductPage({ product }) {
             </div>
           </div>
 
-          <div className="px-4 lg:hidden">
-            <Infos
-              product={product}
-              selectedDimensions={selectedDimensions}
-              onDimensionsChange={setSelectedDimensions}
-              format={format}
-              onFormatChange={setFormat}
-              controlsOnly
-            />
-          </div>
-
           <div className="w-full flex-shrink-0 px-4 md:w-[360px] xl:w-[400px]">
             <Infos
               product={product}
