@@ -106,12 +106,13 @@ function ReadMore({ text, limit = 120 }) {
   return (
     <div className="text-sm leading-7 text-gray-700">
       <span>{open ? text : short} </span>
-      {text.length > limit && !open ? (
+      {text.length > limit ? (
         <button
+          type="button"
           className="font-semibold text-secondary transition hover:text-primary"
-          onClick={() => setOpen(true)}
+          onClick={() => setOpen((value) => !value)}
         >
-          Read more
+          {open ? "See less" : "See more"}
         </button>
       ) : null}
     </div>
@@ -336,7 +337,7 @@ function PillGroup({ children, className }) {
   return (
     <div
       className={cx(
-        "inline-flex flex-wrap items-center gap-1 rounded-full bg-gray-100 p-1",
+        "inline-flex items-center gap-1 rounded-full bg-gray-100 p-1",
         className
       )}
     >
@@ -409,7 +410,7 @@ function DesktopSelectors({
             <div className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
               Size
             </div>
-            <PillGroup>
+            <PillGroup className="w-full flex-nowrap justify-between overflow-x-auto">
               {sizes.map((s, i) => {
                 const dims = s.dimensions || s.size;
                 const label = s.label || labelForIndex(i, s);
@@ -419,6 +420,7 @@ function DesktopSelectors({
                     active={selectedDimensions === dims}
                     onClick={() => onDimensionsChange(dims)}
                     tone="size"
+                    className="min-w-0 flex-1"
                   >
                     {selectedDimensions === dims ? `${label} (${dims})` : label}
                   </OptionChip>
