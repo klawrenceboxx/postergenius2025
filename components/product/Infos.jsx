@@ -1,8 +1,9 @@
 // components/product/InfosV2.jsx
 "use client";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useAppContext } from "@/context/AppContext";
 import ReviewSummary from "@/components/ReviewSummary";
+import { useRouter } from "next/navigation";
 
 const cx = (...xs) => xs.filter(Boolean).join(" ");
 
@@ -149,6 +150,195 @@ function Accordion({ title, children }) {
       >
         <div className="pb-4 text-sm leading-7 text-gray-700">{children}</div>
       </div>
+    </div>
+  );
+}
+
+function ActionRow({ title, onClick }) {
+  return (
+    <div className="border-b border-gray-200">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-center justify-between py-4 text-left"
+      >
+        <span className="text-sm font-semibold uppercase tracking-[0.18em] text-blackhex">
+          {title}
+        </span>
+        <span className="text-lg text-secondary transition-transform duration-300">
+          ▸
+        </span>
+      </button>
+    </div>
+  );
+}
+
+function resolveVideoUrl(url) {
+  if (!url) return null;
+
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./, "");
+    const searchParams = new URLSearchParams(parsed.search);
+
+    if (host === "youtu.be") {
+      const id = parsed.pathname.replace(/\//g, "");
+      return id
+        ? `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1`
+        : null;
+    }
+
+    if (host.includes("youtube.com")) {
+      const id =
+        searchParams.get("v") ||
+        parsed.pathname.split("/embed/")[1] ||
+        parsed.pathname.split("/shorts/")[1];
+
+      return id
+        ? `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1`
+        : null;
+    }
+
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+function DigitalPrintsPanel({
+  open,
+  onClose,
+  onCheckout,
+  checkoutBusy,
+  videoUrl,
+}) {
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose, open]);
+
+  if (!open) return null;
+
+  const embeddedVideoUrl = resolveVideoUrl(videoUrl);
+  const isHostedVideo =
+    embeddedVideoUrl &&
+    (embeddedVideoUrl.endsWith(".mp4") || embeddedVideoUrl.endsWith(".webm"));
+
+  return (
+    <div className="fixed inset-0 z-[80]">
+      <button
+        type="button"
+        aria-label="Close digital prints panel"
+        onClick={onClose}
+        className="absolute inset-0 bg-black/30 backdrop-blur-[1px]"
+      />
+
+      <aside className="absolute right-0 top-0 h-full w-full overflow-y-auto bg-white shadow-[-16px_0_48px_rgba(15,23,42,0.18)] sm:max-w-[440px]">
+        <div className="flex min-h-full flex-col px-5 py-5 sm:px-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-[1.4rem] font-black tracking-[-0.04em] text-blackhex">
+                How Digital Prints Work
+              </h2>
+              <p className="mt-2 text-sm text-gray-600">
+                Get your poster instantly - no waiting, no shipping.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              aria-label="Close panel"
+              onClick={onClose}
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-lg text-gray-500 transition hover:border-gray-300 hover:text-black"
+            >
+              X
+            </button>
+          </div>
+
+          <div className="mt-5 overflow-hidden rounded-[24px] border border-gray-200 bg-[#f8f6ff]">
+            <div className="aspect-[16/10] w-full bg-gray-100">
+              {embeddedVideoUrl ? (
+                isHostedVideo ? (
+                  <video
+                    className="h-full w-full object-cover"
+                    src={embeddedVideoUrl}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    controls
+                  />
+                ) : (
+                  <iframe
+                    className="h-full w-full"
+                    src={embeddedVideoUrl}
+                    title="How digital prints work"
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                  />
+                )
+              ) : (
+                <div className="flex h-full items-center justify-center px-6 text-center text-sm leading-6 text-gray-500">
+                  Add `NEXT_PUBLIC_DIGITAL_PRINTS_VIDEO_URL` to show the explainer video here.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <ul className="space-y-3 text-sm font-medium text-gray-800">
+              {[
+                "Download instantly after purchase",
+                "Print in multiple sizes",
+                "Works with home or print shops",
+                "High-resolution, ready to frame",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3">
+                  <span className="mt-[6px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-secondary" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <p className="mt-5 text-xs leading-5 text-gray-500">
+            Most customers print at a local shop like Staples for best results
+          </p>
+
+          <div className="mt-auto pt-8">
+            <button
+              type="button"
+              onClick={onCheckout}
+              disabled={checkoutBusy}
+              className="h-12 w-full rounded-full bg-primary px-5 text-sm font-bold uppercase tracking-[0.16em] text-white transition hover:bg-tertiary disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {checkoutBusy ? "Working..." : "Continue to Checkout"}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="mt-3 h-12 w-full rounded-full border border-gray-200 px-5 text-sm font-bold uppercase tracking-[0.16em] text-blackhex transition hover:border-gray-300 hover:bg-gray-50"
+            >
+              Back to Poster
+            </button>
+          </div>
+        </div>
+      </aside>
     </div>
   );
 }
@@ -358,8 +548,11 @@ export default function Infos({
   onFormatChange,
   controlsOnly = false,
 }) {
-  const { addToCart } = useAppContext();
+  const { addToCart, cartItems } = useAppContext();
+  const router = useRouter();
   const pricing = product?.pricing || {};
+  const [digitalPrintsOpen, setDigitalPrintsOpen] = useState(false);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
 
   const productId = useMemo(() => {
     const id = product?._id ?? product?.id;
@@ -424,22 +617,51 @@ export default function Infos({
   );
 
   const effectivePrice = isPhysical ? physicalPrice : digitalPriceValue;
+  const cartItemKey = useMemo(() => {
+    if (!productId) return "";
+    const dimensions =
+      format === "digital"
+        ? "digital"
+        : selectedDimensions || product?.defaultPhysicalDimensions || "";
+
+    return `${productId}-${format}-${dimensions}`;
+  }, [format, product?.defaultPhysicalDimensions, productId, selectedDimensions]);
+
+  const itemAlreadyInCart = Boolean(cartItems?.[cartItemKey]);
+
+  const buildCartPayload = () => ({
+    productId,
+    title: product.name,
+    imageUrl: product.imageUrl || product.image?.[0] || "",
+    price: effectivePrice,
+    quantity: 1,
+    slug: product.slug,
+    format,
+    dimensions:
+      format === "digital"
+        ? "digital"
+        : selectedDimensions || product?.defaultPhysicalDimensions || null,
+  });
 
   const handleAdd = async () => {
     if (physicalDisabled) return;
-    await addToCart({
-      productId: product._id.toString(),
-      title: product.name,
-      imageUrl: product.imageUrl || product.image?.[0] || "",
-      price: effectivePrice,
-      quantity: 1,
-      slug: product.slug,
-      format,
-      dimensions:
-        format === "digital"
-          ? "digital"
-          : selectedDimensions || product?.defaultPhysicalDimensions || null,
-    });
+    await addToCart(buildCartPayload());
+  };
+
+  const handleContinueToCheckout = async () => {
+    if (physicalDisabled || checkoutBusy) return;
+
+    setCheckoutBusy(true);
+    try {
+      if (!itemAlreadyInCart) {
+        await addToCart(buildCartPayload());
+      }
+
+      setDigitalPrintsOpen(false);
+      router.push("/cart");
+    } finally {
+      setCheckoutBusy(false);
+    }
   };
 
   const labelForIndex = (i, s) => {
@@ -522,12 +744,28 @@ export default function Infos({
               30-day return policy. Contact support for assistance.
             </div>
           </Accordion>
+          <ActionRow
+            title="How Digital Prints Work"
+            onClick={() => setDigitalPrintsOpen(true)}
+          />
         </div>
       </div>
 
       <div className="mt-5 hidden lg:block">
         <DesktopSelectors {...selectorProps} />
       </div>
+
+      <DigitalPrintsPanel
+        open={digitalPrintsOpen}
+        onClose={() => setDigitalPrintsOpen(false)}
+        onCheckout={handleContinueToCheckout}
+        checkoutBusy={checkoutBusy}
+        videoUrl={
+          product?.digitalExplainerVideoUrl ||
+          process.env.NEXT_PUBLIC_DIGITAL_PRINTS_VIDEO_URL ||
+          ""
+        }
+      />
     </aside>
   );
 }
