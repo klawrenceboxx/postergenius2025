@@ -6,7 +6,6 @@ import { Toaster } from "react-hot-toast";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Poppins } from "next/font/google";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
-import SlideInOptIn from "@/components/SlideInOptIn";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -36,7 +35,6 @@ export default function RootLayout({ children }) {
       <html lang="en">
         <head>
           <link rel="preconnect" href="https://clerk.postergenius.ca" crossOrigin="" />
-          <link rel="preconnect" href="https://forms.soundestlink.com" crossOrigin="" />
           {posthogKey ? <link rel="preconnect" href={posthogHost} crossOrigin="" /> : null}
           {/* Google Analytics 4 setup */}
           <Script
@@ -87,31 +85,6 @@ export default function RootLayout({ children }) {
               fbq('track', 'PageView');
             `}
           </Script>
-          {/* 1) Ensure a queue exists BEFORE anything else touches it */}
-          <Script id="omnisend-queue" strategy="afterInteractive">
-            {`
-  if (!Array.isArray(window.omnisend)) window.omnisend = [];
-`}
-          </Script>
-
-          {/* 2) Load the launcher */}
-          <Script
-            id="omnisend-loader"
-            src="https://omnisnippet1.com/inshop/launcher-v2.js"
-            strategy="afterInteractive"
-          />
-
-          {/* 3) Push init calls safely */}
-          <Script id="omnisend-init" strategy="afterInteractive">
-            {`
-  (function(q){
-    if (!Array.isArray(q)) q = window.omnisend = [];
-    q.push(["brandID", "68e5950e13ca46de858cccae"]);
-    q.push(["track", "$pageViewed"]);
-  })(window.omnisend);
-`}
-          </Script>
-
           <noscript>
             <Image
               {...getOptimizedImageProps(
@@ -135,7 +108,6 @@ export default function RootLayout({ children }) {
             <main className="mx-auto w-full max-w-content lg:px-0">
               {children}
             </main>
-            <SlideInOptIn />
           </AppContextProvider>
         </body>
       </html>
