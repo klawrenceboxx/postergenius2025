@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/config/db";
 import Product from "@/models/Product";
 import Address from "@/models/Address";
+import GuestAddress from "@/models/GuestAddress";
 import Promo from "@/models/PromoModel";
 import { computePricing } from "@/lib/pricing";
 import { ensureProductCdnUrl } from "@/lib/cdn";
@@ -22,9 +23,27 @@ import {
   sanitizeNumber,
   sanitizePlainText,
   sanitizeRelativeOrAbsoluteUrl,
+  sanitizeEmail,
 } from "@/lib/security/input";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+function extractGuestId(request, body = {}) {
+  return sanitizeIdentifier(body?.guestId || request.headers.get("x-guest-id"), {
+    maxLength: 128,
+  });
+}
+
+function withCheckoutSessionPlaceholder(url) {
+  const fallback = process.env.STRIPE_SUCCESS_URL || "";
+  const target = url || fallback;
+
+  if (!target) return target;
+  if (target.includes("{CHECKOUT_SESSION_ID}")) return target;
+
+  const separator = target.includes("?") ? "&" : "?";
+  return `${target}${separator}session_id={CHECKOUT_SESSION_ID}`;
+}
 
 function sanitizeCheckoutItems(items = []) {
   if (!Array.isArray(items)) {
@@ -60,19 +79,26 @@ export async function POST(request) {
     console.log("=== [CREATE SESSION API] START ===");
 
     const auth = getAuth(request);
-    if (!auth.userId) {
-      console.error("❌ Unauthorized user");
-      return NextResponse.json({ success: false, message: "Unauthorized" });
-    }
-    const userId = auth.userId;
-    console.log("🔑 User ID:", userId);
-
     const body = await request.json();
+    const userId = auth.userId || null;
+    const guestId = userId ? null : extractGuestId(request, body);
+
+    if (!userId && !guestId) {
+      console.error("❌ Missing checkout identity");
+      return NextResponse.json({
+        success: false,
+        message: "Please sign in or continue as a guest before checkout.",
+      });
+    }
+
+    console.log("🔑 Checkout identity:", { userId, guestId });
+
     const items = sanitizeCheckoutItems(body?.items);
     const address = sanitizeIdentifier(body?.address, { maxLength: 64 });
     const successUrl = sanitizeRelativeOrAbsoluteUrl(body?.successUrl);
     const cancelUrl = sanitizeRelativeOrAbsoluteUrl(body?.cancelUrl);
     const promoCode = sanitizePlainText(body?.promoCode, { maxLength: 64 });
+    const requestedCustomerEmail = sanitizeEmail(body?.customerEmail);
     console.log("📦 Items received:", JSON.stringify(items, null, 2));
     console.log("🏠 Address received:", address);
 
@@ -182,12 +208,14 @@ export async function POST(request) {
     const hasPhysicalItems = physicalForPrintful.length > 0;
     let shippingMetadata = null;
     let recipientSnapshot = null;
+    let shippingAddressSnapshot = null;
+    let customerEmail = requestedCustomerEmail || "";
     let shippingAmount = 0;
     let originalShippingAmount = 0;
     let shippingCurrency = "usd";
     let shippingLineItem = null;
 
-    if (hasPhysicalItems && !address) {
+    if (hasPhysicalItems && !address && !guestId) {
       console.error("❌ Missing address for physical order checkout");
       return NextResponse.json({
         success: false,
@@ -196,13 +224,42 @@ export async function POST(request) {
     }
 
     if (hasPhysicalItems) {
-      const addressDoc = await Address.findById(address).lean();
+      const addressDoc = userId
+        ? await Address.findById(address).lean()
+        : await GuestAddress.findOne({ guestId }).lean();
       if (!addressDoc) {
         console.error("❌ Shipping address not found for", address);
         return NextResponse.json({
           success: false,
           message: "Shipping address not found",
         });
+      }
+
+      shippingAddressSnapshot = userId
+        ? {
+            fullName: addressDoc.fullName,
+            phone: addressDoc.phoneNumber,
+            street: addressDoc.area,
+            city: addressDoc.city,
+            postalCode: addressDoc.pincode,
+            country: addressDoc.country || "CA",
+            province: addressDoc.state,
+          }
+        : {
+            fullName: addressDoc.fullName,
+            email: addressDoc.email,
+            phone: addressDoc.phone,
+            street: addressDoc.street,
+            city: addressDoc.city,
+            postalCode: addressDoc.postalCode,
+            country: addressDoc.country,
+            province: addressDoc.province,
+          };
+
+      if (!customerEmail) {
+        customerEmail = sanitizeEmail(
+          userId ? requestedCustomerEmail || "" : addressDoc.email || ""
+        );
       }
 
       const recipient = formatRecipientFromAddress(addressDoc);
@@ -266,6 +323,23 @@ export async function POST(request) {
           success: false,
           message: "Unable to calculate shipping for this address",
         });
+      }
+    }
+
+    if (!customerEmail && guestId) {
+      const guestAddress = await GuestAddress.findOne({ guestId }).lean();
+      customerEmail = sanitizeEmail(guestAddress?.email);
+      if (!shippingAddressSnapshot && guestAddress) {
+        shippingAddressSnapshot = {
+          fullName: guestAddress.fullName,
+          email: guestAddress.email,
+          phone: guestAddress.phone,
+          street: guestAddress.street,
+          city: guestAddress.city,
+          postalCode: guestAddress.postalCode,
+          country: guestAddress.country,
+          province: guestAddress.province,
+        };
       }
     }
 
@@ -393,9 +467,14 @@ export async function POST(request) {
         amount: paymentAmountCents,
         currency: "usd",
         metadata: {
-          userId,
-          address,
+          ...(userId ? { userId } : {}),
+          ...(guestId ? { guestId } : {}),
+          ...(address ? { address } : {}),
           items: JSON.stringify(items),
+          ...(shippingAddressSnapshot
+            ? { shippingAddressSnapshot: JSON.stringify(shippingAddressSnapshot) }
+            : {}),
+          ...(customerEmail ? { customerEmail } : {}),
           ...(promoResult.valid
             ? {
                 promo: JSON.stringify({
@@ -417,8 +496,9 @@ export async function POST(request) {
     } else {
       console.log("➡️ Creating Checkout Session...");
       const metadata = {
-        userId,
-        address,
+        ...(userId ? { userId } : {}),
+        ...(guestId ? { guestId } : {}),
+        ...(address ? { address } : {}),
         items: JSON.stringify(
           items.map((i) => ({
             productId: i.productId,
@@ -429,6 +509,14 @@ export async function POST(request) {
         ),
         orderType,
       };
+
+      if (shippingAddressSnapshot) {
+        metadata.shippingAddressSnapshot = JSON.stringify(shippingAddressSnapshot);
+      }
+
+      if (customerEmail) {
+        metadata.customerEmail = customerEmail;
+      }
 
       if (shippingMetadata) {
         metadata.shipping = JSON.stringify(shippingMetadata);
@@ -453,9 +541,10 @@ export async function POST(request) {
         mode: "payment",
         payment_method_types: ["card"],
         line_items: lineItems,
-        success_url: successUrl || process.env.STRIPE_SUCCESS_URL,
+        success_url: withCheckoutSessionPlaceholder(successUrl),
         cancel_url: cancelUrl || process.env.STRIPE_CANCEL_URL,
         metadata,
+        ...(customerEmail ? { customer_email: customerEmail } : {}),
         ...(couponId ? { discounts: [{ coupon: couponId }] } : {}),
       });
 

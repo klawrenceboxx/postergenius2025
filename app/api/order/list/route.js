@@ -9,7 +9,10 @@ export async function GET(request) {
     const { userId } = getAuth(request);
     if (!userId) {
       console.error("❌ Unauthorized fetch attempt");
-      return NextResponse.json({ success: false, message: "Unauthorized" });
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
     }
     console.log("🔑 Fetching orders for user:", userId);
 
@@ -19,6 +22,7 @@ export async function GET(request) {
     const orders = await Order.find({ userId })
       .sort({ date: -1 })
       .populate("items.product") // 👈 fetch full product docs
+      .populate("digitalDownloads.product")
       .populate("address"); // 👈 fetch full address doc
 
     console.log("📦 Orders found:", orders.length);

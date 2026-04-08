@@ -3,6 +3,7 @@ import Stripe from "stripe";
 import connectDB from "@/config/db";
 import Order from "@/models/Order";
 import Address from "@/models/Address";
+import Cart from "@/models/Cart";
 import Product from "@/models/Product";
 import { computePricing } from "@/lib/pricing";
 import {
@@ -15,7 +16,12 @@ import {
 } from "@/lib/printful";
 import { ensureProductCdnUrl } from "@/lib/cdn";
 import { appendOrderLog, buildLogEntry } from "@/lib/order-logs";
+import { createGuestAccessToken } from "@/lib/orderAccess";
 import { getDownloadUrl } from "@/lib/s3";
+import {
+  sendCustomOmnisendEvent,
+  sendPlacedOrderEvent,
+} from "@/lib/omnisend";
 import { sendPurchaseAlertEmail } from "@/lib/sellerAlerts";
 import { STORE_EVENT_TYPES, recordStoreEvents } from "@/lib/storeEvents";
 
@@ -62,6 +68,17 @@ export async function POST(req) {
       const itemsMetadata = safeJsonParse(metadata.items, []);
       const shippingMeta = safeJsonParse(metadata.shipping, null);
       const recipientSnapshot = safeJsonParse(metadata.recipient, null);
+      const shippingAddressSnapshot = safeJsonParse(
+        metadata.shippingAddressSnapshot,
+        null
+      );
+      const customerEmail =
+        session.customer_details?.email ||
+        session.customer_email ||
+        metadata.customerEmail ||
+        shippingAddressSnapshot?.email ||
+        null;
+      const guestId = metadata.guestId || null;
 
       await connectDB();
 
@@ -241,9 +258,16 @@ export async function POST(req) {
         "Order created from Stripe checkout session."
       );
 
+      const guestAccessToken = guestId ? createGuestAccessToken() : null;
+
       const baseOrder = {
-        userId: metadata.userId,
+        userId: metadata.userId || undefined,
+        guestId: guestId || undefined,
+        customerEmail: customerEmail || undefined,
         items: orderItems,
+        cartSnapshot: validEntries,
+        shippingAddressSnapshot:
+          shippingAddressSnapshot || recipientSnapshot || undefined,
         subtotal,
         tax,
         amount,
@@ -261,16 +285,27 @@ export async function POST(req) {
         digitalDownloads: digitalDownloads.length
           ? digitalDownloads
           : undefined,
+        guestAccessToken: guestAccessToken || undefined,
         orderLogs: [creationLog],
       };
 
-      if (addressId) {
+      if (addressId && metadata.userId) {
         baseOrder.address = addressId;
       }
 
       const newOrder = new Order(baseOrder);
 
       await newOrder.save();
+
+      try {
+        if (metadata.userId) {
+          await Cart.findOneAndUpdate({ userId: metadata.userId }, { items: {} });
+        } else if (guestId) {
+          await Cart.findOneAndUpdate({ guestId }, { items: {} });
+        }
+      } catch (cartError) {
+        console.error("[stripe-webhook] Failed to clear cart after purchase", cartError);
+      }
 
       try {
         await recordStoreEvents(
@@ -338,6 +373,17 @@ export async function POST(req) {
           }
         }
 
+        if (!recipientForPrintful && shippingAddressSnapshot) {
+          try {
+            recipientForPrintful = formatRecipientFromAddress(shippingAddressSnapshot);
+          } catch (error) {
+            console.error(
+              "❌ Failed to format shipping snapshot for Printful",
+              error.message
+            );
+          }
+        }
+
         if (!recipientForPrintful) {
           console.error("❌ Missing shipping recipient for Printful order", {
             orderId: newOrder._id,
@@ -387,6 +433,8 @@ export async function POST(req) {
                 printfulStatus: printfulStatus || undefined,
                 status: mapPrintfulStatus(printfulStatus),
                 trackingUrl: tracking.trackingUrl || undefined,
+                trackingNumber: tracking.trackingNumber || undefined,
+                trackingCarrier: tracking.carrier || undefined,
               },
             });
             await appendOrderLog(
@@ -410,6 +458,111 @@ export async function POST(req) {
               `Printful order creation failed: ${error.message}`
             );
           }
+        }
+      }
+
+      const omnisendLineItems = validEntries.map((entry) => {
+        const productId = entry?.productId || entry?.product;
+        const product = productMap.get(productId?.toString?.());
+        const matchingOrderItem = orderItems.find(
+          (item) =>
+            String(item?.product) === String(productId) &&
+            String(item?.format || "physical") ===
+              String(entry?.format || "physical").toLowerCase()
+        );
+
+        return {
+          productID: product?._id?.toString?.() || String(productId || ""),
+          productTitle: product?.name || "PosterGenius Poster",
+          productPrice: Number(
+            matchingOrderItem?.unitPrice || entry?.price || 0
+          ),
+          quantity: Math.max(1, Number(entry?.quantity) || 1),
+          productImageURL: product?.image?.[0] || undefined,
+          productURL: product?.slug
+            ? `${process.env.NEXT_PUBLIC_BASE_URL || ""}/product/${product.slug}`
+            : undefined,
+          format: String(entry?.format || "physical").toLowerCase(),
+          dimensions: entry?.dimensions || undefined,
+        };
+      });
+
+      try {
+        const omnisendResult = await sendPlacedOrderEvent({
+          email: customerEmail,
+          phone:
+            shippingAddressSnapshot?.phone ||
+            recipientSnapshot?.phone ||
+            addressDoc?.phoneNumber ||
+            undefined,
+          orderId: newOrder._id,
+          createdAt: newOrder.createdAt || new Date(),
+          currency: shippingMeta?.currency || session.currency || "CAD",
+          totalPrice: amount,
+          fulfillmentStatus:
+            orderType === "physical" ? "unfulfilled" : "fulfilled",
+          paymentStatus: "paid",
+          lineItems: omnisendLineItems,
+          customProperties: {
+            orderType,
+            stripeSessionId: session.id,
+            guestCheckout: Boolean(guestId),
+            guestAccessToken: guestAccessToken || undefined,
+            downloadCount: digitalDownloads.length,
+          },
+        });
+
+        if (omnisendResult.sent) {
+          await appendOrderLog(
+            newOrder._id,
+            "omnisend_order_event_sent",
+            "Sent Omnisend placed order event."
+          );
+        }
+      } catch (omnisendError) {
+        console.error("[stripe-webhook] Failed to send Omnisend order event", omnisendError);
+        await appendOrderLog(
+          newOrder._id,
+          "omnisend_order_event_failed",
+          `Omnisend order event failed: ${omnisendError.message}`
+        );
+      }
+
+      if (digitalDownloads.length > 0) {
+        try {
+          const digitalEvent = await sendCustomOmnisendEvent({
+            email: customerEmail,
+            phone:
+              shippingAddressSnapshot?.phone ||
+              recipientSnapshot?.phone ||
+              addressDoc?.phoneNumber ||
+              undefined,
+            eventName: "postergenius_digital_download_ready",
+            properties: {
+              orderId: String(newOrder._id),
+              stripeSessionId: session.id,
+              downloadCount: digitalDownloads.length,
+              guestCheckout: Boolean(guestId),
+            },
+          });
+
+          if (digitalEvent.sent) {
+            await appendOrderLog(
+              newOrder._id,
+              "omnisend_digital_ready_sent",
+              "Sent Omnisend digital download ready event."
+            );
+          }
+        } catch (digitalEventError) {
+          console.error(
+            "[stripe-webhook] Failed to send Omnisend digital event",
+            digitalEventError
+          );
+          await appendOrderLog(
+            newOrder._id,
+            "omnisend_digital_ready_failed",
+            `Omnisend digital event failed: ${digitalEventError.message}`
+          );
         }
       }
 

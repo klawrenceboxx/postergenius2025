@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import connectDB from "@/config/db";
 import Address from "@/models/Address";
+import GuestAddress from "@/models/GuestAddress";
 import Product from "@/models/Product";
 import { computePricing } from "@/lib/pricing";
 import {
@@ -17,6 +18,10 @@ export const runtime = "nodejs";
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const shippingQuoteCache = new Map();
+
+function extractGuestId(request, body = {}) {
+  return body?.guestId || request.headers.get("x-guest-id");
+}
 
 function buildCacheKey({ recipient, items }) {
   const locationKey = [
@@ -60,9 +65,12 @@ function sanitizeQuantity(value) {
   return Math.floor(numeric);
 }
 
-async function resolveAddress(addressId, inlineAddress) {
+async function resolveAddress({ addressId, inlineAddress, guestId, userId }) {
   if (inlineAddress) {
     return inlineAddress;
+  }
+  if (!userId && guestId) {
+    return GuestAddress.findOne({ guestId }).lean();
   }
   if (!addressId) {
     return null;
@@ -128,7 +136,10 @@ async function buildPhysicalItems(items = []) {
 export async function POST(request) {
   try {
     const auth = getAuth(request);
-    if (!auth.userId) {
+    const body = await request.json();
+    const guestId = auth.userId ? null : extractGuestId(request, body);
+
+    if (!auth.userId && !guestId) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 }
@@ -137,7 +148,6 @@ export async function POST(request) {
 
     await connectDB();
 
-    const body = await request.json();
     const { addressId, address: inlineAddress, items, cheapestOnly = false } = body || {};
 
     if (!Array.isArray(items) || items.length === 0) {
@@ -147,7 +157,12 @@ export async function POST(request) {
       );
     }
 
-    const address = await resolveAddress(addressId, inlineAddress);
+    const address = await resolveAddress({
+      addressId,
+      inlineAddress,
+      guestId,
+      userId: auth.userId,
+    });
     if (!address) {
       return NextResponse.json(
         { success: false, message: "Shipping address not found" },

@@ -5,20 +5,25 @@ import connectDB from "@/config/db";
 import Order from "@/models/Order";
 import Product from "@/models/Product";
 import { getDownloadUrl } from "@/lib/s3";
+import { sanitizeIdentifier } from "@/lib/security/input";
 
 export async function GET(request) {
   try {
-    // 1️⃣ Authenticate user
     const { userId } = getAuth(request);
+    const { searchParams } = new URL(request.url);
+    const accessToken = sanitizeIdentifier(searchParams.get("accessToken"), {
+      maxLength: 128,
+    });
+
     if (!userId) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 }
-      );
+      if (!accessToken) {
+        return NextResponse.json(
+          { success: false, message: "Unauthorized" },
+          { status: 401 }
+        );
+      }
     }
 
-    // 2️⃣ Extract productId from query params
-    const { searchParams } = new URL(request.url);
     const productId = searchParams.get("productId");
     if (!productId) {
       return NextResponse.json(
@@ -39,8 +44,11 @@ export async function GET(request) {
     console.log("[DL] userId:", userId);
     console.log("[DL] productId (query):", productId);
     console.log("[DL] oid valid?:", mongoose.Types.ObjectId.isValid(productId));
+    const identityQuery = userId
+      ? { userId }
+      : { guestAccessToken: accessToken };
     const match = await Order.findOne({
-      userId,
+      ...identityQuery,
       $or: [
         { "items.product": productId },
         ...(mongoose.Types.ObjectId.isValid(productId)
@@ -52,7 +60,7 @@ export async function GET(request) {
 
     // check purchase (handles new ObjectId orders AND legacy string orders)
     const orderExists = await Order.exists({
-      userId,
+      ...identityQuery,
       $or: [
         ...(oid ? [{ "items.product": oid }] : []),
         { "items.product": productId }, // legacy string

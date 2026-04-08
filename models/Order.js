@@ -51,7 +51,7 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "address",
       required: function () {
-        return this.type === "physical";
+        return this.type === "physical" && Boolean(this.userId);
       },
     },
     items: [orderItemSchema],
@@ -74,9 +74,11 @@ const orderSchema = new mongoose.Schema(
       enum: ["digital", "physical"],
       default: "digital",
     },
+    customerEmail: { type: String },
     status: { type: String, required: true, default: "Order Placed" },
     date: { type: Number },
     stripeSessionId: { type: String, unique: true }, // Add this field
+    guestAccessToken: { type: String, index: true },
     shippingCost: { type: Number },
     shippingCurrency: { type: String },
     shippingService: { type: String },
@@ -84,6 +86,8 @@ const orderSchema = new mongoose.Schema(
     printfulOrderId: { type: String, index: true },
     printfulStatus: { type: String },
     trackingUrl: { type: String },
+    trackingNumber: { type: String },
+    trackingCarrier: { type: String },
     fulfillmentError: { type: String },
     digitalDownloads: [digitalDownloadSchema],
     orderLogs: {
@@ -136,6 +140,16 @@ orderSchema.index(
     unique: false,
     partialFilterExpression: {
       guestId: { $exists: true, $type: "string" },
+    },
+  }
+);
+
+orderSchema.index(
+  { guestAccessToken: 1 },
+  {
+    unique: false,
+    partialFilterExpression: {
+      guestAccessToken: { $exists: true, $type: "string" },
     },
   }
 );
