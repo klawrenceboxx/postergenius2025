@@ -1,10 +1,10 @@
 import { Suspense } from "react";
-import OrderConfirmationWithOrders from "./OrderClient";
+import MyOrdersClient from "./MyOrdersClient";
 
 export default function MyOrdersPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <OrderConfirmationWithOrders />
+      <MyOrdersClient />
     </Suspense>
   );
 }

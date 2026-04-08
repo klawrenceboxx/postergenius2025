@@ -2,7 +2,7 @@
 
 import React from "react";
 import { assets } from "@/assets/assets";
-import OrderSummary from "@/components/OrderSummary";
+import CheckoutSummary from "@/components/CheckoutSummary";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import { useAppContext } from "@/context/AppContext";
@@ -209,7 +209,7 @@ const Cart = () => {
         </div>
 
         {/* Order summary (right-hand panel) */}
-        <OrderSummary shippingQuote={shippingQuote} />
+        <CheckoutSummary shippingQuote={shippingQuote} />
       </div>
     </>
   );
