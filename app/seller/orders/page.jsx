@@ -143,6 +143,7 @@ const Orders = () => {
         );
         const address = order.address || {};
         const items = Array.isArray(order.items) ? order.items : [];
+        const buyer = order.buyer || {};
         const productsSummary = items
           .map((item) => {
             const productName =
@@ -176,6 +177,8 @@ const Orders = () => {
           order.type,
           order.printfulStatus,
           order.shippingService,
+          buyer?.name,
+          buyer?.email,
           address?.fullName,
           address?.city,
           address?.state,
@@ -199,6 +202,7 @@ const Orders = () => {
           isPhysical,
           amountValue,
           address,
+          buyer,
           items,
           primaryImage,
           productsSummary,
@@ -270,6 +274,8 @@ const Orders = () => {
       filteredOrders.map((order) => {
         const amountDisplay = `${currency}${order.amountValue.toFixed(2)}`;
         const address = order.address || {};
+        const buyerName = order.buyer?.name || address?.fullName || "Unknown customer";
+        const buyerEmail = order.buyer?.email || "Email unavailable";
         const categoryBadges = [
           order.isPhysical
             ? { label: "Physical", tone: "physical" }
@@ -316,6 +322,10 @@ const Orders = () => {
                     ))}
                   </div>
                   <p className="text-gray-600">Items: {order.items.length}</p>
+                  <p className="text-gray-700">
+                    {buyerName}
+                  </p>
+                  <p className="text-gray-500 break-all">{buyerEmail}</p>
                   <p className="text-gray-500">
                     Placed on {new Date(order.date).toLocaleString()}
                   </p>
