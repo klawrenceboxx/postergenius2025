@@ -16,7 +16,7 @@ import {
 } from "@/lib/printful";
 import { ensureProductCdnUrl } from "@/lib/cdn";
 import { appendOrderLog, buildLogEntry } from "@/lib/order-logs";
-import { createGuestAccessToken } from "@/lib/orderAccess";
+import { buildOrderLookupNumber } from "@/lib/orderAccess";
 import { getDownloadUrl } from "@/lib/s3";
 import {
   sendCustomOmnisendEvent,
@@ -258,8 +258,6 @@ export async function POST(req) {
         "Order created from Stripe checkout session."
       );
 
-      const guestAccessToken = guestId ? createGuestAccessToken() : null;
-
       const baseOrder = {
         userId: metadata.userId || undefined,
         guestId: guestId || undefined,
@@ -285,7 +283,6 @@ export async function POST(req) {
         digitalDownloads: digitalDownloads.length
           ? digitalDownloads
           : undefined,
-        guestAccessToken: guestAccessToken || undefined,
         orderLogs: [creationLog],
       };
 
@@ -296,6 +293,7 @@ export async function POST(req) {
       const newOrder = new Order(baseOrder);
 
       await newOrder.save();
+      const orderNumber = buildOrderLookupNumber(newOrder._id);
 
       try {
         if (metadata.userId) {
@@ -496,6 +494,7 @@ export async function POST(req) {
             addressDoc?.phoneNumber ||
             undefined,
           orderId: newOrder._id,
+          orderNumber,
           createdAt: newOrder.createdAt || new Date(),
           currency: shippingMeta?.currency || session.currency || "CAD",
           totalPrice: amount,
@@ -504,10 +503,10 @@ export async function POST(req) {
           paymentStatus: "paid",
           lineItems: omnisendLineItems,
           customProperties: {
+            orderNumber,
             orderType,
             stripeSessionId: session.id,
             guestCheckout: Boolean(guestId),
-            guestAccessToken: guestAccessToken || undefined,
             downloadCount: digitalDownloads.length,
           },
         });
@@ -540,6 +539,7 @@ export async function POST(req) {
             eventName: "postergenius_digital_download_ready",
             properties: {
               orderId: String(newOrder._id),
+              orderNumber,
               stripeSessionId: session.id,
               downloadCount: digitalDownloads.length,
               guestCheckout: Boolean(guestId),
@@ -570,6 +570,7 @@ export async function POST(req) {
         await sendPurchaseAlertEmail({
           order: newOrder,
           customerLabel: metadata.userId || session.customer_email || "Guest",
+          orderNumber,
           purchasedItems: validEntries.map((entry) => {
             const productId = entry?.productId || entry?.product;
             const product = productMap.get(productId?.toString?.());

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import toast from "react-hot-toast";
 import Image from "next/image";
@@ -10,29 +11,9 @@ import Footer from "@/components/Footer";
 import Loading from "@/components/Loading";
 import { useAppContext } from "@/context/AppContext";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
-import { GUEST_ORDER_ACCESS_STORAGE_KEY } from "@/lib/orderAccess";
 
-function readStoredGuestTokens() {
-  if (typeof window === "undefined") return [];
-
-  try {
-    const parsed = JSON.parse(
-      window.localStorage.getItem(GUEST_ORDER_ACCESS_STORAGE_KEY) || "[]"
-    );
-    return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
-  } catch {
-    return [];
-  }
-}
-
-function storeGuestToken(token) {
-  if (typeof window === "undefined" || !token) return;
-
-  const tokens = [...new Set([token, ...readStoredGuestTokens()])];
-  window.localStorage.setItem(
-    GUEST_ORDER_ACCESS_STORAGE_KEY,
-    JSON.stringify(tokens.slice(0, 25))
-  );
+function formatOrderNumber(orderId) {
+  return String(orderId || "").slice(-8).toUpperCase();
 }
 
 function resolveShippingAddress(order) {
@@ -45,6 +26,7 @@ function resolveProductId(item) {
 }
 
 export default function MyOrdersClient() {
+  const router = useRouter();
   const { getToken, user, setCartItems, fetchCart, currency } = useAppContext();
   const searchParams = useSearchParams();
   const [orders, setOrders] = useState([]);
@@ -53,14 +35,6 @@ export default function MyOrdersClient() {
   const [downloading, setDownloading] = useState(null);
 
   const sessionId = searchParams.get("session_id");
-  const accessTokenFromUrl =
-    searchParams.get("access") || searchParams.get("guestAccessToken");
-
-  useEffect(() => {
-    if (accessTokenFromUrl) {
-      storeGuestToken(accessTokenFromUrl);
-    }
-  }, [accessTokenFromUrl]);
 
   useEffect(() => {
     let ignore = false;
@@ -75,13 +49,19 @@ export default function MyOrdersClient() {
         if (ignore) return;
 
         if (data?.success) {
-          if (data.guestAccessToken) {
-            storeGuestToken(data.guestAccessToken);
-          }
-
           setCartItems({});
           await fetchCart({ createGuestIfMissing: false });
-          toast.success("Order confirmed");
+
+          if (!user && data?.orderAccessUrl) {
+            router.replace(data.orderAccessUrl);
+            return;
+          }
+
+          toast.success(
+            data?.orderNumber
+              ? `Order confirmed. Your order number is ${data.orderNumber}.`
+              : "Order confirmed"
+          );
         } else {
           toast.error(data?.message || "Unable to confirm order");
         }
@@ -105,7 +85,7 @@ export default function MyOrdersClient() {
     return () => {
       ignore = true;
     };
-  }, [fetchCart, sessionId, setCartItems]);
+  }, [fetchCart, router, sessionId, setCartItems, user]);
 
   useEffect(() => {
     let ignore = false;
@@ -114,34 +94,21 @@ export default function MyOrdersClient() {
       try {
         setLoading(true);
 
-        if (user) {
-          const token = await getToken();
-          const { data } = await axios.get("/api/order/list", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-
-          if (!ignore) {
-            if (data?.success) {
-              setOrders(data.orders || []);
-            } else {
-              toast.error(data?.message || "Unable to load orders");
-            }
-          }
-          return;
-        }
-
-        const tokens = readStoredGuestTokens();
-        if (tokens.length === 0) {
+        if (!user) {
           if (!ignore) setOrders([]);
           return;
         }
 
-        const { data } = await axios.post("/api/order/lookup", { tokens });
+        const token = await getToken();
+        const { data } = await axios.get("/api/order/list", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         if (!ignore) {
           if (data?.success) {
             setOrders(data.orders || []);
           } else {
-            toast.error(data?.message || "Unable to load guest orders");
+            toast.error(data?.message || "Unable to load orders");
           }
         }
       } catch (error) {
@@ -164,13 +131,6 @@ export default function MyOrdersClient() {
     };
   }, [confirming, getToken, user]);
 
-  const emptyState = useMemo(() => {
-    if (user) {
-      return "You have no orders yet.";
-    }
-    return "No guest orders were found on this browser yet.";
-  }, [user]);
-
   const downloadItem = async (item, order) => {
     const productId = resolveProductId(item);
     if (!productId) {
@@ -181,9 +141,6 @@ export default function MyOrdersClient() {
     try {
       setDownloading(productId);
       const params = new URLSearchParams({ productId });
-      if (!user && order?.guestAccessToken) {
-        params.set("accessToken", order.guestAccessToken);
-      }
 
       const { data } = await axios.get(`/api/download-link?${params.toString()}`);
       if (data?.success && data?.url) {
@@ -216,9 +173,28 @@ export default function MyOrdersClient() {
             <div className="py-12">
               <Loading />
             </div>
+          ) : !user ? (
+            <div className="mt-8 rounded-2xl border border-stone-200 bg-white p-8 shadow-sm">
+              <h2 className="text-xl font-semibold text-blackhex">
+                Guest order access
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm text-stone-600">
+                Guest orders are now accessed one order at a time using your email
+                address and order number. This keeps download and tracking access
+                scoped to the exact order you requested.
+              </p>
+              <div className="mt-6">
+                <Link
+                  href="/track-order"
+                  className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-white"
+                >
+                  Go to Track Order
+                </Link>
+              </div>
+            </div>
           ) : orders.length === 0 ? (
             <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-sm text-gray-600">
-              {emptyState}
+              You have no orders yet.
             </div>
           ) : (
             <div className="mt-8 space-y-5">
@@ -232,7 +208,7 @@ export default function MyOrdersClient() {
                     <div className="flex flex-col gap-2 border-b border-gray-200 pb-4 md:flex-row md:items-start md:justify-between">
                       <div>
                         <p className="text-sm text-gray-500">
-                          Order #{String(order._id).slice(-8).toUpperCase()}
+                          Order #{formatOrderNumber(order._id)}
                         </p>
                         <p className="mt-1 text-lg font-semibold text-blackhex">
                           {order.status || "Order Placed"}
@@ -321,6 +297,13 @@ export default function MyOrdersClient() {
                       </div>
 
                       <div className="space-y-4 rounded-xl bg-gray-50 p-4 text-sm text-gray-700">
+                        <div>
+                          <p className="font-medium text-blackhex">Order number</p>
+                          <p className="mt-1 tracking-[0.18em] text-blackhex">
+                            {formatOrderNumber(order._id)}
+                          </p>
+                        </div>
+
                         {shippingAddress && (
                           <div>
                             <p className="font-medium text-blackhex">Delivery</p>

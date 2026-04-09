@@ -4,6 +4,10 @@ import { NextResponse } from "next/server";
 import connectDB from "@/config/db";
 import Order from "@/models/Order";
 import { sanitizePlainText } from "@/lib/security/input";
+import {
+  buildOrderLookupNumber,
+  createOrderLookupToken,
+} from "@/lib/orderAccess";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -58,6 +62,24 @@ export async function POST(request) {
 
     await connectDB();
     const order = await waitForOrder(sessionId);
+    let orderAccessToken = null;
+    let orderAccessExpiresAt = null;
+
+    if (order?.guestId && order?._id) {
+      const issuedToken = createOrderLookupToken();
+      orderAccessToken = issuedToken.token;
+      orderAccessExpiresAt = issuedToken.expiresAt.toISOString();
+
+      await Order.updateOne(
+        { _id: order._id },
+        {
+          $set: {
+            guestLookupTokenHash: issuedToken.tokenHash,
+            guestLookupTokenExpiresAt: issuedToken.expiresAt,
+          },
+        }
+      );
+    }
 
     return NextResponse.json({
       success: true,
@@ -65,7 +87,13 @@ export async function POST(request) {
       paid: true,
       orderReady: Boolean(order),
       orderId: order?._id?.toString?.() || null,
-      guestAccessToken: order?.guestAccessToken || null,
+      orderNumber: order?._id ? buildOrderLookupNumber(order._id) : null,
+      orderAccessToken,
+      orderAccessExpiresAt,
+      orderAccessUrl:
+        order?._id && orderAccessToken
+          ? `/orders/${order._id.toString()}?token=${orderAccessToken}`
+          : null,
       customerEmail:
         order?.customerEmail ||
         session.customer_details?.email ||

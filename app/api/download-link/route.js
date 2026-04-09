@@ -6,6 +6,7 @@ import Order from "@/models/Order";
 import Product from "@/models/Product";
 import { getDownloadUrl } from "@/lib/s3";
 import { sanitizeIdentifier } from "@/lib/security/input";
+import { hashOrderLookupToken } from "@/lib/orderAccess";
 
 export async function GET(request) {
   try {
@@ -14,9 +15,15 @@ export async function GET(request) {
     const accessToken = sanitizeIdentifier(searchParams.get("accessToken"), {
       maxLength: 128,
     });
+    const lookupToken = sanitizeIdentifier(searchParams.get("token"), {
+      maxLength: 128,
+    });
+    const orderId = sanitizeIdentifier(searchParams.get("orderId"), {
+      maxLength: 64,
+    });
 
     if (!userId) {
-      if (!accessToken) {
+      if (!accessToken && !(lookupToken && orderId)) {
         return NextResponse.json(
           { success: false, message: "Unauthorized" },
           { status: 401 }
@@ -44,28 +51,39 @@ export async function GET(request) {
     console.log("[DL] userId:", userId);
     console.log("[DL] productId (query):", productId);
     console.log("[DL] oid valid?:", mongoose.Types.ObjectId.isValid(productId));
-    const identityQuery = userId
-      ? { userId }
-      : { guestAccessToken: accessToken };
-    const match = await Order.findOne({
-      ...identityQuery,
+    const productMatchQuery = {
       $or: [
         { "items.product": productId },
         ...(mongoose.Types.ObjectId.isValid(productId)
           ? [{ "items.product": new mongoose.Types.ObjectId(productId) }]
           : []),
       ],
+    };
+    const identityQuery = userId
+      ? { userId }
+      : lookupToken && orderId
+      ? {
+          _id: orderId,
+          guestLookupTokenHash: hashOrderLookupToken(lookupToken),
+          guestLookupTokenExpiresAt: { $gt: new Date() },
+        }
+      : { guestAccessToken: accessToken };
+    const match = await Order.findOne({
+      ...identityQuery,
+      ...productMatchQuery,
     }).lean();
     console.log("[DL] matched order? ", !!match, " orderId:", match?._id);
 
     // check purchase (handles new ObjectId orders AND legacy string orders)
-    const orderExists = await Order.exists({
-      ...identityQuery,
-      $or: [
-        ...(oid ? [{ "items.product": oid }] : []),
-        { "items.product": productId }, // legacy string
-      ],
-    });
+    const orderExists = match
+      ? true
+      : await Order.exists({
+          ...identityQuery,
+          $or: [
+            ...(oid ? [{ "items.product": oid }] : []),
+            { "items.product": productId }, // legacy string
+          ],
+        });
 
     if (!orderExists) {
       return NextResponse.json(

@@ -79,6 +79,8 @@ const orderSchema = new mongoose.Schema(
     date: { type: Number },
     stripeSessionId: { type: String, unique: true }, // Add this field
     guestAccessToken: { type: String, index: true },
+    guestLookupTokenHash: { type: String, index: true },
+    guestLookupTokenExpiresAt: { type: Date },
     shippingCost: { type: Number },
     shippingCurrency: { type: String },
     shippingService: { type: String },
@@ -150,6 +152,16 @@ orderSchema.index(
     unique: false,
     partialFilterExpression: {
       guestAccessToken: { $exists: true, $type: "string" },
+    },
+  }
+);
+
+orderSchema.index(
+  { guestLookupTokenHash: 1 },
+  {
+    unique: false,
+    partialFilterExpression: {
+      guestLookupTokenHash: { $exists: true, $type: "string" },
     },
   }
 );
