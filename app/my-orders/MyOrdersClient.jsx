@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import toast from "react-hot-toast";
 import Image from "next/image";
@@ -26,6 +26,7 @@ function resolveProductId(item) {
 }
 
 export default function MyOrdersClient() {
+  const pathname = usePathname();
   const router = useRouter();
   const { getToken, user, setCartItems, fetchCart, currency } = useAppContext();
   const searchParams = useSearchParams();
@@ -33,6 +34,7 @@ export default function MyOrdersClient() {
   const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [downloading, setDownloading] = useState(null);
+  const confirmedSessionIdRef = useRef(null);
 
   const sessionId = searchParams.get("session_id");
 
@@ -40,7 +42,8 @@ export default function MyOrdersClient() {
     let ignore = false;
 
     const confirmPurchase = async () => {
-      if (!sessionId) return;
+      if (!sessionId || confirmedSessionIdRef.current === sessionId) return;
+      confirmedSessionIdRef.current = sessionId;
 
       try {
         setConfirming(true);
@@ -57,16 +60,19 @@ export default function MyOrdersClient() {
             return;
           }
 
+          router.replace(pathname || "/my-orders");
           toast.success(
             data?.orderNumber
               ? `Order confirmed. Your order number is ${data.orderNumber}.`
               : "Order confirmed"
           );
         } else {
+          confirmedSessionIdRef.current = null;
           toast.error(data?.message || "Unable to confirm order");
         }
       } catch (error) {
         if (!ignore) {
+          confirmedSessionIdRef.current = null;
           toast.error(
             error?.response?.data?.message ||
               error.message ||
@@ -85,7 +91,7 @@ export default function MyOrdersClient() {
     return () => {
       ignore = true;
     };
-  }, [fetchCart, router, sessionId, setCartItems, user]);
+  }, [fetchCart, pathname, router, sessionId, setCartItems, user]);
 
   useEffect(() => {
     let ignore = false;
