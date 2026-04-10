@@ -400,7 +400,7 @@ export async function POST(req) {
         } else {
           try {
             const payload = {
-              external_id: session.id,
+              external_id: String(newOrder._id),
               recipient: recipientForPrintful,
               items: printfulItems,
             };
