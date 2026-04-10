@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import connectDB from "@/config/db";
 import Order from "@/models/Order";
 import "@/models/Product";
+import "@/models/Address";
 import OrderDetailClient from "./OrderDetailClient";
 import {
   buildOrderLookupNumber,

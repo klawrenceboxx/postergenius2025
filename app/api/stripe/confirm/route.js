@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/config/db";
 import Order from "@/models/Order";
 import "@/models/Product";
+import "@/models/Address";
 import { sanitizePlainText } from "@/lib/security/input";
 import {
   buildOrderLookupNumber,
