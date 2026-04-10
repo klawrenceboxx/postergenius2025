@@ -148,9 +148,24 @@ const Orders = () => {
           .map((item) => {
             const productName =
               item?.product?.name || item?.productName || "Unknown Product";
-            return `${productName} × ${item.quantity}`;
+            const sizeLabel =
+              item?.dimensions && item.dimensions !== "digital"
+                ? ` (${item.dimensions})`
+                : "";
+            return `${productName}${sizeLabel} × ${item.quantity}`;
           })
           .join(", ");
+        const orderSizes = Array.from(
+          new Set(
+            items
+              .map((item) =>
+                item?.dimensions && item.dimensions !== "digital"
+                  ? item.dimensions
+                  : null
+              )
+              .filter(Boolean)
+          )
+        );
         const firstProductWithImage = items.find(
           (item) =>
             Array.isArray(item?.product?.image) && item.product.image.length > 0
@@ -177,6 +192,7 @@ const Orders = () => {
           order.type,
           order.printfulStatus,
           order.shippingService,
+          ...orderSizes,
           buyer?.name,
           buyer?.email,
           address?.fullName,
@@ -206,6 +222,7 @@ const Orders = () => {
           items,
           primaryImage,
           productsSummary,
+          orderSizes,
           quickCategories: categories,
           productCategories: categoriesForProducts,
           searchableText,
@@ -322,6 +339,12 @@ const Orders = () => {
                     ))}
                   </div>
                   <p className="text-gray-600">Items: {order.items.length}</p>
+                  {order.orderSizes.length > 0 && (
+                    <p className="text-gray-600">
+                      Size{order.orderSizes.length > 1 ? "s" : ""}:{" "}
+                      {order.orderSizes.join(", ")}
+                    </p>
+                  )}
                   <p className="text-gray-700">
                     {buyerName}
                   </p>
