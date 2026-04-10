@@ -61,6 +61,21 @@ export default function RootLayout({ children }) {
               `}
             </Script>
           ) : null}
+          <Script id="omnisend-init" strategy="afterInteractive">
+            {`
+              window.omnisend = window.omnisend || [];
+              window.omnisend.push(["brandID", "68e5950e13ca46de858cccae"]);
+              window.omnisend.push(["track", "$pageViewed"]);
+              !function(){
+                var e = document.createElement("script");
+                e.type = "text/javascript";
+                e.async = true;
+                e.src = "https://omnisnippet1.com/inshop/launcher-v2.js";
+                var t = document.getElementsByTagName("script")[0];
+                t.parentNode.insertBefore(e, t);
+              }();
+            `}
+          </Script>
           <Script id="ga4" strategy="afterInteractive">
             {`
               window.dataLayer = window.dataLayer || [];
