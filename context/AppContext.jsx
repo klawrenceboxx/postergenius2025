@@ -12,6 +12,7 @@ import {
 } from "react";
 import toast from "react-hot-toast";
 import { augmentProductWithPricing } from "@/lib/pricing";
+import CartConfirmationSheet from "@/components/CartConfirmationSheet";
 import {
   getOrCreateGuestId,
   isGuestIdExpired,
@@ -35,6 +36,10 @@ export const AppContextProvider = (props) => {
   const [cartItems, setCartItems] = useState({});
   const [wishlist, setWishlist] = useState([]);
   const [activeGuestId, setActiveGuestId] = useState(null);
+  const [cartConfirmation, setCartConfirmation] = useState({
+    open: false,
+    item: null,
+  });
   const [shippingQuote, setShippingQuote] = useState({
     amount: 0,
     currency: "usd",
@@ -261,6 +266,25 @@ export const AppContextProvider = (props) => {
     openSignIn?.();
   };
 
+  const openCartConfirmation = useCallback((item) => {
+    if (!item) return;
+
+    setCartConfirmation({
+      open: true,
+      item: {
+        ...item,
+        quantity: Number(item.quantity || 1),
+        price: Number(item.price || 0),
+      },
+    });
+  }, []);
+
+  const closeCartConfirmation = useCallback(() => {
+    setCartConfirmation((prev) =>
+      prev.open ? { ...prev, open: false } : prev
+    );
+  }, []);
+
   const ensureWishlistAccess = () => {
     if (user) {
       return true;
@@ -400,7 +424,7 @@ export const AppContextProvider = (props) => {
         { headers }
       );
 
-      toast.success("cart updated successfully");
+      openCartConfirmation(itemRecord);
     } catch (error) {
       toast.error(error.message || "Failed to update cart");
     }
@@ -678,10 +702,26 @@ export const AppContextProvider = (props) => {
     shippingQuote,
     updateShippingQuote,
     resetShippingQuote,
+    cartConfirmation,
+    closeCartConfirmation,
   };
 
   return (
-    <AppContext.Provider value={value}>{props.children}</AppContext.Provider>
+    <AppContext.Provider value={value}>
+      {props.children}
+      <CartConfirmationSheet
+        open={cartConfirmation.open}
+        item={cartConfirmation.item}
+        onClose={closeCartConfirmation}
+        onProceedToCart={() => {
+          closeCartConfirmation();
+          router.push("/cart");
+        }}
+        currency={currency}
+        cartCount={getCartCount()}
+        cartAmount={getCartAmount()}
+      />
+    </AppContext.Provider>
   );
 };
 
