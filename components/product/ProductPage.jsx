@@ -289,7 +289,7 @@ export default function ProductPage({ product }) {
 
   return (
     <div className="w-full">
-      <nav className="mb-4 text-sm text-gray-600">
+      <nav className="mb-4 hidden text-sm text-gray-600 md:block">
         <Link href="/shop" className="hover:text-black">
           Browse All
         </Link>
@@ -303,14 +303,24 @@ export default function ProductPage({ product }) {
         <div className="flex w-full flex-col gap-8 lg:flex-row">
           <div className="min-w-0 flex-1 lg:pt-5">
             <div className="lg:sticky lg:top-8">
-            <PosterMockupViewer
-              posterUrl={product.imageUrl}
-              selectedDimensions={selectedDimensions}
-              activeMockupIndex={activeMockupIndex}
-              onMockupChange={setActiveMockupIndex}
-              format={format}
-              orientation={product.orientation}
-            />
+              <PosterMockupViewer
+                posterUrl={product.imageUrl}
+                selectedDimensions={selectedDimensions}
+                activeMockupIndex={activeMockupIndex}
+                onMockupChange={setActiveMockupIndex}
+                format={format}
+                orientation={product.orientation}
+              />
+              <div className="mt-4 px-4 lg:hidden">
+                <Infos
+                  product={product}
+                  selectedDimensions={selectedDimensions}
+                  onDimensionsChange={setSelectedDimensions}
+                  format={format}
+                  onFormatChange={setFormat}
+                  controlsOnly
+                />
+              </div>
             </div>
           </div>
 

@@ -174,7 +174,6 @@ export default function PosterMockupViewer({
         style={{
           background:
             "radial-gradient(circle at 50% 52%, #4a4a4a 0%, #2c2c2c 26%, #171717 54%, #090909 100%)",
-          overscrollBehavior: "contain",
         }}
       >
         {digitalSpeckles.map((speckle, index) => (
@@ -213,7 +212,7 @@ export default function PosterMockupViewer({
                   ? "grabbing"
                   : "grab"
                 : "default",
-            touchAction: "none",
+            touchAction: digitalScale > 1 ? "none" : "pan-y pinch-zoom",
           }}
         />
         <div className="absolute top-3 right-3 rounded-full bg-secondary px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">

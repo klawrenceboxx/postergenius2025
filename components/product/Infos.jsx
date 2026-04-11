@@ -715,7 +715,11 @@ export default function Infos({
   };
 
   if (controlsOnly) {
-    return null;
+    return (
+      <div className="lg:hidden">
+        <MobileSelectorTabs {...selectorProps} />
+      </div>
+    );
   }
 
   return (
@@ -746,9 +750,6 @@ export default function Infos({
         </div>
 
         <div className="mt-6">
-          <div className="lg:hidden">
-            <MobileSelectorTabs {...selectorProps} />
-          </div>
           <div className="hidden lg:block">
             <DesktopSelectors {...selectorProps} />
           </div>
