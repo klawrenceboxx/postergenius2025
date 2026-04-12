@@ -74,6 +74,22 @@ function sanitizeCheckoutItems(items = []) {
     .filter(Boolean);
 }
 
+function isGuestAddressComplete(addressDoc) {
+  return Boolean(
+    addressDoc &&
+      [
+        addressDoc.fullName,
+        addressDoc.email,
+        addressDoc.phone,
+        addressDoc.street,
+        addressDoc.city,
+        addressDoc.postalCode,
+        addressDoc.country,
+        addressDoc.province,
+      ].every(Boolean)
+  );
+}
+
 export async function POST(request) {
   try {
     console.log("=== [CREATE SESSION API] START ===");
@@ -109,6 +125,18 @@ export async function POST(request) {
 
     await connectDB();
     console.log("✅ DB connected");
+
+    const guestAddressDoc = guestId
+      ? await GuestAddress.findOne({ guestId }).lean()
+      : null;
+
+    if (guestId && !isGuestAddressComplete(guestAddressDoc)) {
+      return NextResponse.json({
+        success: false,
+        message:
+          "Complete the required guest checkout details before payment.",
+      });
+    }
 
     // Build line items + calculate totals
     const lineItems = [];
@@ -226,7 +254,7 @@ export async function POST(request) {
     if (hasPhysicalItems) {
       const addressDoc = userId
         ? await Address.findById(address).lean()
-        : await GuestAddress.findOne({ guestId }).lean();
+        : guestAddressDoc;
       if (!addressDoc) {
         console.error("❌ Shipping address not found for", address);
         return NextResponse.json({
@@ -327,18 +355,17 @@ export async function POST(request) {
     }
 
     if (!customerEmail && guestId) {
-      const guestAddress = await GuestAddress.findOne({ guestId }).lean();
-      customerEmail = sanitizeEmail(guestAddress?.email);
-      if (!shippingAddressSnapshot && guestAddress) {
+      customerEmail = sanitizeEmail(guestAddressDoc?.email);
+      if (!shippingAddressSnapshot && guestAddressDoc) {
         shippingAddressSnapshot = {
-          fullName: guestAddress.fullName,
-          email: guestAddress.email,
-          phone: guestAddress.phone,
-          street: guestAddress.street,
-          city: guestAddress.city,
-          postalCode: guestAddress.postalCode,
-          country: guestAddress.country,
-          province: guestAddress.province,
+          fullName: guestAddressDoc.fullName,
+          email: guestAddressDoc.email,
+          phone: guestAddressDoc.phone,
+          street: guestAddressDoc.street,
+          city: guestAddressDoc.city,
+          postalCode: guestAddressDoc.postalCode,
+          country: guestAddressDoc.country,
+          province: guestAddressDoc.province,
         };
       }
     }
