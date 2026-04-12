@@ -96,6 +96,18 @@ function shouldRateLimit(request: NextRequest) {
   return !EXEMPT_PATHS.some((path) => request.nextUrl.pathname.startsWith(path));
 }
 
+function shouldRedirectToPrimaryDomain(request: NextRequest) {
+  const hostname = request.nextUrl.hostname.toLowerCase();
+  return hostname.includes(".vercel.app");
+}
+
+function redirectToPrimaryDomain(request: NextRequest) {
+  const redirectUrl = request.nextUrl.clone();
+  redirectUrl.protocol = "https:";
+  redirectUrl.host = "postergenius.ca";
+  return NextResponse.redirect(redirectUrl, 301);
+}
+
 function consumeRateLimit(key: string, config: RateLimitConfig) {
   const now = Date.now();
 
@@ -126,7 +138,7 @@ function consumeRateLimit(key: string, config: RateLimitConfig) {
   };
 }
 
-export default clerkMiddleware(async (_auth, request) => {
+const clerkHandler = clerkMiddleware(async (_auth, request) => {
   if (shouldRateLimit(request)) {
     const identifier = getClientIdentifier(request);
     const config = getRateLimitConfig(request.nextUrl.pathname);
@@ -166,6 +178,14 @@ export default clerkMiddleware(async (_auth, request) => {
 
   return response;
 });
+
+export default function middleware(request: NextRequest) {
+  if (shouldRedirectToPrimaryDomain(request)) {
+    return redirectToPrimaryDomain(request);
+  }
+
+  return clerkHandler(request);
+}
 
 export const config = {
   matcher: [
