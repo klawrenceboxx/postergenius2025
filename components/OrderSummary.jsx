@@ -455,7 +455,7 @@ const OrderSummary = ({ shippingQuote: shippingOverride }) => {
 
       if (data?.valid) {
         setPromoResult(data);
-        setPromoCode(data.promoCode || trimmedCode);
+        setPromoCode((data.promoCode || trimmedCode).toUpperCase());
         setPromoCartSignature(
           promoCartSignatureFromPayload(promoCartPayload)
         );

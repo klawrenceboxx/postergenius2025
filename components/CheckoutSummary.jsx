@@ -61,6 +61,8 @@ const promoSignature = (cartPayload) => {
   ).toFixed(2)}|${itemsSignature}`;
 };
 
+const normalizePromoCodeInput = (value = "") => value.toUpperCase();
+
 const hasGuestAddressDetails = (guestAddress) =>
   Boolean(
     guestAddress &&
@@ -299,7 +301,7 @@ export default function CheckoutSummary({
 
       if (data?.valid) {
         setPromoResult(data);
-        setPromoCode(data.promoCode || trimmedCode);
+        setPromoCode(normalizePromoCodeInput(data.promoCode || trimmedCode));
         setPromoCartSignature(promoSignature(promoCartPayload));
         toast.success(data.message || "Promo applied");
       } else {
@@ -484,7 +486,11 @@ export default function CheckoutSummary({
               placeholder="Enter promo code"
               className={inputCls}
               value={promoCode}
-              onChange={(event) => setPromoCode(event.target.value)}
+              onChange={(event) =>
+                setPromoCode(normalizePromoCodeInput(event.target.value))
+              }
+              autoCapitalize="characters"
+              spellCheck={false}
               disabled={isApplyingPromo}
             />
             <button
