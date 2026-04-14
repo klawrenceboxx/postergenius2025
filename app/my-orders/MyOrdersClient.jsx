@@ -47,7 +47,18 @@ export default function MyOrdersClient() {
 
       try {
         setConfirming(true);
-        const { data } = await axios.post("/api/stripe/confirm", { sessionId });
+        let data = null;
+
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          const response = await axios.post("/api/stripe/confirm", { sessionId });
+          data = response.data;
+
+          if (!data?.success || data?.orderReady || attempt === 7) {
+            break;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
 
         if (ignore) return;
 
@@ -57,6 +68,14 @@ export default function MyOrdersClient() {
 
           if (!user && data?.orderAccessUrl) {
             router.replace(data.orderAccessUrl);
+            return;
+          }
+
+          if (!data?.orderReady) {
+            router.replace(pathname || "/my-orders");
+            toast.success(
+              "Payment received. Your order is still finalizing and should appear shortly."
+            );
             return;
           }
 

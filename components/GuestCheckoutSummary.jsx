@@ -326,11 +326,6 @@ export default function GuestCheckoutSummary({
   };
 
   const startCheckout = async () => {
-    if (!stripeClient) {
-      toast.error("Stripe is still loading. Please try again.");
-      return;
-    }
-
     if (!cartItemsArray.length) {
       toast.error("Your cart is empty");
       return;
@@ -388,8 +383,18 @@ export default function GuestCheckoutSummary({
         { headers }
       );
 
-      if (!data?.success || !data?.sessionId) {
+      if (!data?.success || (!data?.sessionId && !data?.url)) {
         toast.error(data?.message || "Unable to start checkout");
+        return;
+      }
+
+      if (data?.url) {
+        window.location.assign(data.url);
+        return;
+      }
+
+      if (!stripeClient) {
+        toast.error("Unable to load Stripe checkout");
         return;
       }
 

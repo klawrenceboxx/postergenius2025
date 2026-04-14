@@ -420,7 +420,7 @@ const OrderSummary = ({ shippingQuote: shippingOverride }) => {
   }, [promoCartPayload, promoCartSignature, promoResult?.valid]);
 
   const handlePromoInputChange = (event) => {
-    const value = event.target.value;
+    const value = event.target.value.toUpperCase();
     setPromoCode(value);
 
     if (
@@ -578,6 +578,8 @@ const OrderSummary = ({ shippingQuote: shippingOverride }) => {
                 className={inputCls}
                 value={promoCode}
                 onChange={handlePromoInputChange}
+                autoCapitalize="characters"
+                spellCheck={false}
                 disabled={isApplyingPromo}
               />
               <button

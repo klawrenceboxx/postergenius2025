@@ -235,11 +235,20 @@ export async function POST(req) {
         metadata.orderType || (hasPhysical ? "physical" : "digital");
 
       const subtotal = toNumber(session.amount_subtotal, 0) / 100;
-      const amount = toNumber(session.amount_total, 0) / 100;
-      const tax =
-        session.total_details?.amount_tax != null
-          ? toNumber(session.total_details.amount_tax) / 100
-          : Math.max(0, amount - subtotal);
+      const metadataSubtotal = toNumber(metadata.subtotalAmount, NaN);
+      const metadataTax = toNumber(metadata.taxAmount, NaN);
+      const metadataTotal = toNumber(metadata.totalAmount, NaN);
+      const amount = Number.isFinite(metadataTotal)
+        ? metadataTotal
+        : toNumber(session.amount_total, 0) / 100;
+      const tax = Number.isFinite(metadataTax)
+        ? metadataTax
+        : session.total_details?.amount_tax != null
+        ? toNumber(session.total_details.amount_tax) / 100
+        : Math.max(0, amount - subtotal);
+      const orderSubtotal = Number.isFinite(metadataSubtotal)
+        ? metadataSubtotal
+        : Math.max(subtotal - tax, 0);
 
       const shippingCost =
         shippingMeta && shippingMeta.rate != null
@@ -266,7 +275,7 @@ export async function POST(req) {
         cartSnapshot: validEntries,
         shippingAddressSnapshot:
           shippingAddressSnapshot || recipientSnapshot || undefined,
-        subtotal,
+        subtotal: orderSubtotal,
         tax,
         amount,
         date: Date.now(),
@@ -277,7 +286,8 @@ export async function POST(req) {
           shippingCost != null && Number.isFinite(shippingCost)
             ? shippingCost
             : undefined,
-        shippingCurrency: shippingMeta?.currency || undefined,
+        shippingCurrency:
+          metadata.currency || shippingMeta?.currency || session.currency || undefined,
         shippingService: shippingMeta?.name || undefined,
         shippingRateId: shippingMeta?.id || undefined,
         digitalDownloads: digitalDownloads.length
@@ -496,7 +506,8 @@ export async function POST(req) {
           orderId: newOrder._id,
           orderNumber,
           createdAt: newOrder.createdAt || new Date(),
-          currency: shippingMeta?.currency || session.currency || "CAD",
+          currency:
+            metadata.currency || shippingMeta?.currency || session.currency || "CAD",
           totalPrice: amount,
           fulfillmentStatus:
             orderType === "physical" ? "unfulfilled" : "fulfilled",

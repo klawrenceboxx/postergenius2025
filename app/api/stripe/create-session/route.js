@@ -18,6 +18,11 @@ import {
 import { applyPromo } from "@/lib/promoCode";
 import { STORE_EVENT_TYPES, recordStoreEvents } from "@/lib/storeEvents";
 import {
+  buildStripeCouponPayload,
+  buildStripeTaxLineItem,
+  getStripeCurrency,
+} from "@/lib/stripeCheckout";
+import {
   sanitizeEnum,
   sanitizeIdentifier,
   sanitizeNumber,
@@ -27,6 +32,7 @@ import {
 } from "@/lib/security/input";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const STRIPE_CURRENCY = getStripeCurrency();
 
 function extractGuestId(request, body = {}) {
   return sanitizeIdentifier(body?.guestId || request.headers.get("x-guest-id"), {
@@ -190,7 +196,7 @@ export async function POST(request) {
 
       lineItems.push({
         price_data: {
-          currency: "cad",
+          currency: STRIPE_CURRENCY,
           product_data: { name: nameSegments.filter(Boolean).join(" – ") },
           unit_amount: Math.round(unitPrice * 100),
         },
@@ -240,7 +246,7 @@ export async function POST(request) {
     let customerEmail = requestedCustomerEmail || "";
     let shippingAmount = 0;
     let originalShippingAmount = 0;
-    let shippingCurrency = "usd";
+    let shippingCurrency = STRIPE_CURRENCY;
     let shippingLineItem = null;
 
     if (hasPhysicalItems && !address && !guestId) {
@@ -320,7 +326,7 @@ export async function POST(request) {
 
         originalShippingAmount = Math.max(computedShipping, 0);
         shippingAmount = originalShippingAmount;
-        shippingCurrency = (chosenRate.currency || "USD").toLowerCase();
+        shippingCurrency = STRIPE_CURRENCY;
         shippingLineItem =
           shippingAmount > 0
             ? {
@@ -438,6 +444,11 @@ export async function POST(request) {
       shippingAmount = 0;
     }
 
+    const taxLineItem = buildStripeTaxLineItem(tax, STRIPE_CURRENCY);
+    if (taxLineItem) {
+      lineItems.push(taxLineItem);
+    }
+
     if (shippingLineItem) {
       lineItems.push(shippingLineItem);
     }
@@ -453,35 +464,13 @@ export async function POST(request) {
       : totalBeforeDiscount;
 
     let couponId = null;
-    if (
-      promoResult.valid &&
-      promoResult.discount > 0 &&
-      promoResult.promoType !== "shipping"
-    ) {
-      const appliedDiscount = Math.max(Number(promoResult.discount ?? 0), 0);
-
-      if (promoResult.promoType === "percent") {
-        const percentOff = Math.min(
-          Math.max(Number(promoResult.promoValue ?? 0), 0),
-          100
-        );
-
-        if (percentOff > 0) {
-          const coupon = await stripe.coupons.create({
-            percent_off: percentOff,
-            duration: "once",
-          });
-          couponId = coupon.id;
-        }
-      } else if (appliedDiscount > 0) {
-        const amountOffCents = Math.round(appliedDiscount * 100);
-        const coupon = await stripe.coupons.create({
-          amount_off: amountOffCents,
-          currency: "usd",
-          duration: "once",
-        });
-        couponId = coupon.id;
-      }
+    const couponPayload = buildStripeCouponPayload(
+      promoResult,
+      STRIPE_CURRENCY
+    );
+    if (couponPayload) {
+      const coupon = await stripe.coupons.create(couponPayload);
+      couponId = coupon.id;
     }
 
     const orderType = hasPhysicalItems ? "physical" : "digital";
@@ -492,12 +481,16 @@ export async function POST(request) {
       const paymentAmountCents = Math.round(Math.max(safeFinalTotal, 0) * 100);
       const paymentIntent = await stripe.paymentIntents.create({
         amount: paymentAmountCents,
-        currency: "usd",
+        currency: STRIPE_CURRENCY,
         metadata: {
           ...(userId ? { userId } : {}),
           ...(guestId ? { guestId } : {}),
           ...(address ? { address } : {}),
           items: JSON.stringify(items),
+          subtotalAmount: subtotal.toFixed(2),
+          taxAmount: tax.toFixed(2),
+          totalAmount: safeFinalTotal.toFixed(2),
+          currency: STRIPE_CURRENCY,
           ...(shippingAddressSnapshot
             ? { shippingAddressSnapshot: JSON.stringify(shippingAddressSnapshot) }
             : {}),
@@ -535,6 +528,10 @@ export async function POST(request) {
           }))
         ),
         orderType,
+        subtotalAmount: subtotal.toFixed(2),
+        taxAmount: tax.toFixed(2),
+        totalAmount: safeFinalTotal.toFixed(2),
+        currency: STRIPE_CURRENCY,
       };
 
       if (shippingAddressSnapshot) {
