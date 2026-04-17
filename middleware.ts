@@ -53,6 +53,12 @@ const EXEMPT_PATHS = [
   "/api/inngest",
 ];
 
+const hasClerkMiddlewareKey = Boolean(
+  process.env.CLERK_SECRET_KEY ||
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY ||
+    process.env.CLERK_PUBLISHABLE_KEY
+);
+
 declare global {
   var __posterGeniusRateLimitStore: Map<string, RateLimitEntry> | undefined;
 }
@@ -138,7 +144,7 @@ function consumeRateLimit(key: string, config: RateLimitConfig) {
   };
 }
 
-const clerkHandler = clerkMiddleware(async (_auth, request) => {
+function handleRequest(request: NextRequest) {
   if (shouldRateLimit(request)) {
     const identifier = getClientIdentifier(request);
     const config = getRateLimitConfig(request.nextUrl.pathname);
@@ -177,11 +183,22 @@ const clerkHandler = clerkMiddleware(async (_auth, request) => {
   }
 
   return response;
-});
+}
+
+const clerkHandler = hasClerkMiddlewareKey
+  ? clerkMiddleware(async (_auth, request) => handleRequest(request))
+  : (request: NextRequest) => handleRequest(request);
 
 export default function middleware(request: NextRequest) {
   if (shouldRedirectToPrimaryDomain(request)) {
     return redirectToPrimaryDomain(request);
+  }
+
+  if (request.nextUrl.pathname.startsWith("/track-order")) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/my-orders";
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl, 307);
   }
 
   return clerkHandler(request);

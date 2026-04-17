@@ -21,9 +21,12 @@ export async function GET(request) {
     const orderId = sanitizeIdentifier(searchParams.get("orderId"), {
       maxLength: 64,
     });
+    const guestId = sanitizeIdentifier(request.headers.get("x-guest-id"), {
+      maxLength: 128,
+    });
 
     if (!userId) {
-      if (!accessToken && !(lookupToken && orderId)) {
+      if (!guestId && !accessToken && !(lookupToken && orderId)) {
         return NextResponse.json(
           { success: false, message: "Unauthorized" },
           { status: 401 }
@@ -61,6 +64,8 @@ export async function GET(request) {
     };
     const identityQuery = userId
       ? { userId }
+      : guestId
+      ? { guestId }
       : lookupToken && orderId
       ? {
           _id: orderId,
