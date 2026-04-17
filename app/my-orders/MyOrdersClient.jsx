@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -28,7 +27,8 @@ function resolveProductId(item) {
 export default function MyOrdersClient() {
   const pathname = usePathname();
   const router = useRouter();
-  const { getToken, user, setCartItems, fetchCart, currency } = useAppContext();
+  const { getToken, user, setCartItems, fetchCart, currency, ensureGuestId } =
+    useAppContext();
   const searchParams = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,11 +65,6 @@ export default function MyOrdersClient() {
         if (data?.success) {
           setCartItems({});
           await fetchCart({ createGuestIfMissing: false });
-
-          if (!user && data?.orderAccessUrl) {
-            router.replace(data.orderAccessUrl);
-            return;
-          }
 
           if (!data?.orderReady) {
             router.replace(pathname || "/my-orders");
@@ -119,14 +114,21 @@ export default function MyOrdersClient() {
       try {
         setLoading(true);
 
-        if (!user) {
-          if (!ignore) setOrders([]);
-          return;
+        const headers = {};
+        if (user) {
+          const token = await getToken();
+          headers.Authorization = `Bearer ${token}`;
+        } else {
+          const guestId = await ensureGuestId();
+          if (!guestId) {
+            if (!ignore) setOrders([]);
+            return;
+          }
+          headers["x-guest-id"] = guestId;
         }
 
-        const token = await getToken();
         const { data } = await axios.get("/api/order/list", {
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
         });
 
         if (!ignore) {
@@ -154,9 +156,9 @@ export default function MyOrdersClient() {
     return () => {
       ignore = true;
     };
-  }, [confirming, getToken, user]);
+  }, [confirming, ensureGuestId, getToken, user]);
 
-  const downloadItem = async (item, order) => {
+  const downloadItem = async (item) => {
     const productId = resolveProductId(item);
     if (!productId) {
       toast.error("Download unavailable for this item");
@@ -166,8 +168,20 @@ export default function MyOrdersClient() {
     try {
       setDownloading(productId);
       const params = new URLSearchParams({ productId });
+      const headers = {};
 
-      const { data } = await axios.get(`/api/download-link?${params.toString()}`);
+      if (!user) {
+        const guestId = await ensureGuestId();
+        if (!guestId) {
+          toast.error("Guest session expired. Please sign in to recover this order.");
+          return;
+        }
+        headers["x-guest-id"] = guestId;
+      }
+
+      const { data } = await axios.get(`/api/download-link?${params.toString()}`, {
+        headers,
+      });
       if (data?.success && data?.url) {
         window.location.href = data.url;
       } else {
@@ -197,25 +211,6 @@ export default function MyOrdersClient() {
           {confirming || loading ? (
             <div className="py-12">
               <Loading />
-            </div>
-          ) : !user ? (
-            <div className="mt-8 rounded-2xl border border-stone-200 bg-white p-8 shadow-sm">
-              <h2 className="text-xl font-semibold text-blackhex">
-                Guest order access
-              </h2>
-              <p className="mt-3 max-w-2xl text-sm text-stone-600">
-                Guest orders are now accessed one order at a time using your email
-                address and order number. This keeps download and tracking access
-                scoped to the exact order you requested.
-              </p>
-              <div className="mt-6">
-                <Link
-                  href="/track-order"
-                  className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-white"
-                >
-                  Go to Track Order
-                </Link>
-              </div>
             </div>
           ) : orders.length === 0 ? (
             <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-sm text-gray-600">
@@ -309,7 +304,7 @@ export default function MyOrdersClient() {
                               {canDownload && (
                                 <button
                                   type="button"
-                                  onClick={() => downloadItem(item, order)}
+                                  onClick={() => downloadItem(item)}
                                   disabled={!productId || downloading === productId}
                                   className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
                                 >
