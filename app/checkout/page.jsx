@@ -320,8 +320,8 @@ export default function CheckoutPage() {
                     <p className="mt-2 text-sm leading-6 text-stone-600">
                       We use these details to fulfill your order, send your
                       confirmation, and let you retrieve guest purchases later from{" "}
-                      <Link href="/track-order" className="font-semibold text-primary">
-                        Track Order
+                      <Link href="/my-orders" className="font-semibold text-primary">
+                        My Orders
                       </Link>
                       .
                     </p>
@@ -363,7 +363,7 @@ export default function CheckoutPage() {
                       <p>Secure payment is handled by Stripe.</p>
                       <p className="mt-1">
                         Physical orders receive shipping updates. Digital orders
-                        can be retrieved from Track Order or downloaded from the
+                        can be retrieved from My Orders or downloaded from the
                         order page after purchase.
                       </p>
                     </div>

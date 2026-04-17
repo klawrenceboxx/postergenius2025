@@ -614,6 +614,15 @@ export const AppContextProvider = (props) => {
           const token = await getToken();
           if (token) {
             await axios.post(
+              "/api/order/claim-guest",
+              { guestId: guestIdToMerge },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+            await axios.post(
               "/api/cart/merge",
               { guestId: guestIdToMerge },
               {

@@ -637,7 +637,7 @@ export default function GuestCheckoutSummary({
         </button>
         <p className="mt-3 text-center text-xs leading-5 text-stone-500">
           Secure payment handled by Stripe. Guest buyers can retrieve orders any
-          time from Track Order using email plus order number.
+          time from My Orders in this browser session.
         </p>
       </div>
     </div>
