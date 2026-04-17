@@ -184,6 +184,13 @@ export default function middleware(request: NextRequest) {
     return redirectToPrimaryDomain(request);
   }
 
+  if (request.nextUrl.pathname.startsWith("/track-order")) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/my-orders";
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl, 307);
+  }
+
   return clerkHandler(request);
 }
 
