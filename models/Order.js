@@ -78,8 +78,8 @@ const orderSchema = new mongoose.Schema(
     status: { type: String, required: true, default: "Order Placed" },
     date: { type: Number },
     stripeSessionId: { type: String, unique: true }, // Add this field
-    guestAccessToken: { type: String, index: true },
-    guestLookupTokenHash: { type: String, index: true },
+    guestAccessToken: { type: String },
+    guestLookupTokenHash: { type: String },
     guestLookupTokenExpiresAt: { type: Date },
     shippingCost: { type: Number },
     shippingCurrency: { type: String },

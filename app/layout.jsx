@@ -1,11 +1,9 @@
 import Image from "next/image";
 import Script from "next/script";
 import "./globals.css";
-import { AppContextProvider } from "@/context/AppContext";
-import { Toaster } from "react-hot-toast";
-import { ClerkProvider } from "@clerk/nextjs";
 import { Poppins } from "next/font/google";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
+import Providers from "./providers";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -16,7 +14,6 @@ const poppins = Poppins({
 
 const posthogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 const posthogHost = process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
-
 export const metadata = {
   icons: {
     icon: "/PG.svg", // Path to your favicon.ico in the public directory
@@ -31,9 +28,8 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <head>
+    <html lang="en">
+      <head>
           <link rel="preconnect" href="https://clerk.postergenius.ca" crossOrigin="" />
           {posthogKey ? <link rel="preconnect" href={posthogHost} crossOrigin="" /> : null}
           {/* Google Analytics 4 setup */}
@@ -112,20 +108,16 @@ export default function RootLayout({ children }) {
               unoptimized
             />
           </noscript>
-        </head>
-        <body
-          className={`${poppins.variable} font-sans text-blackhex antialiased`}
-        >
-          {/* Global toast notifications */}
-          <Toaster />
-          {/* Provide application context */}
-          <AppContextProvider>
-            <main className="mx-auto w-full max-w-content lg:px-0">
-              {children}
-            </main>
-          </AppContextProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+      </head>
+      <body
+        className={`${poppins.variable} font-sans text-blackhex antialiased`}
+      >
+        <Providers>
+          <main className="mx-auto w-full max-w-content lg:px-0">
+            {children}
+          </main>
+        </Providers>
+      </body>
+    </html>
   );
 }
