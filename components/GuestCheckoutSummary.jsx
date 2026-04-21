@@ -104,7 +104,7 @@ export default function GuestCheckoutSummary({
     [cartItemsArray]
   );
   const guestCheckoutReady =
-    guestCheckoutState?.ready ?? hasRequiredGuestCheckoutDetails(guestAddress);
+    guestCheckoutState?.ready ?? hasRequiredGuestCheckoutDetails(guestAddress, { isDigitalOnly: !hasPhysicalItems });
 
   const cartItemPreviews = useMemo(
     () =>

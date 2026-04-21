@@ -8,7 +8,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import GuestCheckoutSummary from "@/components/GuestCheckoutSummary";
 import { useAppContext } from "@/context/AppContext";
-import { validateGuestCheckoutDetails } from "@/lib/guestCheckout";
+import { validateGuestCheckoutDetails, GUEST_ADDRESS_FIELDS } from "@/lib/guestCheckout";
 
 const EMPTY_GUEST_ADDRESS = {
   fullName: "",
@@ -68,7 +68,15 @@ const fieldOrder = [
 ];
 
 export default function CheckoutPage() {
-  const { user, ensureGuestId, fetchGuestAddress, shippingQuote } = useAppContext();
+  const { user, ensureGuestId, fetchGuestAddress, shippingQuote, cartItems } = useAppContext();
+
+  const isDigitalOnly = useMemo(() => {
+    const entries = Object.values(cartItems || {});
+    if (!entries.length) return false;
+    return entries.every(
+      (entry) => String(entry?.format || "").toLowerCase() === "digital"
+    );
+  }, [cartItems]);
   const [formValues, setFormValues] = useState(EMPTY_GUEST_ADDRESS);
   const [guestId, setGuestId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,8 +128,9 @@ export default function CheckoutPage() {
       validateGuestCheckoutDetails(formValues, {
         acceptPolicies,
         requirePolicies: true,
+        isDigitalOnly,
       }),
-    [acceptPolicies, formValues]
+    [acceptPolicies, formValues, isDigitalOnly]
   );
 
   const guestCheckoutReady = Object.keys(validationErrors).length === 0;
@@ -155,6 +164,7 @@ export default function CheckoutPage() {
     const nextErrors = validateGuestCheckoutDetails(formValues, {
       acceptPolicies,
       requirePolicies: true,
+      isDigitalOnly,
     });
 
     setFieldErrors(nextErrors);
@@ -179,6 +189,7 @@ export default function CheckoutPage() {
       const { data } = await axios.post("/api/guest/save-address", {
         guestId: activeGuestId,
         addressData: formValues,
+        isDigitalOnly,
       });
 
       if (!data?.success) {
@@ -265,10 +276,12 @@ export default function CheckoutPage() {
                     <div className="flex items-center justify-between gap-3 border-b border-stone-200 pb-4">
                       <div>
                         <h2 className="text-2xl font-bold tracking-[-0.03em] text-blackhex">
-                          Contact and delivery details
+                          {isDigitalOnly ? "Contact details" : "Contact and delivery details"}
                         </h2>
                         <p className="mt-2 text-sm text-stone-600">
-                          Required for all guest orders, including digital downloads.
+                          {isDigitalOnly
+                            ? "Required for your order confirmation and download access."
+                            : "Required for all guest orders, including digital downloads."}
                         </p>
                       </div>
                       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">
@@ -277,7 +290,9 @@ export default function CheckoutPage() {
                     </div>
 
                     <div className="mt-6 grid gap-4 md:grid-cols-2">
-                      {fieldOrder.map(({ name, label, type, autoComplete }) => (
+                      {fieldOrder.filter(({ name }) =>
+                        isDigitalOnly ? !GUEST_ADDRESS_FIELDS.includes(name) : true
+                      ).map(({ name, label, type, autoComplete }) => (
                         <div
                           key={name}
                           className={name === "street" ? "md:col-span-2" : ""}

@@ -7,7 +7,7 @@ import {
   sanitizePlainText,
 } from "@/lib/security/input";
 
-const REQUIRED_FIELDS = [
+const REQUIRED_FIELDS_PHYSICAL = [
   "fullName",
   "email",
   "phone",
@@ -17,6 +17,8 @@ const REQUIRED_FIELDS = [
   "country",
   "province",
 ];
+
+const REQUIRED_FIELDS_DIGITAL = ["fullName", "email", "phone"];
 
 function normalizeAddressPayload(addressData = {}) {
   return {
@@ -36,7 +38,7 @@ function validateRequestBody(body) {
     return { valid: false, message: "Invalid request payload" };
   }
 
-  const { guestId, addressData } = body;
+  const { guestId, addressData, isDigitalOnly = false } = body;
 
   const normalizedGuestId = sanitizeIdentifier(guestId, { maxLength: 128 });
 
@@ -49,7 +51,8 @@ function validateRequestBody(body) {
   }
 
   const normalized = normalizeAddressPayload(addressData);
-  const missing = REQUIRED_FIELDS.filter((field) => !normalized[field]);
+  const requiredFields = isDigitalOnly ? REQUIRED_FIELDS_DIGITAL : REQUIRED_FIELDS_PHYSICAL;
+  const missing = requiredFields.filter((field) => !normalized[field]);
 
   if (missing.length > 0) {
     return {

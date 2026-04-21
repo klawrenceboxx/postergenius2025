@@ -80,20 +80,18 @@ function sanitizeCheckoutItems(items = []) {
     .filter(Boolean);
 }
 
-function isGuestAddressComplete(addressDoc) {
-  return Boolean(
-    addressDoc &&
-      [
-        addressDoc.fullName,
-        addressDoc.email,
-        addressDoc.phone,
-        addressDoc.street,
-        addressDoc.city,
-        addressDoc.postalCode,
-        addressDoc.country,
-        addressDoc.province,
-      ].every(Boolean)
-  );
+function isGuestAddressComplete(addressDoc, { isDigitalOnly = false } = {}) {
+  if (!addressDoc) return false;
+  const contactFields = [addressDoc.fullName, addressDoc.email, addressDoc.phone];
+  if (isDigitalOnly) return contactFields.every(Boolean);
+  return [
+    ...contactFields,
+    addressDoc.street,
+    addressDoc.city,
+    addressDoc.postalCode,
+    addressDoc.country,
+    addressDoc.province,
+  ].every(Boolean);
 }
 
 export async function POST(request) {
@@ -136,7 +134,13 @@ export async function POST(request) {
       ? await GuestAddress.findOne({ guestId }).lean()
       : null;
 
-    if (guestId && !isGuestAddressComplete(guestAddressDoc)) {
+    // Determine digital-only after sanitizing items (need products for format)
+    // We check this early using item.format from the request itself
+    const allDigital =
+      items.length > 0 &&
+      items.every((i) => (i.format || "physical").toLowerCase() === "digital");
+
+    if (guestId && !isGuestAddressComplete(guestAddressDoc, { isDigitalOnly: allDigital })) {
       return NextResponse.json({
         success: false,
         message:
