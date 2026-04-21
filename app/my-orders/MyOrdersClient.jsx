@@ -204,7 +204,13 @@ export default function MyOrdersClient() {
             Downloads, fulfillment status, and tracking all live here.
           </p>
 
-          {confirming || loading ? (
+          {confirming && (
+            <div className="mt-6 rounded-2xl border border-secondary/20 bg-secondary/5 px-5 py-3 text-sm text-stone-600">
+              Confirming your payment…
+            </div>
+          )}
+
+          {loading ? (
             <div className="py-12">
               <Loading />
             </div>
