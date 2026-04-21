@@ -10,6 +10,7 @@ import Footer from "@/components/Footer";
 import Loading from "@/components/Loading";
 import { useAppContext } from "@/context/AppContext";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
+import { peekGuestId } from "@/lib/guestUtils";
 
 function formatOrderNumber(orderId) {
   return String(orderId || "").slice(-8).toUpperCase();
@@ -27,8 +28,7 @@ function resolveProductId(item) {
 export default function MyOrdersClient() {
   const pathname = usePathname();
   const router = useRouter();
-  const { getToken, user, setCartItems, fetchCart, currency, ensureGuestId } =
-    useAppContext();
+  const { getToken, user, setCartItems, fetchCart, currency } = useAppContext();
   const searchParams = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -119,7 +119,7 @@ export default function MyOrdersClient() {
           const token = await getToken();
           headers.Authorization = `Bearer ${token}`;
         } else {
-          const guestId = await ensureGuestId();
+          const guestId = peekGuestId();
           if (!guestId) {
             if (!ignore) setOrders([]);
             return;
@@ -152,7 +152,7 @@ export default function MyOrdersClient() {
     return () => {
       ignore = true;
     };
-  }, [confirming, ensureGuestId, getToken, user]);
+  }, [confirming, getToken, user]);
 
   const downloadItem = async (item) => {
     const productId = resolveProductId(item);
@@ -167,7 +167,7 @@ export default function MyOrdersClient() {
       const headers = {};
 
       if (!user) {
-        const guestId = await ensureGuestId();
+        const guestId = peekGuestId();
         if (!guestId) {
           toast.error("Guest session expired. Please sign in to recover this order.");
           return;
