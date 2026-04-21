@@ -127,9 +127,7 @@ export default function MyOrdersClient() {
           headers["x-guest-id"] = guestId;
         }
 
-        const { data } = await axios.get("/api/order/list", {
-          headers,
-        });
+        const { data } = await axios.get("/api/order/list", { headers });
 
         if (!ignore) {
           if (data?.success) {
@@ -149,9 +147,7 @@ export default function MyOrdersClient() {
       }
     };
 
-    if (!confirming) {
-      loadOrders();
-    }
+    loadOrders();
 
     return () => {
       ignore = true;
