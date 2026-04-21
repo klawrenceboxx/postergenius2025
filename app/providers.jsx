@@ -9,6 +9,7 @@ const clerkPublishableKey =
   process.env.CLERK_PUBLISHABLE_KEY;
 
 export default function Providers({ children }) {
+<<<<<<< ours
   const content = (
     <>
       <Toaster />
@@ -21,4 +22,12 @@ export default function Providers({ children }) {
   }
 
   return <ClerkProvider publishableKey={clerkPublishableKey}>{content}</ClerkProvider>;
+=======
+  return (
+    <ClerkProvider publishableKey={clerkPublishableKey}>
+      <Toaster />
+      <AppContextProvider>{children}</AppContextProvider>
+    </ClerkProvider>
+  );
+>>>>>>> theirs
 }
