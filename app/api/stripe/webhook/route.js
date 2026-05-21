@@ -61,6 +61,8 @@ export async function POST(req) {
   }
 
   try {
+    console.log("[stripe-webhook] received event type:", event.type, "id:", event.data?.object?.id);
+
     if (event.type === "checkout.session.completed") {
       const session = event.data.object;
       const metadata = session.metadata || {};
@@ -78,6 +80,16 @@ export async function POST(req) {
         metadata.customerEmail ||
         shippingAddressSnapshot?.email ||
         null;
+
+      if (!customerEmail) {
+        console.warn("[stripe-webhook] customerEmail is null for session", session.id, {
+          customer_details_email: session.customer_details?.email,
+          customer_email: session.customer_email,
+          metadata_customerEmail: metadata.customerEmail,
+          shippingSnapshot_email: shippingAddressSnapshot?.email,
+        });
+      }
+
       const guestId = metadata.guestId || null;
 
       await connectDB();
@@ -224,6 +236,16 @@ export async function POST(req) {
           }
         }
       }
+
+      console.log("[stripe-webhook] digitalDownloads built", {
+        count: digitalDownloads.length,
+        itemFormats: validEntries.map((e) => e?.format),
+        digitalFileInfo: validEntries.map((e) => {
+          const pid = e?.productId || e?.product;
+          const p = productMap.get(pid?.toString?.());
+          return { id: pid, hasDigitalFileKey: !!p?.digitalFileKey, hasDigitalFileUrl: !!p?.digitalFileUrl };
+        }),
+      });
 
       if (orderItems.length === 0) {
         throw new Error(
@@ -528,6 +550,12 @@ export async function POST(req) {
             "omnisend_order_event_sent",
             "Sent Omnisend placed order event."
           );
+        } else {
+          console.warn("[stripe-webhook] Omnisend placed order event not sent", {
+            reason: omnisendResult.reason,
+            email: customerEmail,
+            orderId: String(newOrder._id),
+          });
         }
       } catch (omnisendError) {
         console.error("[stripe-webhook] Failed to send Omnisend order event", omnisendError);
@@ -563,6 +591,12 @@ export async function POST(req) {
               "omnisend_digital_ready_sent",
               "Sent Omnisend digital download ready event."
             );
+          } else {
+            console.warn("[stripe-webhook] Omnisend digital ready event not sent", {
+              reason: digitalEvent.reason,
+              email: customerEmail,
+              orderId: String(newOrder._id),
+            });
           }
         } catch (digitalEventError) {
           console.error(

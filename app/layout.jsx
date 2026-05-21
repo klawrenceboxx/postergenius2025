@@ -31,6 +31,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
           <link rel="preconnect" href="https://clerk.postergenius.ca" crossOrigin="" />
+          <link rel="preconnect" href="https://www.clarity.ms" crossOrigin="" />
           {posthogKey ? <link rel="preconnect" href={posthogHost} crossOrigin="" /> : null}
           {/* Google Analytics 4 setup */}
           <Script
@@ -78,6 +79,16 @@ export default function RootLayout({ children }) {
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
               gtag('config', 'G-WS50WJJDNT');
+            `}
+          </Script>
+
+          <Script id="microsoft-clarity" strategy="afterInteractive">
+            {`
+              (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+              })(window, document, "clarity", "script", "wumm0o21ez");
             `}
           </Script>
 
