@@ -4,6 +4,7 @@ import "./globals.css";
 import { Poppins } from "next/font/google";
 import { getOptimizedImageProps } from "@/lib/imageUtils";
 import Providers from "./providers";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -133,6 +134,7 @@ export default function RootLayout({ children }) {
             {children}
           </main>
         </Providers>
+        <SpeedInsights />
 
         {/* Moved <noscript> fallback inside the body to prevent Next.js build errors */}
         <noscript>
