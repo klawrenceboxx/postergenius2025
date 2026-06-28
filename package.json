@@ -16,6 +16,7 @@
     "@clerk/nextjs": "^6.25.3",
     "@stripe/react-stripe-js": "^3.7.0",
     "@stripe/stripe-js": "^7.5.0",
+    "@vercel/speed-insights": "^2.0.0",
     "axios": "^1.10.0",
     "cloudinary": "^2.7.0",
     "dotenv": "^17.2.3",
